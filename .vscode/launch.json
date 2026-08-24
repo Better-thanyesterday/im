@@ -1,6 +1,7 @@
 {
     "version": "0.2.0",
     "configurations": [
+
         {
             "name": "Debug Message",
             "type": "go",
@@ -23,8 +24,8 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${workspaceFolder}/app/gateway/gateway.go",
-            "cwd": "${workspaceFolder}/app/gateway",
+            "program": "${workspaceFolder}/app/gateway/api/gateway.go",
+            "cwd": "${workspaceFolder}/app/gateway/api",
             "args": [
                 "-f",
                 "etc/gateway-api.yaml"

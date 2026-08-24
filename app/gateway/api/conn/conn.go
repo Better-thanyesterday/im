@@ -1,10 +1,10 @@
 package conn
 
 import (
+	"github.com/gorilla/websocket"
+	"github.com/zeromicro/go-zero/core/logx"
 	"sync"
 	"time"
-	"github.com/zeromicro/go-zero/core/logx"
-	"github.com/gorilla/websocket"
 )
 
 type SendResult int
@@ -27,9 +27,10 @@ type Conn struct {
 
 	closeOnce sync.Once
 	closed    chan struct{}
+	onClose   func(c *Conn)
 }
 
-func NewConn(userId int64, deviceType int32, ws *websocket.Conn) *Conn {
+func NewConn(userId int64, deviceType int32, ws *websocket.Conn, onclose func(c *Conn)) *Conn {
 	return &Conn{
 		userId:      userId,
 		deviceType:  deviceType,
@@ -38,6 +39,7 @@ func NewConn(userId int64, deviceType int32, ws *websocket.Conn) *Conn {
 		remoteAddr:  ws.RemoteAddr().String(),
 		connectedAt: time.Now(),
 		closed:      make(chan struct{}),
+		onClose:     onclose,
 	}
 }
 
@@ -55,18 +57,20 @@ func (c *Conn) Send(data []byte) SendResult {
 		return SendQueueFull
 	}
 }
-func (c *Conn) Key() string          { return ConnKey(c.userId, c.deviceType) }
-func (c *Conn) UserId() int64        { return c.userId }
-func (c *Conn) DeviceType() int32    { return c.deviceType }
-func (c *Conn) RemoteAddr() string   { return c.remoteAddr }
+func (c *Conn) Key() string            { return ConnKey(c.userId, c.deviceType) }
+func (c *Conn) UserId() int64          { return c.userId }
+func (c *Conn) DeviceType() int32      { return c.deviceType }
+func (c *Conn) RemoteAddr() string     { return c.remoteAddr }
 func (c *Conn) ConnectedAt() time.Time { return c.connectedAt }
-
 
 // Close 幂等关闭，任意 goroutine 可安全调用
 func (c *Conn) Close() {
 	c.closeOnce.Do(func() {
 		close(c.closed)
 		c.ws.Close()
+		if c.onClose != nil {
+			c.onClose(c)
+		}
 	})
 }
 
@@ -97,14 +101,14 @@ func (c *Conn) WritePump() {
 		select {
 		case <-c.closed:
 			return
-		case data:= <-c.send:
+		case data := <-c.send:
 			c.ws.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			if err := c.ws.WriteMessage(websocket.BinaryMessage, data); err != nil {
 				return
 			}
 		case <-ticker.C:
 			c.ws.SetWriteDeadline(time.Now().Add(10 * time.Second))
-			if err:=c.ws.WriteMessage(websocket.PingMessage,nil);err!=nil {
+			if err := c.ws.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
 		}

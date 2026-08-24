@@ -1,11 +1,14 @@
 package handler
 
 import (
+	"context"
+	"fmt"
 	"im-platform/app/gateway/api/conn"
 	"im-platform/app/gateway/api/internal/logic"
 	"im-platform/app/gateway/api/internal/svc"
 	"im-platform/common/middleware"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/websocket"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -34,14 +37,47 @@ func WsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			connect.Close()
 			return
 		}
-		c := conn.NewConn(userId, deviceType, connect)
-		svcCtx.ConnManager.Add(c)
-		go c.WritePump()
-		c.ReadPump(func(data []byte) {
-			// TODO: 上行消息分发（聊天消息、心跳上报等），先记录日志
-			logx.Infof("ws message | user=%d device=%d len=%d", userId, deviceType, len(data))
-			logic.HandleFrame(svcCtx,c,data)
+		//回调下线
+		c := conn.NewConn(userId, deviceType, connect, func(c *conn.Conn) {
+			onConnClosed(svcCtx, c)
 		})
-		defer svcCtx.ConnManager.RemoveConn(c)
+		l := logic.NewWsConnectLogic(r.Context(), svcCtx)
+		l.Register(c)
+		defer func() {
+			if _, ok := svcCtx.ConnManager.Get(userId, deviceType); ok {
+				svcCtx.ConnManager.RemoveConn(c)
+			}
+		}()
 	}
+}
+
+// onConnClosed：连接断开后的清理
+func onConnClosed(svcCtx *svc.ServiceContext, c *conn.Conn) {
+	// 1. 从本地连接管理器移除
+	bucket := svcCtx.ConnManager.BucketOf(c.UserId())
+	bucket.Mu.Lock()
+	defer bucket.Mu.Unlock()
+	k := conn.ConnKey(c.UserId(),c.DeviceType())
+	// 注意：只有当前连接还在 map 里才删（防止新连接把旧连接覆盖了，旧连接的 onClose 误删新连接）
+	if cur, ok := bucket.Conns[k]; ok && cur == c { // 只有自己还在 map 里才删
+		delete(bucket.Conns, k)
+	}
+	// 2. 清 Redis 在线状态
+	key := fmt.Sprintf("im:online:%d", c.UserId())
+	if _, err := svcCtx.Redis.Hdel(key, fmt.Sprintf("%d", c.DeviceType())); err != nil {
+		logx.Errorf("redis hdel failed | user=%d device=%d err=%v", c.UserId(), c.DeviceType(), err)
+	}
+	//
+	offlineKey := fmt.Sprintf("im:offline:%d", c.UserId())
+	err := svcCtx.Redis.HsetCtx(context.Background(), offlineKey, strconv.FormatInt(int64(c.DeviceType()), 10), svcCtx.Config.Gateway.GrpcAddr)
+	if err != nil {
+		logx.Errorf("set offline failed")
+	}
+	svcCtx.Redis.ExpireCtx(context.Background(),offlineKey,900)
+	// 3. 如果该用户所有设备都下线了，删除整个 key
+	// if n, _ := g.redis.Hlen(key); n == 0 {
+	// 	g.redis.Del(key)
+	// }
+
+	logx.Infof("conn closed & online cleared | user=%d device=%d", c.UserId(), c.DeviceType())
 }

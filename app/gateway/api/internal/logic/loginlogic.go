@@ -48,11 +48,11 @@ func (l *LoginLogic) Login(req *types.LoginReq) (resp *types.LoginResp, err erro
 		DeviceType: req.DeviceType,
 	}, time.Hour*24)
 	onlineKey := fmt.Sprintf("im:online:%d", loginResp.Userid)
-	l.svcCtx.Redis.HsetCtx(l.ctx, onlineKey, strconv.FormatInt(int64(req.DeviceType), 10), l.svcCtx.Config.Gateway.GrpcAddr)
-	err = l.svcCtx.Redis.ExpireCtx(l.ctx, onlineKey, 300) // 5 分钟
+	err =l.svcCtx.Redis.HsetCtx(l.ctx, onlineKey, strconv.FormatInt(int64(req.DeviceType), 10), l.svcCtx.Config.Gateway.GrpcAddr)
 	if err != nil {
-		return nil, err
+		logx.Errorf("set im:online:onlineKey failed")
 	}
+	l.svcCtx.Redis.ExpireCtx(l.ctx,onlineKey,900)	
 	return &types.LoginResp{
 		Token: token,
 	}, nil

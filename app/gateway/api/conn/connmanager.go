@@ -23,37 +23,37 @@ func ConnKey(userId int64, deviceType int32) string {
 	return strconv.FormatInt(userId, 10) + ":" + strconv.FormatInt(int64(deviceType), 10)
 }
 
-func (m *ConnManager) bucketOf(userId int64) *bucket {
+func (m *ConnManager) BucketOf(userId int64) *bucket {
 	idx := uint64(userId) % uint64((len(m.buckets)))
 	return m.buckets[idx]
 }
 
 func (m *ConnManager) Add(c *Conn) {
-	b := m.bucketOf(c.userId)
-	defer b.mu.Unlock()
-	b.mu.Lock()
+	b := m.BucketOf(c.userId)
+	defer b.Mu.Unlock()
+	b.Mu.Lock()
 	key := c.Key()
-	if old := b.conns[key]; old != nil && old != c {
+	if old := b.Conns[key]; old != nil && old != c {
 		old.Close()
 	}
-	b.conns[key] = c
+	b.Conns[key] = c
 }
 
 func (m *ConnManager) Get(userId int64, deviceType int32) (*Conn, bool) {
-	b := m.bucketOf(userId)
-	b.mu.RLock()
-	defer b.mu.RUnlock()
-	c, ok := b.conns[ConnKey(userId, deviceType)]
+	b := m.BucketOf(userId)
+	b.Mu.RLock()
+	defer b.Mu.RUnlock()
+	c, ok := b.Conns[ConnKey(userId, deviceType)]
 	return c, ok
 }
 
 func (m *ConnManager) GetByUser(userId int64) []*Conn {
-	b := m.bucketOf(userId)
-	b.mu.RLock()
-	defer b.mu.RUnlock()
+	b := m.BucketOf(userId)
+	b.Mu.RLock()
+	defer b.Mu.RUnlock()
 
 	var res []*Conn
-	for _, c := range b.conns {
+	for _, c := range b.Conns {
 		if c.userId == userId {
 			res = append(res, c)
 		}
@@ -64,22 +64,22 @@ func (m *ConnManager) GetByUser(userId int64) []*Conn {
 func (m *ConnManager) Count() int {
 	total := 0
 	for _, b := range m.buckets {
-		b.mu.RLock()
-		total += len(b.conns)
-		b.mu.RUnlock()
+		b.Mu.RLock()
+		total += len(b.Conns)
+		b.Mu.RUnlock()
 	}
 	return total
 }
 
 func (m *ConnManager) Remove(userId int64, deviceType int32) {
-	b := m.bucketOf(userId)
-	b.mu.Lock()
+	b := m.BucketOf(userId)
+	b.Mu.Lock()
 	key:=ConnKey(userId,deviceType)
-	c,ok:=b.conns[key]
+	c,ok:=b.Conns[key]
 	if ok{
-		delete(b.conns,key)
+		delete(b.Conns,key)
 	}
-	b.mu.Unlock()
+	b.Mu.Unlock()
 	if ok {
 		c.Close()
 	}
@@ -87,14 +87,14 @@ func (m *ConnManager) Remove(userId int64, deviceType int32) {
 
 
 func (m *ConnManager) RemoveConn(c*Conn) {
-	b := m.bucketOf(c.userId)
-	b.mu.Lock()
+	b := m.BucketOf(c.userId)
+	b.Mu.Lock()
 	key:=c.Key()
-	cur,ok :=b.conns[key]
+	cur,ok :=b.Conns[key]
 	if ok&&cur==c{
-		delete(b.conns,key)
+		delete(b.Conns,key)
 	}
-	b.mu.Unlock()
+	b.Mu.Unlock()
 	if ok&&cur==c{
 		c.Close()
 	}
@@ -103,30 +103,31 @@ func (m *ConnManager) RemoveConn(c*Conn) {
 // 注意：不要在 fn 里调用 manager 的加锁方法，否则死锁
 func (m *ConnManager) Range(fn func(*Conn) bool) {
 	for _, b := range m.buckets {
-		b.mu.RLock()
-		for _, c := range b.conns {
+		b.Mu.RLock()
+		for _, c := range b.Conns {
 			if !fn(c) {
-				b.mu.RUnlock()
+				b.Mu.RUnlock()
 				return
 			}
 		}
-		b.mu.RUnlock()
+		b.Mu.RUnlock()
 	}
 }
 
 // CloseAll 关闭全部连接（服务优雅退出时调用）
 func (m *ConnManager) CloseAll() {
 	for _, b := range m.buckets {
-		b.mu.Lock()
-		conns := make([]*Conn, 0, len(b.conns))
-		for _, c := range b.conns {
-			conns = append(conns, c)
+		b.Mu.Lock()
+		Conns := make([]*Conn, 0, len(b.Conns))
+		for _, c := range b.Conns {
+			Conns = append(Conns, c)
 		}
-		b.conns = make(map[string]*Conn)
-		b.mu.Unlock()
+		b.Conns = make(map[string]*Conn)
+		b.Mu.Unlock()
 
-		for _, c := range conns {
+		for _, c := range Conns {
 			c.Close() // 锁外关闭，避免持有锁时做 IO
 		}
 	}
 }
+
