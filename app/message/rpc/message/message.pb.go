@@ -759,10 +759,11 @@ func (x *SendMessageResp) GetIsdup() bool {
 
 type AckMessageReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	MsgId         int64                  `protobuf:"varint,1,opt,name=msg_id,json=msgId,proto3" json:"msg_id,omitempty"`                            // 消息全局 ID
-	AckType       AckType                `protobuf:"varint,2,opt,name=ack_type,json=ackType,proto3,enum=message.AckType" json:"ack_type,omitempty"` // 1-已送达  2-已读
-	ConvId        string                 `protobuf:"bytes,3,opt,name=conv_id,json=convId,proto3" json:"conv_id,omitempty"`                          // 会话 ID（用于分片路由）
-	ReadSeq       int64                  `protobuf:"varint,4,opt,name=read_seq,json=readSeq,proto3" json:"read_seq,omitempty"`                      // 已读时携带：阅读者当前已读到哪条 Seq（群聊同步锚点）
+	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	MsgId         int64                  `protobuf:"varint,2,opt,name=msg_id,json=msgId,proto3" json:"msg_id,omitempty"`                            // 消息全局 ID
+	AckType       AckType                `protobuf:"varint,3,opt,name=ack_type,json=ackType,proto3,enum=message.AckType" json:"ack_type,omitempty"` // 1-已送达  2-已读
+	ConvId        string                 `protobuf:"bytes,4,opt,name=conv_id,json=convId,proto3" json:"conv_id,omitempty"`                          // 会话 ID（用于分片路由）
+	ReadSeq       int64                  `protobuf:"varint,5,opt,name=read_seq,json=readSeq,proto3" json:"read_seq,omitempty"`                      // 已读时携带：阅读者当前已读到哪条 Seq（群聊同步锚点）
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -795,6 +796,13 @@ func (x *AckMessageReq) ProtoReflect() protoreflect.Message {
 // Deprecated: Use AckMessageReq.ProtoReflect.Descriptor instead.
 func (*AckMessageReq) Descriptor() ([]byte, []int) {
 	return file_message_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *AckMessageReq) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
 }
 
 func (x *AckMessageReq) GetMsgId() int64 {
@@ -863,8 +871,9 @@ func (*AckMessageResp) Descriptor() ([]byte, []int) {
 
 type SyncMessageReq struct {
 	state          protoimpl.MessageState   `protogen:"open.v1"`
-	ConvList       []*SyncMessageReq_ConSeq `protobuf:"bytes,1,rep,name=conv_list,json=convList,proto3" json:"conv_list,omitempty"`
-	LastOnlineTime int64                    `protobuf:"varint,2,opt,name=last_online_time,json=lastOnlineTime,proto3" json:"last_online_time,omitempty"` // 客户端上次在线时间戳（毫秒，用于判断走补发还是漫游）
+	UserId         int64                    `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	ConvList       []*SyncMessageReq_ConSeq `protobuf:"bytes,2,rep,name=conv_list,json=convList,proto3" json:"conv_list,omitempty"`
+	LastOnlineTime int64                    `protobuf:"varint,3,opt,name=last_online_time,json=lastOnlineTime,proto3" json:"last_online_time,omitempty"` // 客户端上次在线时间戳（毫秒，用于判断走补发还是漫游）
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -897,6 +906,13 @@ func (x *SyncMessageReq) ProtoReflect() protoreflect.Message {
 // Deprecated: Use SyncMessageReq.ProtoReflect.Descriptor instead.
 func (*SyncMessageReq) Descriptor() ([]byte, []int) {
 	return file_message_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *SyncMessageReq) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
 }
 
 func (x *SyncMessageReq) GetConvList() []*SyncMessageReq_ConSeq {
@@ -1138,16 +1154,18 @@ const file_message_proto_rawDesc = "" +
 	"\x06seq_id\x18\x03 \x01(\x03R\x05seqId\x12\x17\n" +
 	"\aconv_id\x18\x04 \x01(\tR\x06convId\x12\x1b\n" +
 	"\tsend_time\x18\x05 \x01(\x03R\bsendTime\x12\x14\n" +
-	"\x05isdup\x18\x06 \x01(\bR\x05isdup\"\x87\x01\n" +
-	"\rAckMessageReq\x12\x15\n" +
-	"\x06msg_id\x18\x01 \x01(\x03R\x05msgId\x12+\n" +
-	"\back_type\x18\x02 \x01(\x0e2\x10.message.AckTypeR\aackType\x12\x17\n" +
-	"\aconv_id\x18\x03 \x01(\tR\x06convId\x12\x19\n" +
-	"\bread_seq\x18\x04 \x01(\x03R\areadSeq\"\x10\n" +
-	"\x0eAckMessageResp\"\xb5\x01\n" +
-	"\x0eSyncMessageReq\x12;\n" +
-	"\tconv_list\x18\x01 \x03(\v2\x1e.message.SyncMessageReq.ConSeqR\bconvList\x12(\n" +
-	"\x10last_online_time\x18\x02 \x01(\x03R\x0elastOnlineTime\x1a<\n" +
+	"\x05isdup\x18\x06 \x01(\bR\x05isdup\"\xa0\x01\n" +
+	"\rAckMessageReq\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x15\n" +
+	"\x06msg_id\x18\x02 \x01(\x03R\x05msgId\x12+\n" +
+	"\back_type\x18\x03 \x01(\x0e2\x10.message.AckTypeR\aackType\x12\x17\n" +
+	"\aconv_id\x18\x04 \x01(\tR\x06convId\x12\x19\n" +
+	"\bread_seq\x18\x05 \x01(\x03R\areadSeq\"\x10\n" +
+	"\x0eAckMessageResp\"\xce\x01\n" +
+	"\x0eSyncMessageReq\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12;\n" +
+	"\tconv_list\x18\x02 \x03(\v2\x1e.message.SyncMessageReq.ConSeqR\bconvList\x12(\n" +
+	"\x10last_online_time\x18\x03 \x01(\x03R\x0elastOnlineTime\x1a<\n" +
 	"\x06ConSeq\x12\x17\n" +
 	"\aconv_id\x18\x01 \x01(\tR\x06convId\x12\x19\n" +
 	"\blast_seq\x18\x02 \x01(\x03R\alastSeq\"\xe3\x01\n" +

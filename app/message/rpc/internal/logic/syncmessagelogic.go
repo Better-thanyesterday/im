@@ -31,18 +31,19 @@ func NewSyncMessageLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SyncM
 // SyncMessages 断线补发 + 消息漫游入口
 func (l *SyncMessageLogic) SyncMessage(in *message.SyncMessageReq) (*message.SyncMessageResp, error) {
 	// todo: add your logic here and delete this line
-	userId := l.getUserIdFromCtx()
-	if userId <= 0 {
+	if in.UserId <= 0 {
 		return nil, constants.NewMsgError(constants.ErrCodeMsgInValidParam)
 	}
+	//构造ConvSyncs包含多条离线信息
 	resp := &message.SyncMessageResp{
 		ConvSyncs: make([]*message.SyncMessageResp_ConvSync, 0, len(in.ConvList)),
 	}
+	//遍历req包含拉取多个Conversation未读信息
 	for _, conv := range in.ConvList {
 		if conv.ConvId == "" {
 			continue
 		}
-		cs, err := l.syncSingleConv(userId, conv)
+		cs, err := l.syncSingleConv(in.UserId, conv)
 		if err != nil {
 			logx.Errorf("sync conv %s err: %v", conv.ConvId, err)
 			continue

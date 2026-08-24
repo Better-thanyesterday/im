@@ -87,22 +87,24 @@ message SendMessageResp {
 }
 
 message AckMessageReq{
-  int64  msg_id    = 1;  // 消息全局 ID
-  AckType  ack_type  = 2;  // 1-已送达  2-已读
-  string conv_id   = 3;  // 会话 ID（用于分片路由）
-  int64  read_seq  = 4;  // 已读时携带：阅读者当前已读到哪条 Seq（群聊同步锚点）
+  int64 user_id=1;
+  int64  msg_id    = 2;  // 消息全局 ID
+  AckType  ack_type  = 3;  // 1-已送达  2-已读
+  string conv_id   = 4;  // 会话 ID（用于分片路由）
+  int64  read_seq  = 5;  // 已读时携带：阅读者当前已读到哪条 Seq（群聊同步锚点）
 }
 
 message AckMessageResp{
   
 }
 message SyncMessageReq{
+  int64 user_id=1;
   message ConSeq{
     string conv_id =1;
     int64 last_seq =2;
   }
-  repeated ConSeq conv_list =1;
-  int64 last_online_time=2;   // 客户端上次在线时间戳（毫秒，用于判断走补发还是漫游）
+  repeated ConSeq conv_list =2;
+  int64 last_online_time=3;   // 客户端上次在线时间戳（毫秒，用于判断走补发还是漫游）
 }
 
 message SyncMessageResp{

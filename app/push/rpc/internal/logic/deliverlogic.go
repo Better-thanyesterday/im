@@ -92,7 +92,7 @@ func (l *DeliverLogic) pushToDevice(ctx context.Context, in *push.DeliverReq, de
 
 // storeOffline 写入 Redis 离线信箱（Sorted Set）
 func (l *DeliverLogic) storeOffline(ctx context.Context, in *push.DeliverReq) {
-	offlineKey := fmt.Sprintf("im:offline:%d", in.UserId)
+	offlineKey := fmt.Sprintf("im:offlineinbox:%d", in.UserId)
 	score := time.Now().UnixMilli()
 	_, err := l.svcCtx.Redis.ZaddCtx(ctx, offlineKey, score, fmt.Sprintf("%d", in.Message.MsgId))
 	if err != nil {
