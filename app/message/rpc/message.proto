@@ -1,0 +1,122 @@
+syntax ="proto3";
+
+package message;
+
+option go_package = "./message";
+enum MsgType{
+    MsgTypeUnknown = 0;
+    MsgTypeText = 1;      // 文本
+    MsgTypeImage = 2;     // 图片
+    MsgTypeVoice = 3;     // 语音
+    MsgTypeVideo = 4;     // 视频
+    MsgTypeFile = 5;      // 文件
+    MsgTypeLocation = 6;  // 位置
+    MsgTypeSystem = 7;    // 系统
+}
+
+// 消息状态：与数据库 messages.status 一致
+enum MsgStatus {
+  MsgStatusUnknown = 0;
+  MsgStatusNormal = 1;   // 正常
+  MsgStatusRecalled = 2; // 已撤回
+  MsgStatusDeleted = 3;  // 已删除
+}
+// ACK 类型：三级状态中的后两级
+enum AckType {
+  AckTypeUnknown = 0;
+  AckTypeDelivered = 1; // 已送达
+  AckTypeRead = 2;      // 已读
+}
+message MessageContent {
+  string text = 1;            // 文本内容
+  string image_url = 2;       // 图片 URL
+  string thumb_url = 3;       // 缩略图
+  string voice_url = 4;       // 语音 URL
+  int64  voice_duration = 5;  // 语音时长（秒）
+  string video_url = 6;       // 视频 URL
+  string video_cover = 7;     // 视频封面
+  string file_url = 8;        // 文件 URL
+  string file_name = 9;       // 文件名
+  int64  file_size = 10;      // 文件大小（字节）
+  double lat = 11;            // 位置纬度
+  double lng = 12;            // 位置经度
+  string address = 13;        // 位置描述
+}
+message MessageExtra {
+  repeated int64 mentions = 1; // @ 用户 ID 列表（群聊强推送用）
+  ReplyRef       reply_to = 2; // 引用回复
+}
+message ReplyRef {
+  int64  msg_id = 1;
+  int64  seq_id = 2;
+  int64  sender_id = 3;
+  string preview = 4;         // 原消息预览
+}
+// ==================== 消息体（跨服务通用） ====================
+message MessageBody {
+  int64    id = 1;
+  string   conv_id = 2;         // 单聊 min_uid:max_uid；群聊 group_{group_id}
+  string   client_msg_id = 3;   // 客户端幂等键
+  int64    sender_id = 4;
+  MsgType  msg_type = 5;
+  MessageContent content = 6;
+  int64    seq_id = 7;          // 会话内单调递增
+  int64    send_time = 8;       // Unix 毫秒
+  MsgStatus status = 9;
+  optional int64 recalled_by = 10;  // 撤回者
+  optional int64 recalled_at = 11;  // 撤回时间（Unix 毫秒）
+  MessageExtra extra = 12;
+}
+message SendMessageReq {
+  string client_msg_id = 1;   // 幂等键（UUID v4）
+  int64  sender_id = 2;       // Gateway 从鉴权上下文填充，不信任客户端
+  bool isgroup=3;
+  int64  to_uid = 4;          // 接收方
+  MsgType msg_type = 5;
+  MessageBody body = 6;
+  MessageExtra extra = 7;
+}
+
+message SendMessageResp {
+  string client_msg_id = 1;   // 幂等重复时返回已处理的原结果
+  int64  msg_id = 2;
+  int64  seq_id = 3;
+  string conv_id = 4;
+  int64  send_time = 5;
+  bool isdup = 6;
+}
+
+message AckMessageReq{
+  int64  msg_id    = 1;  // 消息全局 ID
+  AckType  ack_type  = 2;  // 1-已送达  2-已读
+  string conv_id   = 3;  // 会话 ID（用于分片路由）
+  int64  read_seq  = 4;  // 已读时携带：阅读者当前已读到哪条 Seq（群聊同步锚点）
+}
+
+message AckMessageResp{
+  
+}
+message SyncMessageReq{
+  message ConSeq{
+    string conv_id =1;
+    int64 last_seq =2;
+  }
+  repeated ConSeq conv_list =1;
+  int64 last_online_time=2;   // 客户端上次在线时间戳（毫秒，用于判断走补发还是漫游）
+}
+
+message SyncMessageResp{
+  message ConvSync{
+    string conv_id =1;
+    int64 server_seq =2;
+    repeated MessageBody message=3 ;
+    bool has_more =4;
+  }
+    repeated ConvSync conv_syncs = 1;
+}
+
+service Message {
+    rpc SendMessage (SendMessageReq) returns (SendMessageResp);
+    rpc AckMessage (AckMessageReq) returns (AckMessageResp);
+    rpc SyncMessage (SyncMessageReq) returns (SyncMessageResp);
+}

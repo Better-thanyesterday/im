@@ -1,0 +1,30 @@
+package logic
+
+import (
+	"context"
+
+	"im-platform/app/group/rpc/group"
+	"im-platform/app/group/rpc/internal/svc"
+
+	"github.com/zeromicro/go-zero/core/logx"
+)
+
+type CheckMemberLogic struct {
+	ctx    context.Context
+	svcCtx *svc.ServiceContext
+	logx.Logger
+}
+
+func NewCheckMemberLogic(ctx context.Context, svcCtx *svc.ServiceContext) *CheckMemberLogic {
+	return &CheckMemberLogic{
+		ctx:    ctx,
+		svcCtx: svcCtx,
+		Logger: logx.WithContext(ctx),
+	}
+}
+
+func (l *CheckMemberLogic) CheckMember(in *group.CheckMemberReq) (*group.CheckMemberResp, error) {
+	// todo: add your logic here and delete this line
+
+	return &group.CheckMemberResp{}, nil
+}

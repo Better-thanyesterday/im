@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package push;
+
+option go_package = "./push";
+
+// 推送方式
+enum PushType {
+  PushTypeUnspecified = 0;
+  PushTypeFull   = 1; // 完整消息推送：单聊、群聊写扩散、大群 @ 提及强推
+  PushTypeNotify = 2; // 轻量通知：大群读扩散，仅含群 ID + 新 Seq，客户端收到后主动 SyncMessages 拉取
+}
+
+// 跨服务传递的消息体（精简版，对应 common/types 的 PushPayload）
+message PushMessage {
+  int64  msg_id    = 1; // 消息全局 ID（雪花算法）
+  string conv_id   = 2; // 会话 ID（单聊 min_uid:max_uid / 群聊 group_{group_id}）
+  int64  seq_id    = 3; // 会话内单调递增序列号
+  int64  sender_id = 4; // 发送者 ID
+  int64  msg_type  = 5; // 1-文本 2-图片 3-语音 4-视频 5-文件 6-位置 7-系统
+  string content   = 6; // 消息内容（JSON 序列化）
+  int64  send_time = 7; // Unix 毫秒时间戳
+  bool  conv_type = 8; // 会话类型：0-单聊 1-群聊
+}
+
+// 投递指令：Message 服务在单聊/群聊管道中调用
+message DeliverReq {
+  int64       user_id   = 1; // 目标用户 ID（单聊接收方 / 群聊成员）
+  PushType    push_type = 2; // 推送方式
+  PushMessage message   = 3; // 消息体
+}
+
+message DeliverResp {
+  bool Success=1;
+}
+
+// 清除未读数：客户端打开会话阅读后调用
+message ClearUnreadReq {
+  int64  user_id = 1; // 用户 ID
+  string conv_id = 2; // 会话 ID
+  int64  seq_id  = 3; // 已读到的最大 Seq（用于记录已读锚点）
+}
+
+message ClearUnreadResp {}
+
+service Push {
+  // 在线实时推送 + 离线存储 + 未读计数：按 Redis 在线状态决定走 Gateway.PushToConn 还是写 im:offline
+  rpc Deliver(DeliverReq) returns (DeliverResp);
+  // 清零 im:unread:{user_id} 中对应会话的计数
+  rpc ClearUnread(ClearUnreadReq) returns (ClearUnreadResp);
+}

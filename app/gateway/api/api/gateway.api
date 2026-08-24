@@ -1,0 +1,83 @@
+syntax = "v1"
+
+info (
+	title:       "Gateway API"
+	version:     "1.0.0"
+	description: "This is the API documentation for the Gateway service, which provides endpoints for managing and interacting with the gateway functionalities."
+)
+
+// ==================== WebSocket 连接升级 ====================
+// type WSConnectReq {
+//  // WebSocket 握手时通过 Query 参数传递鉴权信息
+//  Token      string `form:"token"`
+//  DeviceType int    `form:"device_type,optional"` // 1-iOS 2-Android 3-Web 4-PC
+//  DeviceId   string `form:"device_id,optional"` // 设备唯一标识
+// }
+// type WSConnectResp {
+//  Code    int    `json:"code"`
+//  Message string `json:"message"`
+// }
+// // ==================== 健康检查 ====================
+// type HealthReq {}
+// type HealthResp {
+//  Status      string `json:"status"` // ok / degraded / unhealthy
+//  Connections int64  `json:"connections"` // 当前长连接数
+//  OnlineUsers int64  `json:"online_users"` // 在线用户数（去重）
+//  Uptime      int64  `json:"uptime"` // 服务运行时长（秒）
+// }
+// // ==================== 连接统计（管理接口） ====================
+// type DeviceStat {
+//  DeviceType int   `json:"device_type"`
+//  Count      int64 `json:"count"`
+// }
+// type ConnStatsReq {}
+// type ConnStatsResp {
+//  TotalConnections int64        `json:"total_connections"` // 总连接数
+//  OnlineUsers      int64        `json:"online_users"` // 在线用户数
+//  DeviceStats      []DeviceStat `json:"device_stats"` // 各设备类型分布
+// }
+type LoginReq {
+	Phone      string `json:"phone" validate:"omitempty"`
+	Email      string `json:"email" validate:"omitempty"`
+	Account    string `json:"account" validate:"omitempty"`
+	DeviceType int32  `json:"devicetype" validate:"omitempty"`
+	DeviceId   string `json:"deviceid" validate:"omitempty"`
+	Password   string `json:"password"`
+}
+
+type LoginResp {
+	token string `json:"token"`
+}
+
+type RegisterReq {
+	Phone    string `json:"phone" validate:"omitempty"`
+	Email    string `json:"email" validate:"omitempty"`
+	Password string `json:"password"`
+}
+
+type RegisterResp {
+	Account  int64  `json:"account" validate:"omitempty"`
+	Password string `json:"password"`
+}
+
+// ==================== Service 定义 ====================
+service gateway-api {
+	// WebSocket 协议升级入口
+	// 实际处理：校验 Token → 升级 WS → 注册到 ConnManager → 进入帧处理循环
+	// @handler wsConnectHandler
+	// get /im/ws (WSConnectReq)
+	// // 健康检查（负载均衡 / K8s 探针用）
+	// @handler healthHandler
+	// get /health (HealthReq) returns (HealthResp)
+	// // 连接统计（内部监控 / 管理后台用）
+	// @handler connStatsHandler
+	// get /conn/stats (ConnStatsReq) returns (ConnStatsResp)
+	//登录
+	@handler LoginHandler
+	get /login (LoginReq) returns (LoginResp)
+
+	//注册
+	@handler RegisterHandler
+	get /register (RegisterReq) returns (RegisterResp)
+}
+

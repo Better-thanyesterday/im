@@ -1,0 +1,61 @@
+Name: message.rpc
+ListenOn: 0.0.0.0:18882
+Etcd:
+  Hosts:
+  - 127.0.0.1:2379
+  Key: message.rpc
+
+Kafka:
+  Brokers:
+    - 127.0.0.1:9092
+  Producer:
+    Acks: 1
+    RetryMax: 3
+    Compression: none
+    MaxMessageBytes: 1048576
+  Consumer:
+    GroupID: msg-persist-group
+    OffsetInitial: newest
+    SessionTimeout: 10s
+    HeartbeatInterval: 3s
+
+
+RedisCache:
+    Host: 127.0.0.1:6379
+    Type: node
+    Pass: ""
+
+Postgres:
+  DataSource: postgres://postgres:root@127.0.0.1:5432/im_message?sslmode=disable
+
+Cache:
+  - Host: 127.0.0.1:6379
+    Type: node
+    Pass:
+
+SnokFlake:
+  WorkNode: 1
+
+UserRpc:
+  Etcd:
+    Hosts:
+    - 127.0.0.1:2379
+    Key: user.rpc
+
+PushRpc:
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: push.rpc
+
+GroupRpc:
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: group.rpc
+
+Telemetry:
+  Name: gateway-api
+  Endpoint: 127.0.0.1:4317   # ← 去掉 http://
+  Sampler: 1.0
+  Batcher: otlpgrpc               # ← 必须是 grpc，不能写 otlpgrpc

@@ -1,0 +1,83 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Message",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/app/message/rpc/message.go",
+            "cwd": "${workspaceFolder}/app/message/rpc",
+            "args": [
+                "-f",
+                "etc/message.yaml"
+            ],
+            "env": {
+                "GO_ENV": "dev"
+            },
+            "console": "integratedTerminal",
+            "showLog": true
+        },
+        {
+            "name": "Debug Gateway",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/app/gateway/gateway.go",
+            "cwd": "${workspaceFolder}/app/gateway",
+            "args": [
+                "-f",
+                "etc/gateway-api.yaml"
+            ],
+            "env": {
+                "GO_ENV": "dev"
+            },
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Debug Push",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/app/push/push.go",
+            "cwd": "${workspaceFolder}/app/push",
+            "args": [
+                "-f",
+                "etc/push.yaml"
+            ],
+            "env": {
+                "GO_ENV": "dev"
+            },
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Debug User",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/app/user/user.go",
+            "cwd": "${workspaceFolder}/app/user",
+            "args": [
+                "-f",
+                "etc/user.yaml"
+            ],
+            "env": {
+                "GO_ENV": "dev"
+            },
+            "console": "integratedTerminal"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Debug all",
+            "configurations": [
+                "Debug Message",
+                "Debug Gateway",
+                "Debug Push",
+                "Debug User"
+            ],
+            "preLaunchTask": "",
+            "stopAll": true
+        }
+    ]
+}

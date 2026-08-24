@@ -1,0 +1,229 @@
+// app/group/rpc/group.proto
+syntax = "proto3";
+
+package group;
+option go_package = "./group";
+
+// 群组服务：群生命周期、成员管理、权限、版本号
+service Group {
+ // ==================== 群生命周期 ====================
+ rpc CreateGroup(CreateGroupReq) returns (CreateGroupResp);
+ rpc DissolveGroup(DissolveGroupReq) returns (DissolveGroupResp);
+ rpc TransferOwner(TransferOwnerReq) returns (TransferOwnerResp);
+ rpc UpdateGroupInfo(UpdateGroupInfoReq) returns (UpdateGroupInfoResp);
+ rpc GetGroupInfo(GetGroupInfoReq) returns (GetGroupInfoResp);
+
+ // ==================== 成员管理 ====================
+ rpc InviteMember(InviteMemberReq) returns (InviteMemberResp);
+ rpc ApplyJoinGroup(ApplyJoinGroupReq) returns (ApplyJoinGroupResp);
+ rpc KickMember(KickMemberReq) returns (KickMemberResp);
+ rpc QuitGroup(QuitGroupReq) returns (QuitGroupResp);
+ rpc MuteMember(MuteMemberReq) returns (MuteMemberResp);
+ rpc SetAdmin(SetAdminReq) returns (SetAdminResp);
+
+ // ==================== 查询接口（供 Message 服务调用） ====================
+ rpc GetMembers(GetMembersReq) returns (GetMembersResp);
+ rpc CheckMember(CheckMemberReq) returns (CheckMemberResp);
+ rpc GetMemberVersion(GetMemberVersionReq) returns (GetMemberVersionResp);
+}
+
+// ==================== 基础类型 ====================
+
+enum GroupRole {
+ UNKNOWN_ROLE = 0;
+ OWNER = 1;      // 群主
+ ADMIN = 2;      // 管理员
+ MEMBER = 3;     // 普通成员
+}
+
+enum GroupStatus {
+ UNKNOWN_STATUS = 0;
+ NORMAL = 1;     // 正常
+ DISSOLVED = 2;  // 已解散
+}
+
+enum ApplyStatus {
+ APPLY_UNKNOWN = 0;
+ PENDING = 1;    // 待处理
+ ACCEPTED = 2;   // 已接受
+ REJECTED = 3;   // 已拒绝
+}
+
+message GroupInfo {
+ int64 id = 1;
+ string name = 2;
+ string avatar = 3;
+ int64 owner_id = 4;
+ string notice = 5;
+ int32 member_count = 6;
+ int32 max_member = 7;
+ int64 member_version = 8;  // 成员列表版本号，变更时递增
+ int32 group_type = 9;      // 1-普通群 2-企业群
+ int32 status = 10;         // 1-正常 2-解散
+ int32 invite_permission = 11; // 1-所有人可邀请 2-仅管理员
+ int32 join_approval = 12;     // 1-无需审批 2-需要审批
+ int64 created_at = 13;
+ int64 updated_at = 14;
+}
+
+message MemberInfo {
+ int64 user_id = 1;
+ int32 role = 2;           // 1-群主 2-管理员 3-普通成员
+ string group_nickname = 3;
+ int64 join_time = 4;
+ int64 mute_until = 5;     // 禁言截止时间（毫秒时间戳，0 表示未禁言）
+}
+
+// ==================== 群生命周期 ====================
+
+message CreateGroupReq {
+ int64 creator_id = 1;     // 创建者（自动成为群主）
+ string name = 2;
+ string avatar = 3;
+ repeated int64 initial_members = 4; // 初始成员列表（不含创建者）
+ int32 max_member = 5;     // 默认 500
+ int32 group_type = 6;     // 1-普通群 2-企业群
+ int32 invite_permission = 7;
+ int32 join_approval = 8;
+}
+
+message CreateGroupResp {
+ int64 group_id = 1;
+ int64 member_version = 2;
+}
+
+message DissolveGroupReq {
+ int64 group_id = 1;
+ int64 operator_id = 2;    // 操作者（必须是群主）
+}
+
+message DissolveGroupResp {}
+
+message TransferOwnerReq {
+ int64 group_id = 1;
+ int64 old_owner_id = 2;
+ int64 new_owner_id = 3;
+}
+
+message TransferOwnerResp {
+ int64 member_version = 1; // 变更后新版本号
+}
+
+message UpdateGroupInfoReq {
+ int64 group_id = 1;
+ int64 operator_id = 2;
+ string name = 3;          // 空字符串表示不修改
+ string avatar = 4;
+ string notice = 5;
+ int32 invite_permission = 6;
+ int32 join_approval = 7;
+ int32 max_member = 8;
+}
+
+message UpdateGroupInfoResp {}
+
+message GetGroupInfoReq {
+ int64 group_id = 1;
+}
+
+message GetGroupInfoResp {
+ GroupInfo info = 1;
+}
+
+// ==================== 成员管理 ====================
+
+message InviteMemberReq {
+ int64 group_id = 1;
+ int64 inviter_id = 2;     // 邀请人
+ repeated int64 user_ids = 3; // 被邀请人列表
+}
+
+message InviteMemberResp {
+ repeated int64 failed_user_ids = 1; // 邀请失败的用户（如已达上限）
+ int64 member_version = 2;
+}
+
+message ApplyJoinGroupReq {
+ int64 group_id = 1;
+ int64 applicant_id = 2;
+ string apply_reason = 3;
+}
+
+message ApplyJoinGroupResp {
+ int64 apply_id = 1;
+ int32 status = 2;         // 1-待处理（需审批） 2-已加入（无需审批）
+}
+
+message KickMemberReq {
+ int64 group_id = 1;
+ int64 operator_id = 2;    // 操作者（群主/管理员）
+ int64 target_id = 3;      // 被踢者
+}
+
+message KickMemberResp {
+ int64 member_version = 1;
+}
+
+message QuitGroupReq {
+ int64 group_id = 1;
+ int64 user_id = 2;
+}
+
+message QuitGroupResp {
+ int64 member_version = 1;
+}
+
+message MuteMemberReq {
+ int64 group_id = 1;
+ int64 operator_id = 2;
+ int64 target_id = 3;
+ int64 mute_until = 4;     // 禁言截止时间（毫秒时间戳，0 表示解除禁言）
+}
+
+message MuteMemberResp {}
+
+message SetAdminReq {
+ int64 group_id = 1;
+ int64 operator_id = 2;    // 群主
+ int64 target_id = 3;
+ bool is_admin = 4;        // true-设为管理员 false-降为普通成员
+}
+
+message SetAdminResp {
+ int64 member_version = 1;
+}
+
+// ==================== 查询接口 ====================
+
+message GetMembersReq {
+ int64 group_id = 1;
+ int64 last_id = 2;        // 分页游标（上一页最后一个 user_id，首次传 0）
+ int32 page_size = 3;      // 默认 200，最大 200
+}
+
+message GetMembersResp {
+ repeated MemberInfo members = 1;
+ bool has_more = 2;
+ int64 member_version = 3; // 当前版本号，客户端用于缓存校验
+}
+
+message CheckMemberReq {
+ int64 group_id = 1;
+ int64 user_id = 2;
+}
+
+message CheckMemberResp {
+ bool is_member = 1;
+ int32 role = 2;           // 0-非成员 1-群主 2-管理员 3-普通成员
+ bool is_muted = 3;        // 当前是否处于禁言状态
+ int64 mute_until = 4;
+}
+
+message GetMemberVersionReq {
+ int64 group_id = 1;
+}
+
+message GetMemberVersionResp {
+ int64 member_version = 1;
+ int32 member_count = 2;
+}

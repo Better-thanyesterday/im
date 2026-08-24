@@ -1,0 +1,30 @@
+package logic
+
+import (
+	"context"
+
+	"im-platform/app/group/rpc/group"
+	"im-platform/app/group/rpc/internal/svc"
+
+	"github.com/zeromicro/go-zero/core/logx"
+)
+
+type SetAdminLogic struct {
+	ctx    context.Context
+	svcCtx *svc.ServiceContext
+	logx.Logger
+}
+
+func NewSetAdminLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SetAdminLogic {
+	return &SetAdminLogic{
+		ctx:    ctx,
+		svcCtx: svcCtx,
+		Logger: logx.WithContext(ctx),
+	}
+}
+
+func (l *SetAdminLogic) SetAdmin(in *group.SetAdminReq) (*group.SetAdminResp, error) {
+	// todo: add your logic here and delete this line
+
+	return &group.SetAdminResp{}, nil
+}

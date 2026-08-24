@@ -1,0 +1,27 @@
+syntax ="proto3";
+
+package gateway;
+
+option go_package= "./gateway";
+
+
+message PushToConnReq {
+  int64 user_id = 1;       // 目标用户 ID
+  int32 device_type = 2;   // 目标设备：1-iOS 2-Android 3-Web 4-PC 5-小程序
+  bytes payload = 3;       // 业务消息体（JSON/Protobuf 序列化后的裸字节）
+                           // Gateway 会将其封装为 FramePush(0x10) 的 WebSocket 帧下发
+  int32 priority = 4;      // 0-普通 1-高优（如 @ 消息），Gateway 可做发送队列调度
+}
+
+message PushToConnResp {
+  bool success = 1;        // 是否成功写入 WebSocket（连接存在且未写超时）
+  string error_msg = 2;    // 失败原因，如 "conn_not_found" / "write_timeout" / "conn_closed"
+}
+
+service Gateway{
+    rpc PushToConn(PushToConnReq) returns (PushToConnResp);
+    //rpc BatchPushToConn(BatchPushToConnReq) returns (BatchPushToConnResp); // 可选，批量推送优化
+    //rpc KickConn(KickConnReq) returns (KickConnResp); // 踢人，文档里有提到多端互踢
+    //rpc GetConnStats(GetConnStatsReq) returns (GetConnStatsResp); // 连接统计，文档提到 /conn/stats
+}
+

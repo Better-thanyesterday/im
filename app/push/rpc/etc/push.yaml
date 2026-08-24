@@ -1,0 +1,51 @@
+Name: push.rpc
+ListenOn: 0.0.0.0:18883
+Etcd:
+  Hosts:
+  - 127.0.0.1:2379
+  Key: push.rpc
+
+Kafka:
+  Brokers:
+    - kafka:9092
+  Topic: im.msg.persist        # 消息持久化 topic
+  Group: msg-persist-group     # Consumer 用，Producer 不用
+  Offset: latest
+  Consumers: 8
+  Processors: 8
+  ForceCommit: false
+
+RedisCache:
+    Host: 127.0.0.1:6379
+    Type: node
+    Pass: ""
+
+Postgres:
+  DataSource: postgres://postgres:root@127.0.0.1:5432/im_message?sslmode=disable
+
+SnokFlake:
+  WorkNode: 1
+
+UserRpc:
+  Etcd:
+    Hosts:
+    - 127.0.0.1:2379
+    Key: user.rpc
+
+MsgRpc:
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: message.rpc
+
+GroupRpc:
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: group.rpc
+
+GatewayRpc:
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: gateway.rpc

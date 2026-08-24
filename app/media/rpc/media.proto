@@ -1,0 +1,115 @@
+syntax ="proto3";
+
+package media;
+
+option go_package="./media";
+// Media 服务：文件元数据管理 + 预签名 URL 签发
+// 实际文件二进制上传/下载走 HTTP（app/media/api/media.api）， 
+// 元数据查询/分片任务管理走 gRPC。
+
+service Media {
+  // 初始化分片上传任务，返回 upload_id 与各分片预签名 URL
+  rpc CreateUploadTask(CreateUploadTaskReq) returns (CreateUploadTaskResp);
+
+  // 客户端所有分片上传完成后调用，触发合并、格式校验、安全审核
+  rpc CompleteUpload(CompleteUploadReq) returns (CompleteUploadResp);
+
+  // 查询文件元数据（含审核状态、缩略图地址）
+  rpc GetFileMeta(GetFileMetaReq) returns (GetFileMetaResp);
+
+  // 重新签发下载预签名 URL（客户端 URL 过期时刷新）
+  rpc GeneratePresignedUrl(GeneratePresignedUrlReq) returns (GeneratePresignedUrlResp);
+
+  // 删除文件（物理删除 MinIO + 清理元数据）
+  rpc DeleteFile(DeleteFileReq) returns (DeleteFileResp);
+}
+
+// ==================== 分片上传 ====================
+
+message CreateUploadTaskReq {
+  string file_name   = 1;  // 原始文件名（如 "avatar.jpg"）
+  int64  file_size   = 2;  // 总大小（字节）
+  string mime_type   = 3;  // 客户端声明的 MIME 类型（如 image/jpeg）
+  int32  total_chunks = 4; // 分片总数（如 10）
+  int64  chunk_size  = 5;  // 每片大小（如 5MB）
+  int64  uploader_id = 6;  // 上传者 user_id
+  int32  file_type   = 7;  // 1-图片 2-语音 3-视频 4-文件
+}
+
+message CreateUploadTaskResp {
+  string file_id     = 1;  // 全局唯一文件 ID（雪花算法，提前分配）
+  string upload_id   = 2;  // MinIO 分片上传 ID（Multipart Upload ID）
+  repeated ChunkUploadInfo chunks = 3; // 各分片上传信息
+}
+
+message ChunkUploadInfo {
+  int32  chunk_index = 1;  // 分片序号（从 0 开始）
+  string presigned_url = 2; // 该分片的 PUT 预签名 URL（客户端直接上传 MinIO）
+}
+
+// ==================== 完成上传 ====================
+
+message CompleteUploadReq {
+  string file_id   = 1;
+  string upload_id = 2;
+  repeated string etags = 3; // 各分片上传成功后 MinIO 返回的 ETag，按顺序
+}
+
+message CompleteUploadResp {
+  string file_id = 1;
+  string url     = 2; // 文件访问路径（非预签名，需配合 GeneratePresignedUrl 使用）
+  int32  status  = 3; // 1-上传成功待审核 2-审核中 3-审核通过 4-审核拒绝
+}
+
+// ==================== 元数据查询 ====================
+
+message GetFileMetaReq {
+  string file_id = 1;
+}
+
+message GetFileMetaResp {
+  string file_id     = 1;
+  string file_name   = 2;
+  int64  file_size   = 3;
+  string mime_type   = 4;
+  int32  file_type   = 5; // 1-图片 2-语音 3-视频 4-文件
+  int64  uploader_id = 6;
+  int64  upload_time = 7; // 毫秒时间戳
+  int32  status      = 8; // 1-正常 2-审核中 3-审核拒绝 4-已删除
+
+  // 缩略图（仅图片/视频有）
+  // key: "origin"/"large"/"thumb"
+  map<string, string> thumbnails = 9;
+
+  // 审核结果（status=3 时有效）
+  AuditResult audit_result = 10;
+}
+
+message AuditResult {
+  int32  audit_type  = 1; // 1-敏感词 2-鉴黄 3-鉴暴 4-垃圾检测
+  int32  status      = 2; // 2-通过 3-拒绝
+  string detail      = 3; // 审核详情（如命中规则）
+  int64  audited_at  = 4; // 审核完成时间
+}
+
+// ==================== 预签名 URL ====================
+
+message GeneratePresignedUrlReq {
+  string file_id = 1;
+  int32  expiry  = 2; // 过期时间（秒），默认 900（15分钟）
+}
+
+message GeneratePresignedUrlResp {
+  string file_id       = 1;
+  string presigned_url = 2; // 带签名的临时访问 URL
+  int64  expires_at    = 3; // 过期时间戳（毫秒）
+}
+
+// ==================== 删除 ====================
+
+message DeleteFileReq {
+  string file_id = 1;
+  int64  operator_id = 2; // 操作者（用于权限校验）
+}
+
+message DeleteFileResp {}
