@@ -3,7 +3,6 @@ package logic
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"im-platform/app/gateway/api/conn"
 	"im-platform/app/gateway/api/internal/svc"
 	"im-platform/app/gateway/api/protocol"
@@ -25,9 +24,6 @@ func HandleFrame(svcCtx *svc.ServiceContext, c *conn.Conn, data []byte) {
 		if json.Unmarshal(payload, &in) != nil {
 			return
 		}
-		if err != nil { /* 错误回包 */
-		}
-		fmt.Println("payload:= ",in)
 		svcCtx.Message.SendMessage(context.Background(), &in)
 	case protocol.FrameAck:
 		// -> svcCtx.MessageRpc.AckMessage
