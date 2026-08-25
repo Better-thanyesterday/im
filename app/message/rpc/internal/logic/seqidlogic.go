@@ -45,6 +45,7 @@ func (l *SeqIdLogic) AllocateSeq(convId string) (int64, error, bool) {
 		return seg.current, nil, true
 	}
 	// 2. Redis 批量预取：一次 INCRBY 拿 N 个 Seq，减少 90% 的 Redis 往返
+	
 	const batchSize int64 = 100
 	seqKey := fmt.Sprintf("im:seq:%s", convId)
 	// Redis INCRBY 原子返回当前最大值
