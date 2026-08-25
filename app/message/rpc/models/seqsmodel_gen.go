@@ -12,8 +12,6 @@ import (
 	"time"
 
 	"github.com/zeromicro/go-zero/core/stores/builder"
-	"github.com/zeromicro/go-zero/core/stores/cache"
-	"github.com/zeromicro/go-zero/core/stores/sqlc"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/core/stringx"
 )
@@ -23,8 +21,6 @@ var (
 	seqsRows                = strings.Join(seqsFieldNames, ",")
 	seqsRowsExpectAutoSet   = strings.Join(stringx.Remove(seqsFieldNames, "create_at", "create_time", "created_at", "update_at", "update_time", "updated_at"), ",")
 	seqsRowsWithPlaceHolder = builder.PostgreSqlJoin(stringx.Remove(seqsFieldNames, "conv_id", "create_at", "create_time", "created_at", "update_at", "update_time", "updated_at"))
-
-	cachePublicSeqsConvIdPrefix = "cache:public:seqs:convId:"
 )
 
 type (
@@ -33,10 +29,11 @@ type (
 		FindOne(ctx context.Context, convId string) (*Seqs, error)
 		Update(ctx context.Context, data *Seqs) error
 		Delete(ctx context.Context, convId string) error
+		CustomQueryRowCtx(ctx context.Context, convId string) (int64,error)
 	}
 
 	defaultSeqsModel struct {
-		sqlc.CachedConn
+		conn  sqlx.SqlConn
 		table string
 	}
 
@@ -47,33 +44,27 @@ type (
 	}
 )
 
-func newSeqsModel(conn sqlx.SqlConn, c cache.CacheConf, opts ...cache.Option) *defaultSeqsModel {
+func newSeqsModel(conn sqlx.SqlConn) *defaultSeqsModel {
 	return &defaultSeqsModel{
-		CachedConn: sqlc.NewConn(conn, c, opts...),
-		table:      `"public"."seqs"`,
+		conn:  conn,
+		table: `"public"."seqs"`,
 	}
 }
 
 func (m *defaultSeqsModel) Delete(ctx context.Context, convId string) error {
-	publicSeqsConvIdKey := fmt.Sprintf("%s%v", cachePublicSeqsConvIdPrefix, convId)
-	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
-		query := fmt.Sprintf("delete from %s where conv_id = $1", m.table)
-		return conn.ExecCtx(ctx, query, convId)
-	}, publicSeqsConvIdKey)
+	query := fmt.Sprintf("delete from %s where conv_id = $1", m.table)
+	_, err := m.conn.ExecCtx(ctx, query, convId)
 	return err
 }
 
 func (m *defaultSeqsModel) FindOne(ctx context.Context, convId string) (*Seqs, error) {
-	publicSeqsConvIdKey := fmt.Sprintf("%s%v", cachePublicSeqsConvIdPrefix, convId)
+	query := fmt.Sprintf("select %s from %s where conv_id = $1 limit 1", seqsRows, m.table)
 	var resp Seqs
-	err := m.QueryRowCtx(ctx, &resp, publicSeqsConvIdKey, func(ctx context.Context, conn sqlx.SqlConn, v any) error {
-		query := fmt.Sprintf("select %s from %s where conv_id = $1 limit 1", seqsRows, m.table)
-		return conn.QueryRowCtx(ctx, v, query, convId)
-	})
+	err := m.conn.QueryRowCtx(ctx, &resp, query, convId)
 	switch err {
 	case nil:
 		return &resp, nil
-	case sqlc.ErrNotFound:
+	case sqlx.ErrNotFound:
 		return nil, ErrNotFound
 	default:
 		return nil, err
@@ -81,32 +72,35 @@ func (m *defaultSeqsModel) FindOne(ctx context.Context, convId string) (*Seqs, e
 }
 
 func (m *defaultSeqsModel) Insert(ctx context.Context, data *Seqs) (sql.Result, error) {
-	publicSeqsConvIdKey := fmt.Sprintf("%s%v", cachePublicSeqsConvIdPrefix, data.ConvId)
-	ret, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
-		query := fmt.Sprintf("insert into %s (%s) values ($1, $2)", m.table, seqsRowsExpectAutoSet)
-		return conn.ExecCtx(ctx, query, data.ConvId, data.MaxSeq)
-	}, publicSeqsConvIdKey)
+	query := fmt.Sprintf("insert into %s (%s) values ($1, $2)", m.table, seqsRowsExpectAutoSet)
+	ret, err := m.conn.ExecCtx(ctx, query, data.ConvId, data.MaxSeq)
 	return ret, err
 }
 
 func (m *defaultSeqsModel) Update(ctx context.Context, data *Seqs) error {
-	publicSeqsConvIdKey := fmt.Sprintf("%s%v", cachePublicSeqsConvIdPrefix, data.ConvId)
-	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
-		query := fmt.Sprintf("update %s set %s where conv_id = $1", m.table, seqsRowsWithPlaceHolder)
-		return conn.ExecCtx(ctx, query, data.ConvId, data.MaxSeq)
-	}, publicSeqsConvIdKey)
+	query := fmt.Sprintf("update %s set %s where conv_id = $1", m.table, seqsRowsWithPlaceHolder)
+	_, err := m.conn.ExecCtx(ctx, query, data.ConvId, data.MaxSeq)
 	return err
-}
-
-func (m *defaultSeqsModel) formatPrimary(primary any) string {
-	return fmt.Sprintf("%s%v", cachePublicSeqsConvIdPrefix, primary)
-}
-
-func (m *defaultSeqsModel) queryPrimary(ctx context.Context, conn sqlx.SqlConn, v, primary any) error {
-	query := fmt.Sprintf("select %s from %s where conv_id = $1 limit 1", seqsRows, m.table)
-	return conn.QueryRowCtx(ctx, v, query, primary)
 }
 
 func (m *defaultSeqsModel) tableName() string {
 	return m.table
+}
+
+
+func (m *defaultSeqsModel) CustomQueryRowCtx(ctx context.Context, convId string)(int64,error){
+	var res int64
+	query := `
+	INSERT INTO seqs (conv_id, max_seq, updated_at)
+		VALUES ($1, 1, NOW())
+		ON CONFLICT (conv_id) DO UPDATE
+		SET max_seq = seqs.max_seq + 1,
+		    updated_at = NOW()
+		RETURNING max_seq
+		`
+	err:= m.conn.QueryRowCtx(ctx,&res,query,convId)
+	if err != nil {
+		return 0,err
+	}
+	return  res,nil
 }

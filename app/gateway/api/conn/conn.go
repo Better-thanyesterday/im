@@ -1,10 +1,11 @@
 package conn
 
 import (
-	"github.com/gorilla/websocket"
-	"github.com/zeromicro/go-zero/core/logx"
 	"sync"
 	"time"
+
+	"github.com/gorilla/websocket"
+	"github.com/zeromicro/go-zero/core/logx"
 )
 
 type SendResult int
@@ -28,9 +29,10 @@ type Conn struct {
 	closeOnce sync.Once
 	closed    chan struct{}
 	onClose   func(c *Conn)
+	onRenew   func()
 }
 
-func NewConn(userId int64, deviceType int32, ws *websocket.Conn, onclose func(c *Conn)) *Conn {
+func NewConn(userId int64, deviceType int32, ws *websocket.Conn, onclose func(c *Conn), onrenew func()) *Conn {
 	return &Conn{
 		userId:      userId,
 		deviceType:  deviceType,
@@ -40,6 +42,7 @@ func NewConn(userId int64, deviceType int32, ws *websocket.Conn, onclose func(c 
 		connectedAt: time.Now(),
 		closed:      make(chan struct{}),
 		onClose:     onclose,
+		onRenew:     onrenew,
 	}
 }
 
@@ -110,6 +113,10 @@ func (c *Conn) WritePump() {
 			c.ws.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			if err := c.ws.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
+			}
+			// 只要绑定了函数，就异步调用
+			if c.onRenew != nil {
+				go c.onRenew()
 			}
 		}
 

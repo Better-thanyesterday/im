@@ -32,7 +32,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	sqlconn := sqlx.NewSqlConn("postgres", c.Postgres.DataSource)
 	rds := redis.MustNewRedis(c.RedisCache)
 	m := models.NewMessagesModel(sqlconn, c.Cache)
-	s := models.NewSeqsModel(sqlconn, c.Cache)
+	s := models.NewSeqsModel(sqlconn)
 	i := models.NewInboxesModel(sqlconn, c.Cache)
 	snokflake, _ := utils.NewSnowflake(c.SnokFlake.WorkNode)
 	// Kafka 生产者（只初始化 Producer，Consumer 在 main 里启动）

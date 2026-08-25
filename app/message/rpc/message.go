@@ -41,10 +41,17 @@ func main() {
 		Topics:   []string{mq.TopicMsgPersist},
 		Handler:  logic.NewConsumerHandlerLogic(ctx).PersistMsg,
 	}
+	// 2. Kafka 消费者：订阅 im.seq.persist 做消息落库
+	seqconsumer := &kafka.KafkaConsumerService{
+		Consumer: *ctx.KafkaConsumer,
+		Topics:   []string{mq.TopicSeqPersist},
+		Handler:  logic.NewConsumerHandlerLogic(ctx).PersistSeq,
+	}
 	// 3. servicegroup：Ctrl+C 时先停消费者再停 rpc
 	sg := service.NewServiceGroup()
 	sg.Add(s)
 	sg.Add(consumer)
+	sg.Add(seqconsumer)
 	defer sg.Stop()
 
 	fmt.Printf("Starting rpc server at %s...\n", c.ListenOn)

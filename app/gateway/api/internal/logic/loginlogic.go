@@ -52,7 +52,7 @@ func (l *LoginLogic) Login(req *types.LoginReq) (resp *types.LoginResp, err erro
 	if err != nil {
 		logx.Errorf("set im:online:onlineKey failed")
 	}
-	l.svcCtx.Redis.ExpireCtx(l.ctx,onlineKey,900)	
+	l.svcCtx.Redis.ExpireCtx(l.ctx,onlineKey,1900)	
 	return &types.LoginResp{
 		Token: token,
 	}, nil

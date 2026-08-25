@@ -8,6 +8,8 @@ const (
 	// 生产者：消息服务发送管道   消费者：消息服务 msg-persist-group
 	TopicMsgPersist = "im.msg.persist"
 
+	TopicSeqPersist = "im.seq.persist"
+
 	// TopicMsgOffline 离线消息写入 Redis（分区 16 | 副本 3）
 	// 生产者：消息/推送服务      消费者：推送服务 offline-group
 	TopicMsgOffline = "im.msg.offline"

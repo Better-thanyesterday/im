@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 	"im-platform/app/message/rpc/internal/svc"
-	_"sync/atomic"
+	"sync/atomic"
+	_ "sync/atomic"
+
 	"github.com/zeromicro/go-zero/core/logx"
 )
-
 
 type SeqIdLogic struct {
 	ctx    context.Context
@@ -25,69 +26,68 @@ type seqSegment struct {
 
 func NewSeqIdLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SeqIdLogic {
 	return &SeqIdLogic{
-		ctx:    ctx,
-		svcCtx: svcCtx,
-		Logger: logx.WithContext(ctx),
+		ctx:      ctx,
+		svcCtx:   svcCtx,
+		Logger:   logx.WithContext(ctx),
 		seqCache: make(map[string]*seqSegment),
 	}
 }
 
 // AllocateSeq 为指定会话分配下一个 SeqID
 // 策略：Redis INCR（主）→ 批量预取（优化）→ PG 兜底（降级）
-func (l *SeqIdLogic)AllocateSeq(convId string)(int64,error){
+func (l *SeqIdLogic) AllocateSeq(convId string) (int64, error, bool) {
 	//local Cache hit
-	if  seg,ok:=l.seqCache[convId];ok&&seg.current<seg.max{
-		seg.current++
+	seg, ok := l.seqCache[convId];
+	if  ok && seg.current < seg.max {
+		atomic.AddInt64(&seg.current,1)
 		l.Infof("seq hit cache, conv=%s, seq=%d", convId, seg.current)
-		return seg.current, nil
+		//写缓存成功写kafka
+		return seg.current, nil, true
 	}
 	// 2. Redis 批量预取：一次 INCRBY 拿 N 个 Seq，减少 90% 的 Redis 往返
-	const batchSize int64=100
-	seqKey:=fmt.Sprintf("im:seq:%s",convId)
+	const batchSize int64 = 100
+	seqKey := fmt.Sprintf("im:seq:%s", convId)
 	// Redis INCRBY 原子返回当前最大值
-	maxSeq,err :=l.svcCtx.Redis.Incrby(seqKey,batchSize)
-	if err!=nil {
+	maxSeq, err := l.svcCtx.Redis.Incrby(seqKey, batchSize)
+	if err != nil {
 		logx.Errorf("redis incrby failed, fallback to pg: %v", err)
 		// 降级到 PG 兜底
-		return l.allocateFromPG(convId)
+		seq,err := l.allocateFromPG(convId);
+		if  err != nil {
+			logx.Errorf("allocateFromPG failed, fallback to pg: %v", err)
+			return 0,err,false
+			// 兜底失败写kafka
+		}
+		seg.current=seq
+		return seq ,nil, false
 	}
-	_=l.svcCtx.Redis.Expire(seqKey,86400*30)
-	start:=maxSeq-batchSize
-	l.seqCache[convId]=&seqSegment{
+	_ = l.svcCtx.Redis.Expire(seqKey, 86400*30)
+	start := maxSeq - batchSize
+	l.seqCache[convId] = &seqSegment{
 		current: start,
-		max: maxSeq,
+		max:     maxSeq,
 	}
 	l.Infof("seq preallocated, conv=%s, range=[%d,%d]", convId, start, maxSeq)
-	return start, nil
-}
-// allocateFromPG PG 兜底：直接行锁更新 seq_counters 表
-func (l *SeqIdLogic)allocateFromPG(convId string)(int64,error){
-	// 根据 convId 路由到对应分库
-	//shard := l.svcCtx.ShardingRouter.GetShardByConvId(convId)
-	// 	query := `
-	// 	INSERT INTO seq_counters (conv_id, max_seq, updated_at)
-	// 	VALUES ($1, 1, NOW())
-	// 	ON CONFLICT (conv_id) DO UPDATE
-	// 	SET max_seq = seq_counters.max_seq + 1,
-	// 	    updated_at = NOW()
-	// 	RETURNING max_seq
-	// `
-	// var seq int64
-	// err := shard.QueryRowCtx(l.ctx, &seq, query, convId)
-	// if err != nil {
-	// 	return 0, fmt.Errorf("pg allocate seq failed: %w", err)
-	// }
-	var seq int64
-	 return seq, nil
+	//redis 成功写kafka
+	return start, nil, true
 }
 
+// allocateFromPG PG 兜底：直接行锁更新 seq_counters 表
+func (l *SeqIdLogic) allocateFromPG(convId string) (int64, error) {
+	var seq int64
+	seq, err := l.svcCtx.SeqModel.CustomQueryRowCtx(l.ctx, convId)
+	if err != nil {
+		return 0, fmt.Errorf("pg allocate seq failed: %w", err)
+	}
+	return seq, nil
+}
 
 // BatchAllocateSeq 批量分配（用于群聊写扩散，一次给 N 个成员各分配 inbox seq）
 func (l *SeqIdLogic) BatchAllocateSeq(convId string, count int) ([]int64, error) {
 	if count <= 0 {
 		return nil, nil
 	}
-	
+
 	seqKey := fmt.Sprintf("im:seq:%s", convId)
 	maxSeq, err := l.svcCtx.Redis.Incrby(seqKey, int64(count))
 	if err != nil {

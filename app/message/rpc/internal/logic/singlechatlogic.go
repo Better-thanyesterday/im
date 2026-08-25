@@ -52,9 +52,25 @@ func (l *SingleChatLogic) Send(in *message.SendMessageReq, convid string) (*mess
 	// }
 
 	//2.分配seq_id
-	seqId, err := NewSeqIdLogic(l.ctx, l.svcCtx).AllocateSeq(convid)
+	seqId, err, needAsync := NewSeqIdLogic(l.ctx, l.svcCtx).AllocateSeq(convid)
 	if err != nil {
 		return nil, fmt.Errorf("allocate seq failed: %w", err)
+	}
+	//4.seq异步持久化：写 Kafka
+	//如果 Kafka 失败，同步降级写 PG
+	if needAsync {
+		seq := &models.Seqs{
+			MaxSeq: seqId,
+			ConvId: convid,
+		}
+		payload, _ := json.Marshal(seq)
+		if err := l.svcCtx.KafkaProducer.Publish(l.ctx, mq.TopicSeqPersist, payload); err != nil {
+			logx.Errorf("kafka send failed, fallback to pg: %v", err)
+			if _, err := l.svcCtx.SeqModel.CustomQueryRowCtx(l.ctx, convid); err != nil {
+				logx.Errorf("update failed, fallback to pg: %v", err)
+				return nil, err
+			}
+		}
 	}
 	//3.生成msg_id
 	msgId := l.svcCtx.Snokflake.NextID()
@@ -74,14 +90,14 @@ func (l *SingleChatLogic) Send(in *message.SendMessageReq, convid string) (*mess
 	//4.异步持久化：写 Kafka（削峰）
 	//如果 Kafka 失败，同步降级写 PG
 	payload, _ := json.Marshal(msg)
-	if err := l.svcCtx.KafkaProducer.Publish(l.ctx,mq.TopicMsgPersist,payload); err != nil {
+	if err := l.svcCtx.KafkaProducer.Publish(l.ctx, mq.TopicMsgPersist, payload); err != nil {
 		logx.Errorf("kafka send failed, fallback to pg: %v", err)
 		if _, err := l.svcCtx.MessagesModel.Insert(l.ctx, msg); err != nil {
 			logx.Errorf("insert failed, fallback to pg: %v", err)
 			return nil, err
 		}
 	}
-	
+
 	//5. 调用 Push 服务投递给接收方
 	pmsg := &push.PushMessage{
 		MsgId:    msgId,

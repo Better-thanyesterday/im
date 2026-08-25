@@ -48,7 +48,7 @@ func (l *GroupChatLogic) Send(in *message.SendMessageReq, convid string) (*messa
 		return nil, fmt.Errorf("group not available")
 	}
 	// ========== 4. 分配 SeqID（Redis INCR，失败则 PG 兜底） & MsgID（雪花） ==========
-	seqId, err := NewSeqIdLogic(l.ctx, l.svcCtx).AllocateSeq(convid)
+	seqId, err ,_:= NewSeqIdLogic(l.ctx, l.svcCtx).AllocateSeq(convid)
 	if err != nil {
 		l.Errorf("alloc seqId failed: %v", err)
 		return nil, fmt.Errorf("alloc seq failed")

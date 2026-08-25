@@ -28,7 +28,21 @@ func (l *ConsumerHandlerLogic)PersistMsg(ctx context.Context,msg *sarama.Consume
             return err
         }
         // 调用你的 go-zero 业务逻辑
+		logx.Infof("🔥 PersistSeq 被调用了！收到消息: %s", string(msg.Value))
         if _, err := l.svcCtx.MessagesModel.Insert(ctx, &message); err != nil {
+            return err
+        }
+        return nil
+}
+
+
+func (l *ConsumerHandlerLogic)PersistSeq(ctx context.Context,msg *sarama.ConsumerMessage) error{
+	var  seqs models.Seqs
+        if err := json.Unmarshal(msg.Value, &seqs); err != nil {
+            return err
+        }
+        // 调用你的 go-zero 业务逻辑
+        if _, err := l.svcCtx.SeqModel.CustomQueryRowCtx(ctx, seqs.ConvId); err != nil {
             return err
         }
         return nil

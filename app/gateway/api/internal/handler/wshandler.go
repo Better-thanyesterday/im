@@ -37,9 +37,12 @@ func WsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			connect.Close()
 			return
 		}
-		//回调下线
+		//回调下线和刷新在线状态
 		c := conn.NewConn(userId, deviceType, connect, func(c *conn.Conn) {
 			onConnClosed(svcCtx, c)
+		},func() {
+			onlineKey := fmt.Sprintf("im:online:%d", userId)
+			svcCtx.Redis.Expire(onlineKey,90)
 		})
 		l := logic.NewWsConnectLogic(r.Context(), svcCtx)
 		l.Register(c)
