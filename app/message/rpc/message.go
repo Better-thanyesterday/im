@@ -37,13 +37,13 @@ func main() {
 
 	// 2. Kafka 消费者：订阅 im.msg.persist 做消息落库
 	consumer := &kafka.KafkaConsumerService{
-		Consumer: *ctx.KafkaConsumer,
+		Consumer: *ctx.KafkaConsumer[0],
 		Topics:   []string{mq.TopicMsgPersist},
 		Handler:  logic.NewConsumerHandlerLogic(ctx).PersistMsg,
 	}
 	// 2. Kafka 消费者：订阅 im.seq.persist 做消息落库
 	seqconsumer := &kafka.KafkaConsumerService{
-		Consumer: *ctx.KafkaConsumer,
+		Consumer: *ctx.KafkaConsumer[1],
 		Topics:   []string{mq.TopicSeqPersist},
 		Handler:  logic.NewConsumerHandlerLogic(ctx).PersistSeq,
 	}

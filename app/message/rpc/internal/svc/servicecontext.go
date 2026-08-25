@@ -23,7 +23,7 @@ type ServiceContext struct {
 	Redis         redis.Redis
 	Snokflake     *utils.Snowflake
 	KafkaProducer *mq.Producer
-	KafkaConsumer *mq.Consumer
+	KafkaConsumer []*mq.Consumer
 	pushclient.Push
 	groupclient.Group
 }
@@ -46,6 +46,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		logx.Errorf("new kafka producer failed: %v", err)
 		panic(err)
 	}
+	
 	consumer,err:= mq.NewConsumer(c.Kafka.Brokers,c.Kafka.Consumer.GroupID,saramaCfg)
 	if err != nil {
 		logx.Errorf("new kafka consumer failed: %v", err)

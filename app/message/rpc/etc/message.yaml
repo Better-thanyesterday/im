@@ -14,7 +14,9 @@ Kafka:
     Compression: none
     MaxMessageBytes: 1048576
   Consumer:
-    GroupID: msg-persist-group
+    GroupID: 
+     - msg-persist-group
+     - seq-persist-group
     OffsetInitial: oldest
     SessionTimeout: 10s
     HeartbeatInterval: 3s

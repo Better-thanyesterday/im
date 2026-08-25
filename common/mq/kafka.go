@@ -30,7 +30,7 @@ type ProducerConfig struct {
 }
 
 type ConsumerConfig struct {
-	GroupID           string
+	GroupID           []string
 	OffsetInitial     string // "oldest" or "newest"
 	SessionTimeout    time.Duration
 	HeartbeatInterval time.Duration
@@ -180,12 +180,16 @@ type Consumer struct {
 	group sarama.ConsumerGroup
 }
 
-func NewConsumer(brokers []string, groupID string, conf *sarama.Config) (*Consumer, error) {
-	g, err := sarama.NewConsumerGroup(brokers, groupID, conf)
-	if err != nil {
-		return nil, fmt.Errorf("new consumer group: %w", err)
+func NewConsumer(brokers []string, groupID []string, conf *sarama.Config) ([]*Consumer, error) {
+	var c []*Consumer
+	for _, id := range groupID {
+		g, err := sarama.NewConsumerGroup(brokers, id, conf)
+		if err != nil {
+			return nil, fmt.Errorf("new consumer group: %w", err)
+		}
+		c = append(c, &Consumer{group: g})
 	}
-	return &Consumer{group: g}, nil
+	return c, nil
 }
 
 func (c *Consumer) Close() error {
@@ -229,28 +233,28 @@ func (h *GroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim s
 	for msg := range claim.Messages() {
 		// 1. 使用带超时的 Context，避免数据库查询等阻塞操作导致心跳超时引发频繁 Rebalance
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		
+
 		// 2. 反序列化与校验
 		var message models.Messages
 		if err := json.Unmarshal(msg.Value, &message); err != nil {
 			logx.Errorf("json unmarshal failed, skip message: %v, raw: %s", err, string(msg.Value))
-			
+
 			// 【关键修复】：解析失败的脏数据无法通过重试恢复，必须 MarkMessage 跳过，
 			// 否则会导致当前分区消费永久阻塞。生产环境建议此处发送到死信队列(DLQ)。
-			session.MarkMessage(msg, "") 
+			session.MarkMessage(msg, "")
 			cancel() // 记得释放 context 资源
-			continue 
+			continue
 		}
 
 		// 3. 调用业务处理逻辑
 		if err := h.Handler(ctx, msg); err != nil {
 			logx.Errorf("handle message failed, topic=%s, partition=%d, offset=%d, err=%v",
 				msg.Topic, msg.Partition, msg.Offset, err)
-			
+
 			// 处理失败不 Mark，让 Kafka 重试。
 			// 注意：如果是不可恢复的致命错误，需引入重试上限或死信队列，防止无限重试。
-			cancel() 
-			continue 
+			cancel()
+			continue
 		}
 
 		// 4. 业务成功，手动标记并提交 offset

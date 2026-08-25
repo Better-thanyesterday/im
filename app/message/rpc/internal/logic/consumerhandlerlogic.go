@@ -28,7 +28,6 @@ func (l *ConsumerHandlerLogic)PersistMsg(ctx context.Context,msg *sarama.Consume
             return err
         }
         // 调用你的 go-zero 业务逻辑
-		logx.Infof("🔥 PersistSeq 被调用了！收到消息: %s", string(msg.Value))
         if _, err := l.svcCtx.MessagesModel.Insert(ctx, &message); err != nil {
             return err
         }
