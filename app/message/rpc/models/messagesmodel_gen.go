@@ -38,7 +38,7 @@ type (
 		Update(ctx context.Context, data *Messages) error
 		Delete(ctx context.Context, id int64) error
 		BatchGetByIds(ctx context.Context, convid string, msgIds []int64) ([]*Messages, error)
-			FindBySeqRange(ctx context.Context, convid string, startSeq, endSeq, limit int64) ([]*Messages, error)
+		FindBySeqRange(ctx context.Context, convid string, startSeq, endSeq, limit int64) ([]*Messages, error)
 		FindByClientMsgId(ctx context.Context, convid string, clientmsgid string) (*Messages, error)
 	}
 

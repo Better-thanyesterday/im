@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"time"
 
 	"im-platform/app/gateway/rpc/gateway"
 	"im-platform/app/push/rpc/internal/svc"
@@ -93,7 +92,7 @@ func (l *DeliverLogic) pushToDevice(ctx context.Context, in *push.DeliverReq, de
 // storeOffline 写入 Redis 离线信箱（Sorted Set）
 func (l *DeliverLogic) storeOffline(ctx context.Context, in *push.DeliverReq) {
 	offlineKey := fmt.Sprintf("im:offlineinbox:%d", in.UserId)
-	score := time.Now().UnixMilli()
+	score := in.Message.SeqId
 	_, err := l.svcCtx.Redis.ZaddCtx(ctx, offlineKey, score, fmt.Sprintf("%d", in.Message.MsgId))
 	if err != nil {
 		logx.Errorf("zadd offline box failed, key=%s, err=%v", offlineKey, err)

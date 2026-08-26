@@ -1,10 +1,9 @@
-package logic
+package logic 
 
 import (
 	"context"
 	"fmt"
 	"im-platform/app/message/rpc/internal/svc"
-	"sync/atomic"
 	_ "sync/atomic"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -14,22 +13,15 @@ type SeqIdLogic struct {
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 	logx.Logger
-	// 对象级缓存：批量预取的 SeqID 段，减少 Redis 往返
-	// key: conv_id, value: {current, max, mu}
-	seqCache map[string]*seqSegment
 }
 
-type seqSegment struct {
-	current int64 // 当前已分配的 Seq
-	max     int64 // 预取到的上限（含）
-}
+
 
 func NewSeqIdLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SeqIdLogic {
 	return &SeqIdLogic{
 		ctx:      ctx,
 		svcCtx:   svcCtx,
 		Logger:   logx.WithContext(ctx),
-		seqCache: make(map[string]*seqSegment),
 	}
 }
 
@@ -37,12 +29,11 @@ func NewSeqIdLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SeqIdLogic 
 // 策略：Redis INCR（主）→ 批量预取（优化）→ PG 兜底（降级）
 func (l *SeqIdLogic) AllocateSeq(convId string) (int64, error, bool) {
 	//local Cache hit
-	seg, ok := l.seqCache[convId];
-	if  ok && seg.current < seg.max {
-		atomic.AddInt64(&seg.current,1)
-		l.Infof("seq hit cache, conv=%s, seq=%d", convId, seg.current)
+	seg, ok := l.svcCtx.SeqIdCache.Get(convId);
+	if  ok{
+		l.Infof("seq hit cache, conv=%s, seq=%d", convId, seg)
 		//写缓存成功写kafka
-		return seg.current, nil, true
+		return seg, nil, true
 	}
 	// 2. Redis 批量预取：一次 INCRBY 拿 N 个 Seq，减少 90% 的 Redis 往返
 	
@@ -59,15 +50,12 @@ func (l *SeqIdLogic) AllocateSeq(convId string) (int64, error, bool) {
 			return 0,err,false
 			// 兜底失败写kafka
 		}
-		seg.current=seq
+		l.svcCtx.SeqIdCache.Put(convId,seq,0)
 		return seq ,nil, false
 	}
 	_ = l.svcCtx.Redis.Expire(seqKey, 86400*30)
 	start := maxSeq - batchSize
-	l.seqCache[convId] = &seqSegment{
-		current: start,
-		max:     maxSeq,
-	}
+	l.svcCtx.SeqIdCache.Put(convId,start,maxSeq)
 	l.Infof("seq preallocated, conv=%s, range=[%d,%d]", convId, start, maxSeq)
 	//redis 成功写kafka
 	return start, nil, true
@@ -88,7 +76,6 @@ func (l *SeqIdLogic) BatchAllocateSeq(convId string, count int) ([]int64, error)
 	if count <= 0 {
 		return nil, nil
 	}
-
 	seqKey := fmt.Sprintf("im:seq:%s", convId)
 	maxSeq, err := l.svcCtx.Redis.Incrby(seqKey, int64(count))
 	if err != nil {

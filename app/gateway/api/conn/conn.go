@@ -1,6 +1,7 @@
 package conn
 
 import (
+
 	"sync"
 	"time"
 
@@ -77,9 +78,17 @@ func (c *Conn) Close() {
 	})
 }
 
-func (c *Conn) ReadPump(onMessage func(data []byte)) {
+func (c *Conn) ReadPump(onMessage func(data []byte), onReconnect func(c *Conn)) {
 	defer c.Close()
 	c.ws.SetReadLimit(4096) // 单帧上限，防止内存被打爆
+	// 6. 触发重连恢复：拉离线消息
+	var once sync.Once
+	
+	once.Do(func() {
+		if onReconnect != nil {
+			go onReconnect(c) // 异步执行，不阻塞消息读取
+		}
+	})
 	c.ws.SetPongHandler(func(string) error {
 		// 收到客户端 pong，续期
 		c.ws.SetReadDeadline(time.Now().Add(90 * time.Second))
@@ -92,6 +101,7 @@ func (c *Conn) ReadPump(onMessage func(data []byte)) {
 			logx.Errorf("read pump exit | user=%d err=%v", c.userId, err) // conn 包需 import logx
 			return
 		}
+
 		onMessage(data)
 	}
 }

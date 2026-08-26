@@ -34,6 +34,7 @@ func (l *SyncMessageLogic) SyncMessage(in *message.SyncMessageReq) (*message.Syn
 	if in.UserId <= 0 {
 		return nil, constants.NewMsgError(constants.ErrCodeMsgInValidParam)
 	}
+	logx.Infof("✅ ctx: %p",l.ctx)
 	//构造ConvSyncs包含多条离线信息
 	resp := &message.SyncMessageResp{
 		ConvSyncs: make([]*message.SyncMessageResp_ConvSync, 0, len(in.ConvList)),
@@ -43,7 +44,7 @@ func (l *SyncMessageLogic) SyncMessage(in *message.SyncMessageReq) (*message.Syn
 		if conv.ConvId == "" {
 			continue
 		}
-		cs, err := l.syncSingleConv(in.UserId, conv)
+		cs, err := l.SyncSingleConv(in.UserId, conv)
 		if err != nil {
 			logx.Errorf("sync conv %s err: %v", conv.ConvId, err)
 			continue
@@ -52,11 +53,11 @@ func (l *SyncMessageLogic) SyncMessage(in *message.SyncMessageReq) (*message.Syn
 			resp.ConvSyncs = append(resp.ConvSyncs, cs)
 		}
 	}
-	return &message.SyncMessageResp{}, nil
+	return resp, nil
 }
 
 // syncSingleConv 处理单个会话的同步
-func (l *SyncMessageLogic) syncSingleConv(userId int64, conv *message.SyncMessageReq_ConSeq) (*message.SyncMessageResp_ConvSync, error) {
+func (l *SyncMessageLogic) SyncSingleConv(userId int64, conv *message.SyncMessageReq_ConSeq) (*message.SyncMessageResp_ConvSync, error) {
 	serverSeq, err := l.getServerSeq(conv.ConvId)
 	if err != nil {
 		return nil, err
@@ -96,7 +97,7 @@ func (l *SyncMessageLogic) syncSingleConv(userId int64, conv *message.SyncMessag
 func (l *SyncMessageLogic) getServerSeq(convId string) (int64, error) {
 	seqKey := fmt.Sprintf("im:seq:%s", convId)
 	val, err := l.svcCtx.Redis.GetCtx(l.ctx, seqKey)
-	if err != nil && val != "" {
+	if err == nil && val != "" {
 		return strconv.ParseInt(val, 10, 64)
 	}
 	seq, err := l.svcCtx.SeqModel.FindOne(l.ctx, convId)
@@ -109,7 +110,7 @@ func (l *SyncMessageLogic) getServerSeq(convId string) (int64, error) {
 // syncFromOffline 从 Redis 离线信箱拉取
 // 离线信箱: ZSet key=im:offline:{user_id}, member=msg_id, score=seq_id
 func (l *SyncMessageLogic) syncFromOffline(userId int64, convId string, startSeq, endSeq, limit int64) ([]*message.MessageBody, bool, error) {
-	offlineKey := fmt.Sprintf("im:offline:%d", userId)
+	offlineKey := fmt.Sprintf("im:offlineinbox:%d", userId)
 	// 按 score（seq_id）范围取 msg_id 列表
 	members, err := l.svcCtx.Redis.ZRevRangeWithScoresCtx(l.ctx, offlineKey, startSeq, endSeq)
 	if err != nil {

@@ -2,9 +2,12 @@ package logic
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"im-platform/app/gateway/api/conn"
 	"im-platform/app/gateway/api/internal/svc"
+	"im-platform/app/message/rpc/messageclient"
+	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -34,11 +37,11 @@ func (l *WsConnectLogic) Register(c *conn.Conn) {
 		logx.Infof("reconnect detected | user=%d device=%d, kick old conn", c.UserId(), c.DeviceType())
 		oldConn.Close() // 锁外踢，onClose → onConnClosed 正常加锁
 	}
-	
+
 	// 4. 写 Redis 在线状态（覆盖旧值）
 	l.svcCtx.Redis.Hset(fmt.Sprintf("im:online:%d", c.UserId()),
 		fmt.Sprintf("%d", c.DeviceType()), l.svcCtx.Config.Gateway.GrpcAddr)
-	_ = l.svcCtx.Redis.ExpireCtx(context.Background(),fmt.Sprintf("im:online:%d", c.UserId()) , 90) // TTL 兜底，进程崩溃不残留
+	_ = l.svcCtx.Redis.ExpireCtx(context.Background(), fmt.Sprintf("im:online:%d", c.UserId()), 90) // TTL 兜底，进程崩溃不残留
 	if _, err := l.svcCtx.Redis.Hdel(fmt.Sprintf("im:offline:%d", c.UserId()), fmt.Sprintf("%d", c.DeviceType())); err != nil {
 		logx.Errorf("redis hdel failed | user=%d device=%d err=%v", c.UserId(), c.DeviceType(), err)
 	}
@@ -48,21 +51,44 @@ func (l *WsConnectLogic) Register(c *conn.Conn) {
 		// TODO: 上行消息分发（聊天消息、心跳上报等），先记录日志
 		logx.Infof("ws message | user=%d device=%d len=%d", c.UserId(), c.DeviceType(), len(data))
 		HandleFrame(l.svcCtx, c, data)
-	})
-	// 6. 触发重连恢复：拉离线消息（异步，不阻塞握手）
-	//go onReconnect(c)
+	}, func(c *conn.Conn) { l.OnReconnect(c) })
+
 }
 
-func onReconnect(c *conn.Conn) {
+func (l *WsConnectLogic) OnReconnect(c *conn.Conn) {
 	// 调用 Message RPC 拉取离线消息
 	// 这里走 gRPC 调用 message.SyncMessages
-	// resp, err := .messageRPC.SyncMessages(c.UserId(), ...)
-	// if err != nil {
-	// 	logx.Errorf("sync messages failed | user=%d err=%v", c.UserId(), err)
-	// 	return
-	// }
-	// // 把离线消息推给客户端
-	// for _, msg := range resp.Messages {
-	// 	c.Send(msg)
-	// }
+
+	conseq := &messageclient.SyncMessageReq_ConSeq{
+		ConvId:  "746262395202048000:746263247023247360",
+		LastSeq: 1,
+	}
+	convlist := []*messageclient.SyncMessageReq_ConSeq{conseq}
+	in := &messageclient.SyncMessageReq{
+		UserId:   c.UserId(),
+		ConvList: convlist,
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	safeCtx := context.WithoutCancel(ctx)
+	fmt.Printf("✅ ctx: %p", ctx)
+	defer cancel()
+	// 2. 监视这个 ctx 的生命周期
+	defer func() {
+		if ctx.Err() != nil {
+			logx.Errorf("🔥 OnReconnect 结束时，Context 状态: %v", ctx.Err())
+		} else {
+			logx.Infof("✅ OnReconnect 正常执行完毕")
+		}
+	}()
+
+	resp, err := l.svcCtx.SyncMessage(safeCtx, in)
+	if err != nil {
+		logx.Errorf("sync messages failed | user=%d err=%v", c.UserId(), err)
+		return
+	}
+	// 把离线消息推给客户端
+	for _, msg := range resp.ConvSyncs {
+		payload, _ := json.Marshal(msg)
+		c.Send(payload)
+	}
 }

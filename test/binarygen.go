@@ -6,11 +6,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"im-platform/app/message/rpc/message"
+
+	"github.com/google/uuid"
 )
 
 func main() {
+	msgid:=uuid.NewString()
 	payload, _ := json.Marshal(message.SendMessageReq{
-		ClientMsgId: "15112331e81110-e19b-21d3-a716-446655410000",
+		ClientMsgId: msgid,
 		SenderId:    746262395202048000,
 		Isgroup:     false,
 		ToUid:       746263247023247360,

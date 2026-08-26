@@ -7,6 +7,7 @@ import (
 	"im-platform/app/push/rpc/pushclient"
 	"im-platform/common/mq"
 	"im-platform/common/utils"
+
 	_ "github.com/lib/pq"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/redis"
@@ -24,6 +25,7 @@ type ServiceContext struct {
 	Snokflake     *utils.Snowflake
 	KafkaProducer *mq.Producer
 	KafkaConsumer []*mq.Consumer
+	SeqIdCache *utils.SeqIdCache
 	pushclient.Push
 	groupclient.Group
 }
@@ -64,5 +66,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		KafkaConsumer: consumer,
 		Push:          pushclient.NewPush(zrpc.MustNewClient(c.PushRpc)),
 		Group:         groupclient.NewGroup(zrpc.MustNewClient(c.GroupRpc)),
+		SeqIdCache: utils.NewSeqIdCache(),
 	}
 }
