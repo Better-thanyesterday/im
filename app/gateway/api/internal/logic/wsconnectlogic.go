@@ -70,7 +70,6 @@ func (l *WsConnectLogic) OnReconnect(c *conn.Conn) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	safeCtx := context.WithoutCancel(ctx)
-	fmt.Printf("✅ ctx: %p", ctx)
 	defer cancel()
 	// 2. 监视这个 ctx 的生命周期
 	defer func() {

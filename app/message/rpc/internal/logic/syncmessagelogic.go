@@ -34,7 +34,6 @@ func (l *SyncMessageLogic) SyncMessage(in *message.SyncMessageReq) (*message.Syn
 	if in.UserId <= 0 {
 		return nil, constants.NewMsgError(constants.ErrCodeMsgInValidParam)
 	}
-	logx.Infof("✅ ctx: %p",l.ctx)
 	//构造ConvSyncs包含多条离线信息
 	resp := &message.SyncMessageResp{
 		ConvSyncs: make([]*message.SyncMessageResp_ConvSync, 0, len(in.ConvList)),
@@ -78,7 +77,7 @@ func (l *SyncMessageLogic) SyncSingleConv(userId int64, conv *message.SyncMessag
 	if diff <= 1000 {
 		// 小差值：优先 Redis 离线信箱，失败降级 PG
 		msgs, hasMore, err = l.syncFromOffline(userId, conv.ConvId, startSeq, serverSeq, limit)
-		if err != nil {
+		if err == nil && hasMore == false || err != nil {
 			logx.Errorf("offline sync failed, fallback to db: %v", err)
 			msgs, hasMore, err = l.syncFromDB(conv.ConvId, startSeq, serverSeq, limit)
 		}
@@ -112,7 +111,7 @@ func (l *SyncMessageLogic) getServerSeq(convId string) (int64, error) {
 func (l *SyncMessageLogic) syncFromOffline(userId int64, convId string, startSeq, endSeq, limit int64) ([]*message.MessageBody, bool, error) {
 	offlineKey := fmt.Sprintf("im:offlineinbox:%d", userId)
 	// 按 score（seq_id）范围取 msg_id 列表
-	members, err := l.svcCtx.Redis.ZRevRangeWithScoresCtx(l.ctx, offlineKey, startSeq, endSeq)
+	members, err := l.svcCtx.Redis.ZrevrangebyscoreWithScoresCtx (l.ctx, offlineKey, startSeq, endSeq)
 	if err != nil {
 		return nil, false, err
 	}
