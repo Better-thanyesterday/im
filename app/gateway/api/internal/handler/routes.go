@@ -6,9 +6,10 @@ package handler
 import (
 	"net/http"
 
-	"github.com/zeromicro/go-zero/rest"
 	"im-platform/app/gateway/api/internal/svc"
 	"im-platform/common/middleware"
+
+	"github.com/zeromicro/go-zero/rest"
 )
 
 func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
@@ -23,6 +24,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Method:  http.MethodGet,
 				Path:    "/register",
 				Handler: RegisterHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/creategroup",
+				Handler: CreateGroupHandler(serverCtx),
 			},
 			{
 				Method: http.MethodGet,

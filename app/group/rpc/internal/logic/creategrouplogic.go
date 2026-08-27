@@ -52,6 +52,7 @@ func (l *CreateGroupLogic) CreateGroup(in *group.CreateGroupReq) (*group.CreateG
 	gmemberInf:=&models.Groupmembers{
 		Id: l.svcCtx.Snokflake.NextID(),
 		GroupId: groupInf.Id,
+		UserId: in.CreatorId,
 		Role: 1,
 		GroupNickname: sql.NullString{
 			String: in.Name,

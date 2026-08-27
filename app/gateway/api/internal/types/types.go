@@ -3,6 +3,22 @@
 
 package types
 
+type CreateGroupReq struct {
+	CreatorId        int64   `json:"creator_id"`                      // 创建者（自动成为群主）
+	Name             string  `json:"name"`                            // 群名称
+	Avatar           string  `json:"avatar,optional"`                 // 群头像（可选）
+	InitialMembers   []int64 `json:"initial_members,optional"`        // 初始成员列表（不含创建者）
+	MaxMember        int32   `json:"max_member,optional,default=500"` // 默认500
+	GroupType        int32   `json:"group_type,optional,default=1"`   // 1-普通群 2-企业群
+	InvitePermission int32   `json:"invite_permission,optional,default=1"`
+	JoinApproval     int32   `json:"join_approval,optional,default=1"`
+}
+
+type CreateGroupResp struct {
+	GroupId       int64 `json:"group_id"`
+	MemberVersion int64 `json:"member_version"`
+}
+
 type LoginReq struct {
 	Phone      string `json:"phone" validate:"omitempty"`
 	Email      string `json:"email" validate:"omitempty"`

@@ -4,7 +4,7 @@ import (
 	"im-platform/app/group/rpc/internal/config"
 	"im-platform/app/group/rpc/models"
 	"im-platform/common/utils"
-
+	_ "github.com/lib/pq"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 

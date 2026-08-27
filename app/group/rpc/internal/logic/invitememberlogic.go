@@ -25,6 +25,6 @@ func NewInviteMemberLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Invi
 // ==================== 成员管理 ====================
 func (l *InviteMemberLogic) InviteMember(in *group.InviteMemberReq) (*group.InviteMemberResp, error) {
 	// todo: add your logic here and delete this line
-
+	
 	return &group.InviteMemberResp{}, nil
 }

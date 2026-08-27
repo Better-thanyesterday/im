@@ -6,6 +6,7 @@ package svc
 import (
 	"im-platform/app/gateway/api/conn"
 	"im-platform/app/gateway/api/internal/config"
+	"im-platform/app/group/rpc/groupclient"
 	"im-platform/app/message/rpc/messageclient"
 	"im-platform/app/user/rpc/userclient"
 	"im-platform/common/utils"
@@ -18,6 +19,7 @@ import (
 type ServiceContext struct {
 	Config config.Config
 	userclient.User
+	groupclient.Group
 	TokenManager *utils.TokenManager
 	ConnManager *conn.ConnManager
 	messageclient.Message
@@ -33,5 +35,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		TokenManager: utils.NewTokenManager(rds,7*24*time.Hour),
 		ConnManager: conn.NewManager(16),
 		Redis:*rds,
+		Group: groupclient.NewGroup(zrpc.MustNewClient(c.GroupRpc)),
 	}
 }
