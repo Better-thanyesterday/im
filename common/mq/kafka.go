@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"im-platform/app/message/rpc/models"
 	"time"
 
 	"github.com/IBM/sarama"
@@ -234,18 +233,13 @@ func (h *GroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim s
 		// 1. 使用带超时的 Context，避免数据库查询等阻塞操作导致心跳超时引发频繁 Rebalance
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 
-		// 2. 反序列化与校验
-		var message models.Messages
-		if err := json.Unmarshal(msg.Value, &message); err != nil {
-			logx.Errorf("json unmarshal failed, skip message: %v, raw: %s", err, string(msg.Value))
-
-			// 【关键修复】：解析失败的脏数据无法通过重试恢复，必须 MarkMessage 跳过，
-			// 否则会导致当前分区消费永久阻塞。生产环境建议此处发送到死信队列(DLQ)。
+		// 只校验合法 JSON，类型解析交给各业务 handler
+		if !json.Valid(msg.Value) {
+			logx.Errorf("invalid json, skip message: topic=%s raw=%s", msg.Topic, string(msg.Value))
 			session.MarkMessage(msg, "")
-			cancel() // 记得释放 context 资源
+			cancel()
 			continue
 		}
-
 		// 3. 调用业务处理逻辑
 		if err := h.Handler(ctx, msg); err != nil {
 			logx.Errorf("handle message failed, topic=%s, partition=%d, offset=%d, err=%v",

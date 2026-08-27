@@ -27,11 +27,9 @@ func NewAckMessageLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AckMes
 }
 
 // AckMessage 统一 ACK 入口：已送达 / 已读
-// 从 context metadata 获取阅读者 user_id（Gateway 注入）
 func (l *AckMessageLogic) AckMessage(in *message.AckMessageReq) (*message.AckMessageResp, error) {
 	// todo: add your logic here and delete this line
-	// 安全获取阅读者身份（Gateway 通过 metadata 透传，客户端不可伪造）
-	readerId := l.getUserIdFromCtx()
+	readerId :=in.UserId
 	if readerId <= 0 {
 		return nil, constants.NewMsgError(constants.ErrCodeMsgInValidParam)
 	}
@@ -108,8 +106,8 @@ func (l *AckMessageLogic) notifySender(senderId int64, convId string, msgId int6
 	return err
 }
 
-func (l *AckMessageLogic) getUserIdFromCtx() int64 {
-	// go-zero 从 gRPC metadata 取 user_id（Gateway 注入）
-	// 实际项目中根据你的 metadata key 调整
-	return l.ctx.Value("x-user-id").(int64)
-}
+// func (l *AckMessageLogic) getUserIdFromCtx() int64 {
+// 	// go-zero 从 gRPC metadata 取 user_id（Gateway 注入）
+// 	// 实际项目中根据你的 metadata key 调整
+// 	return l.ctx.Value("x-user-id").(int64)
+// }

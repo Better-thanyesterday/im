@@ -61,7 +61,7 @@ func (l *WsConnectLogic) OnReconnect(c *conn.Conn) {
 
 	conseq := &messageclient.SyncMessageReq_ConSeq{
 		ConvId:  "746262395202048000:746263247023247360",
-		LastSeq: 1,
+		LastSeq: 200,
 	}
 	convlist := []*messageclient.SyncMessageReq_ConSeq{conseq}
 	in := &messageclient.SyncMessageReq{
@@ -71,15 +71,6 @@ func (l *WsConnectLogic) OnReconnect(c *conn.Conn) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	safeCtx := context.WithoutCancel(ctx)
 	defer cancel()
-	// 2. 监视这个 ctx 的生命周期
-	defer func() {
-		if ctx.Err() != nil {
-			logx.Errorf("🔥 OnReconnect 结束时，Context 状态: %v", ctx.Err())
-		} else {
-			logx.Infof("✅ OnReconnect 正常执行完毕")
-		}
-	}()
-
 	resp, err := l.svcCtx.SyncMessage(safeCtx, in)
 	if err != nil {
 		logx.Errorf("sync messages failed | user=%d err=%v", c.UserId(), err)

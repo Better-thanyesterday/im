@@ -8,14 +8,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
-	"time"
-
 	"github.com/zeromicro/go-zero/core/stores/builder"
-	"github.com/zeromicro/go-zero/core/stores/cache"
-	"github.com/zeromicro/go-zero/core/stores/sqlc"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/core/stringx"
+	"strings"
+	"time"
 )
 
 var (
@@ -23,8 +20,6 @@ var (
 	inboxesRows                = strings.Join(inboxesFieldNames, ",")
 	inboxesRowsExpectAutoSet   = strings.Join(stringx.Remove(inboxesFieldNames, "id", "create_at", "create_time", "created_at", "update_at", "update_time", "updated_at"), ",")
 	inboxesRowsWithPlaceHolder = builder.PostgreSqlJoin(stringx.Remove(inboxesFieldNames, "id", "create_at", "create_time", "created_at", "update_at", "update_time", "updated_at"))
-
-	cachePublicInboxesIdPrefix = "cache:public:inboxes:id:"
 )
 
 type (
@@ -33,10 +28,11 @@ type (
 		FindOne(ctx context.Context, id int64) (*Inboxes, error)
 		Update(ctx context.Context, data *Inboxes) error
 		Delete(ctx context.Context, id int64) error
+		BatchInsert(ctx context.Context, rows []*Inboxes) error
 	}
 
 	defaultInboxesModel struct {
-		sqlc.CachedConn
+		conn  sqlx.SqlConn
 		table string
 	}
 
@@ -53,33 +49,27 @@ type (
 	}
 )
 
-func newInboxesModel(conn sqlx.SqlConn, c cache.CacheConf, opts ...cache.Option) *defaultInboxesModel {
+func newInboxesModel(conn sqlx.SqlConn) *defaultInboxesModel {
 	return &defaultInboxesModel{
-		CachedConn: sqlc.NewConn(conn, c, opts...),
-		table:      `"public"."inboxes"`,
+		conn:  conn,
+		table: `"public"."inboxes"`,
 	}
 }
 
 func (m *defaultInboxesModel) Delete(ctx context.Context, id int64) error {
-	publicInboxesIdKey := fmt.Sprintf("%s%v", cachePublicInboxesIdPrefix, id)
-	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
-		query := fmt.Sprintf("delete from %s where id = $1", m.table)
-		return conn.ExecCtx(ctx, query, id)
-	}, publicInboxesIdKey)
+	query := fmt.Sprintf("delete from %s where id = $1", m.table)
+	_, err := m.conn.ExecCtx(ctx, query, id)
 	return err
 }
 
 func (m *defaultInboxesModel) FindOne(ctx context.Context, id int64) (*Inboxes, error) {
-	publicInboxesIdKey := fmt.Sprintf("%s%v", cachePublicInboxesIdPrefix, id)
+	query := fmt.Sprintf("select %s from %s where id = $1 limit 1", inboxesRows, m.table)
 	var resp Inboxes
-	err := m.QueryRowCtx(ctx, &resp, publicInboxesIdKey, func(ctx context.Context, conn sqlx.SqlConn, v any) error {
-		query := fmt.Sprintf("select %s from %s where id = $1 limit 1", inboxesRows, m.table)
-		return conn.QueryRowCtx(ctx, v, query, id)
-	})
+	err := m.conn.QueryRowCtx(ctx, &resp, query, id)
 	switch err {
 	case nil:
 		return &resp, nil
-	case sqlc.ErrNotFound:
+	case sqlx.ErrNotFound:
 		return nil, ErrNotFound
 	default:
 		return nil, err
@@ -87,32 +77,53 @@ func (m *defaultInboxesModel) FindOne(ctx context.Context, id int64) (*Inboxes, 
 }
 
 func (m *defaultInboxesModel) Insert(ctx context.Context, data *Inboxes) (sql.Result, error) {
-	publicInboxesIdKey := fmt.Sprintf("%s%v", cachePublicInboxesIdPrefix, data.Id)
-	ret, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
-		query := fmt.Sprintf("insert into %s (%s) values ($1, $2, $3, $4, $5, $6, $7)", m.table, inboxesRowsExpectAutoSet)
-		return conn.ExecCtx(ctx, query, data.Userid, data.Msgid, data.Convid, data.Seqid, data.Isread, data.Readtime, data.Status)
-	}, publicInboxesIdKey)
+	query := fmt.Sprintf("insert into %s (%s) values ($1, $2, $3, $4, $5, $6, $7)", m.table, inboxesRowsExpectAutoSet)
+	ret, err := m.conn.ExecCtx(ctx, query, data.Userid, data.Msgid, data.Convid, data.Seqid, data.Isread, data.Readtime, data.Status)
 	return ret, err
 }
 
 func (m *defaultInboxesModel) Update(ctx context.Context, data *Inboxes) error {
-	publicInboxesIdKey := fmt.Sprintf("%s%v", cachePublicInboxesIdPrefix, data.Id)
-	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
-		query := fmt.Sprintf("update %s set %s where id = $1", m.table, inboxesRowsWithPlaceHolder)
-		return conn.ExecCtx(ctx, query, data.Id, data.Userid, data.Msgid, data.Convid, data.Seqid, data.Isread, data.Readtime, data.Status)
-	}, publicInboxesIdKey)
+	query := fmt.Sprintf("update %s set %s where id = $1", m.table, inboxesRowsWithPlaceHolder)
+	_, err := m.conn.ExecCtx(ctx, query, data.Id, data.Userid, data.Msgid, data.Convid, data.Seqid, data.Isread, data.Readtime, data.Status)
 	return err
-}
-
-func (m *defaultInboxesModel) formatPrimary(primary any) string {
-	return fmt.Sprintf("%s%v", cachePublicInboxesIdPrefix, primary)
-}
-
-func (m *defaultInboxesModel) queryPrimary(ctx context.Context, conn sqlx.SqlConn, v, primary any) error {
-	query := fmt.Sprintf("select %s from %s where id = $1 limit 1", inboxesRows, m.table)
-	return conn.QueryRowCtx(ctx, v, query, primary)
 }
 
 func (m *defaultInboxesModel) tableName() string {
 	return m.table
+}
+
+func (m *defaultInboxesModel) BatchInsert(ctx context.Context, rows []*Inboxes) error {
+	if len(rows) == 0 {
+		return nil
+	}
+	cols := 6 // Inboxes 有 7 个字段（你列举的）
+	placeholders := buildPlaceholders(len(rows), cols)
+
+	query := fmt.Sprintf("INSERT INTO %s ( userid, msgid, convid, seqid, isread, status) VALUES %s",
+		m.table, placeholders)
+
+	args := make([]interface{}, 0, len(rows)*cols)
+	for _, r := range rows {
+		args = append(args, r.Userid, r.Msgid, r.Convid, r.Seqid, r.Isread, r.Status)
+	}
+	_, err := m.conn.ExecCtx(ctx, query, args...)
+	return err
+}
+
+func buildPlaceholders(n, cols int) string {
+	var b strings.Builder
+	for i := 0; i < n; i++ {
+		if i > 0 {
+			b.WriteString(", ")
+		}
+		b.WriteString("(")
+		for j := 0; j < cols; j++ {
+			if j > 0 {
+				b.WriteString(", ")
+			}
+			fmt.Fprintf(&b, "$%d", i*cols+j+1)
+		}
+		b.WriteString(")")
+	}
+	return b.String()
 }

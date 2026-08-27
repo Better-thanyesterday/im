@@ -8,7 +8,6 @@ import (
 	"im-platform/app/message/rpc/message"
 	"im-platform/app/message/rpc/models"
 	"im-platform/app/push/rpc/push"
-	"im-platform/common/mq"
 	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -50,7 +49,7 @@ func (l *SingleChatLogic) Send(in *message.SendMessageReq, convid string) (*mess
 	// if blocked.IsBlocked {
 	// 	return nil, constants.NewErrCode(constants.ErrBlocked)
 	// }
-
+	wdb := WriteDiffBundle{}
 	//2.分配seq_id
 	seqId, err, needAsync := NewSeqIdLogic(l.ctx, l.svcCtx).AllocateSeq(convid)
 	if err != nil {
@@ -63,14 +62,15 @@ func (l *SingleChatLogic) Send(in *message.SendMessageReq, convid string) (*mess
 			MaxSeq: seqId,
 			ConvId: convid,
 		}
-		payload, _ := json.Marshal(seq)
-		if err := l.svcCtx.KafkaProducer.Publish(l.ctx, mq.TopicSeqPersist, payload); err != nil {
-			logx.Errorf("kafka send failed, fallback to pg: %v", err)
-			if _, err := l.svcCtx.SeqModel.CustomQueryRowCtx(l.ctx, convid); err != nil {
-				logx.Errorf("update failed, fallback to pg: %v", err)
-				return nil, err
-			}
-		}
+		// payload, _ := json.Marshal(seq)
+		// if err := l.svcCtx.KafkaProducer.Publish(l.ctx, mq.TopicSeqPersist, payload); err != nil {
+		// 	logx.Errorf("kafka send failed, fallback to pg: %v", err)
+		// 	if _, err := l.svcCtx.SeqModel.CustomQueryRowCtx(l.ctx, convid); err != nil {
+		// 		logx.Errorf("update failed, fallback to pg: %v", err)
+		// 		return nil, err
+		// 	}
+		// }
+		wdb.Seq=seq
 	}
 	//3.生成msg_id
 	msgId := l.svcCtx.Snokflake.NextID()
@@ -87,17 +87,37 @@ func (l *SingleChatLogic) Send(in *message.SendMessageReq, convid string) (*mess
 		Sendtime:    time.Now(),
 		Status:      1,
 	}
+	
 	//4.异步持久化：写 Kafka（削峰）
 	//如果 Kafka 失败，同步降级写 PG
-	payload, _ := json.Marshal(msg)
-	if err := l.svcCtx.KafkaProducer.Publish(l.ctx, mq.TopicMsgPersist, payload); err != nil {
-		logx.Errorf("kafka send failed, fallback to pg: %v", err)
-		if _, err := l.svcCtx.MessagesModel.Insert(l.ctx, msg); err != nil {
-			logx.Errorf("insert failed, fallback to pg: %v", err)
-			return nil, err
-		}
+	// payload, _ := json.Marshal(msg)
+	// if err := l.svcCtx.KafkaProducer.Publish(l.ctx, mq.TopicMsgPersist, payload); err != nil {
+	// 	logx.Errorf("kafka send failed, fallback to pg: %v", err)
+	// 	if _, err := l.svcCtx.MessagesModel.Insert(l.ctx, msg); err != nil {
+	// 		logx.Errorf("insert failed, fallback to pg: %v", err)
+	// 		return nil, err
+	// 	}
+	// }
+	onlineKey := fmt.Sprintf("im:online:%d", in.ToUid)
+	isread ,err:=l.svcCtx.Redis.Exists(onlineKey)
+	if err != nil {
+		logx.Errorf("query redis is fail :%v",err)
 	}
-
+	inboxmsg:=models.Inboxes{
+		Userid: in.ToUid,
+		Msgid: msgId,
+		Isread: isread,
+		Convid: convid,
+		Status: 1,
+		Seqid: seqId,
+	}
+	wdb.Inboxes=append(wdb.Inboxes, &inboxmsg)
+	wdb.Msg=msg
+	err=NewAsyncPersistMsg(l.ctx,l.svcCtx).WriteDiffPersistMsg(l.ctx,&wdb)
+	if err != nil {
+		logx.Errorf("kafka send fail :%v ",err)
+	}
+	
 	//5. 调用 Push 服务投递给接收方
 	pmsg := &push.PushMessage{
 		MsgId:    msgId,

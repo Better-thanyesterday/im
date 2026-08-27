@@ -46,3 +46,17 @@ func (l *ConsumerHandlerLogic)PersistSeq(ctx context.Context,msg *sarama.Consume
         }
         return nil
 }
+
+
+func (l *ConsumerHandlerLogic)PersistToInbox(ctx context.Context,msg *sarama.ConsumerMessage) error{
+	logx.Infof("inbox consumer invoked, topic=%s, offset=%d", msg.Topic, msg.Offset)
+    var  inboxMsg []*models.Inboxes
+        if err := json.Unmarshal(msg.Value, &inboxMsg); err != nil {
+            return err
+        }
+        // 调用你的 go-zero 业务逻辑
+        if err := l.svcCtx.InboxesModel.BatchInsert(ctx, inboxMsg); err != nil {
+            return err
+        }
+        return nil
+}

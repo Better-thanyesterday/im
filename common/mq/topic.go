@@ -13,7 +13,7 @@ const (
 	// TopicMsgOffline 离线消息写入 Redis（分区 16 | 副本 3）
 	// 生产者：消息/推送服务      消费者：推送服务 offline-group
 	TopicMsgOffline = "im.msg.offline"
-
+	TopicMsgInbox = "im.msg.inboxes"
 	// TopicFileAudit 文件内容审核（分区 8 | 副本 3）
 	// 生产者：媒体服务           消费者：内容安全服务 security-group
 	TopicFileAudit = "im.file.audit"
@@ -39,9 +39,9 @@ const (
 
 // Topic 描述信息（调试/运维日志用）
 var TopicDesc = map[string]string{
-	TopicMsgPersist: "消息异步落库",
-	TopicMsgOffline: "离线消息写入 Redis",
-	TopicFileAudit:  "文件内容审核",
+	TopicMsgPersist:  "消息异步落库",
+	TopicMsgOffline:  "离线消息写入 Redis",
+	TopicFileAudit:   "文件内容审核",
 	TopicEventNotify: "用户上下线、群变更事件广播",
-	TopicPushRetry:  "推送失败重试",
+	TopicPushRetry:   "推送失败重试",
 }
