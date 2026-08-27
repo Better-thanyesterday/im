@@ -1,7 +1,6 @@
 {
     "version": "0.2.0",
     "configurations": [
-
         {
             "name": "Debug Message",
             "type": "go",
@@ -66,7 +65,24 @@
                 "GO_ENV": "dev"
             },
             "console": "integratedTerminal"
-        }
+        },
+        {
+            "name": "Debug Group",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/app/group/rpc/group.go",
+            "cwd": "${workspaceFolder}/app/group/rpc",
+            "args": [
+                "-f",
+                "etc/group.yaml"
+            ],
+            "env": {
+                "GO_ENV": "dev"
+            },
+            "console": "integratedTerminal",
+            "showLog": true
+        },
     ],
     "compounds": [
         {
@@ -75,7 +91,8 @@
                 "Debug Message",
                 "Debug Gateway",
                 "Debug Push",
-                "Debug User"
+                "Debug User",
+                "Debug Group"
             ],
             "preLaunchTask": "",
             "stopAll": true

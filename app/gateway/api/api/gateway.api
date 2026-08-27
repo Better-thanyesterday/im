@@ -76,6 +76,18 @@ type CreateGroupResp {
 	MemberVersion int64 `json:"member_version"`
 }
 
+type InviteMemberReq {
+	GroupId   int64   `json:"group_id"` // 群ID
+	InviterId int64   `json:"inviter_id"` // 邀请人
+	UserIds   []int64 `json:"user_ids"` // 被邀请人列表
+}
+
+// 响应体
+type InviteMemberResp {
+	FailedUserIds []int64 `json:"failed_user_ids"` // 邀请失败的用户ID列表
+	MemberVersion int64   `json:"member_version"` // 变更后的成员版本号
+}
+
 // ==================== Service 定义 ====================
 service gateway-api {
 	// WebSocket 协议升级入口
@@ -99,5 +111,9 @@ service gateway-api {
 	//建群
 	@handler CreateGroupHandler
 	post /creategroup (CreateGroupReq) returns (CreateGroupResp)
+
+	//邀请
+	@handler InviteMemberHandler
+	post /invitemember (InviteMemberReq) returns (InviteMemberResp)
 }
 

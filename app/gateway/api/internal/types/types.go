@@ -19,6 +19,17 @@ type CreateGroupResp struct {
 	MemberVersion int64 `json:"member_version"`
 }
 
+type InviteMemberReq struct {
+	GroupId   int64   `json:"group_id"`   // 群ID
+	InviterId int64   `json:"inviter_id"` // 邀请人
+	UserIds   []int64 `json:"user_ids"`   // 被邀请人列表
+}
+
+type InviteMemberResp struct {
+	FailedUserIds []int64 `json:"failed_user_ids"` // 邀请失败的用户ID列表
+	MemberVersion int64   `json:"member_version"`  // 变更后的成员版本号
+}
+
 type LoginReq struct {
 	Phone      string `json:"phone" validate:"omitempty"`
 	Email      string `json:"email" validate:"omitempty"`
