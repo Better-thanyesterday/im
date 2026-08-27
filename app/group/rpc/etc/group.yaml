@@ -4,3 +4,16 @@ Etcd:
   Hosts:
   - 127.0.0.1:2379
   Key: group.rpc
+
+
+RedisCache:
+    Host: 127.0.0.1:6379
+    Type: node
+    Pass: ""
+
+Postgres:
+  DataSource: postgres://postgres:root@127.0.0.1:5432/im_message?sslmode=disable
+
+
+SnokFlake:
+  WorkNode: 1
