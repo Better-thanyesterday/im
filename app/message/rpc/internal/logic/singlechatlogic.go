@@ -62,14 +62,6 @@ func (l *SingleChatLogic) Send(in *message.SendMessageReq, convid string) (*mess
 			MaxSeq: seqId,
 			ConvId: convid,
 		}
-		// payload, _ := json.Marshal(seq)
-		// if err := l.svcCtx.KafkaProducer.Publish(l.ctx, mq.TopicSeqPersist, payload); err != nil {
-		// 	logx.Errorf("kafka send failed, fallback to pg: %v", err)
-		// 	if _, err := l.svcCtx.SeqModel.CustomQueryRowCtx(l.ctx, convid); err != nil {
-		// 		logx.Errorf("update failed, fallback to pg: %v", err)
-		// 		return nil, err
-		// 	}
-		// }
 		wdb.Seq=seq
 	}
 	//3.生成msg_id
@@ -87,17 +79,6 @@ func (l *SingleChatLogic) Send(in *message.SendMessageReq, convid string) (*mess
 		Sendtime:    time.Now(),
 		Status:      1,
 	}
-	
-	//4.异步持久化：写 Kafka（削峰）
-	//如果 Kafka 失败，同步降级写 PG
-	// payload, _ := json.Marshal(msg)
-	// if err := l.svcCtx.KafkaProducer.Publish(l.ctx, mq.TopicMsgPersist, payload); err != nil {
-	// 	logx.Errorf("kafka send failed, fallback to pg: %v", err)
-	// 	if _, err := l.svcCtx.MessagesModel.Insert(l.ctx, msg); err != nil {
-	// 		logx.Errorf("insert failed, fallback to pg: %v", err)
-	// 		return nil, err
-	// 	}
-	// }
 	onlineKey := fmt.Sprintf("im:online:%d", in.ToUid)
 	isread ,err:=l.svcCtx.Redis.Exists(onlineKey)
 	if err != nil {

@@ -1673,6 +1673,7 @@ type GetMembersResp struct {
 	Members       []*MemberInfo          `protobuf:"bytes,1,rep,name=members,proto3" json:"members,omitempty"`
 	HasMore       bool                   `protobuf:"varint,2,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`
 	MemberVersion int64                  `protobuf:"varint,3,opt,name=member_version,json=memberVersion,proto3" json:"member_version,omitempty"` // 当前版本号，客户端用于缓存校验
+	LastId        int64                  `protobuf:"varint,4,opt,name=last_id,json=lastId,proto3" json:"last_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1724,6 +1725,13 @@ func (x *GetMembersResp) GetHasMore() bool {
 func (x *GetMembersResp) GetMemberVersion() int64 {
 	if x != nil {
 		return x.MemberVersion
+	}
+	return 0
+}
+
+func (x *GetMembersResp) GetLastId() int64 {
+	if x != nil {
+		return x.LastId
 	}
 	return 0
 }
@@ -2067,11 +2075,12 @@ const file_group_proto_rawDesc = "" +
 	"\rGetMembersReq\x12\x19\n" +
 	"\bgroup_id\x18\x01 \x01(\x03R\agroupId\x12\x17\n" +
 	"\alast_id\x18\x02 \x01(\x03R\x06lastId\x12\x1b\n" +
-	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"\x7f\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"\x98\x01\n" +
 	"\x0eGetMembersResp\x12+\n" +
 	"\amembers\x18\x01 \x03(\v2\x11.group.MemberInfoR\amembers\x12\x19\n" +
 	"\bhas_more\x18\x02 \x01(\bR\ahasMore\x12%\n" +
-	"\x0emember_version\x18\x03 \x01(\x03R\rmemberVersion\"D\n" +
+	"\x0emember_version\x18\x03 \x01(\x03R\rmemberVersion\x12\x17\n" +
+	"\alast_id\x18\x04 \x01(\x03R\x06lastId\"D\n" +
 	"\x0eCheckMemberReq\x12\x19\n" +
 	"\bgroup_id\x18\x01 \x01(\x03R\agroupId\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\x03R\x06userId\"|\n" +

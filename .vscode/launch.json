@@ -39,8 +39,8 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${workspaceFolder}/app/push/push.go",
-            "cwd": "${workspaceFolder}/app/push",
+            "program": "${workspaceFolder}/app/push/rpc/push.go",
+            "cwd": "${workspaceFolder}/app/push/rpc",
             "args": [
                 "-f",
                 "etc/push.yaml"
@@ -55,8 +55,8 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${workspaceFolder}/app/user/user.go",
-            "cwd": "${workspaceFolder}/app/user",
+            "program": "${workspaceFolder}/app/user/rpc/user.go",
+            "cwd": "${workspaceFolder}/app/user/rpc",
             "args": [
                 "-f",
                 "etc/user.yaml"

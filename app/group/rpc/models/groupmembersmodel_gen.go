@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"im-platform/app/group/rpc/group"
 	"strings"
 	"time"
 
@@ -29,6 +30,8 @@ type (
 		FindOne(ctx context.Context, id int64) (*Groupmembers, error)
 		Update(ctx context.Context, data *Groupmembers) error
 		Delete(ctx context.Context, id int64) error
+		GetBatchMemberInfo(ctx context.Context, groupId, lastId int64, pageSize int64) ([]*group.MemberInfo, int64, error)
+		CheckExist(ctx context.Context, group_id int64, user_id int64) (bool, error)
 	}
 
 	defaultGroupmembersModel struct {
@@ -47,6 +50,15 @@ type (
 		LastAckSeq    int64          `db:"last_ack_seq"`
 		CreatedAt     time.Time      `db:"created_at"`
 		UpdatedAt     time.Time      `db:"updated_at"`
+	}
+	// 内部使用，包含查询出的 id 用于游标，以及转换后的时间戳
+	memberRow struct {
+		Id            int64         `db:"id"`
+		UserId        int64         `db:"user_id"`
+		Role          int32         `db:"role"`
+		GroupNickname string        `db:"group_nickname"`
+		JoinTime      int64         `db:"join_time"`  // NOT NULL，直接 int64
+		MuteUntil     sql.NullInt64 `db:"mute_until"` // 可能 NULL，用 NullInt64
 	}
 )
 
@@ -87,6 +99,63 @@ func (m *defaultGroupmembersModel) Update(ctx context.Context, data *Groupmember
 	query := fmt.Sprintf("update %s set %s where id = $1", m.table, groupmembersRowsWithPlaceHolder)
 	_, err := m.conn.ExecCtx(ctx, query, data.Id, data.GroupId, data.UserId, data.Role, data.GroupNickname, data.JoinTime, data.MuteUntil, data.LastAckSeq)
 	return err
+}
+
+func (m *defaultGroupmembersModel) CheckExist(ctx context.Context, group_id int64, user_id int64) (bool, error) {
+	var exists bool
+	query := fmt.Sprintf("SELECT EXISTS(SELECT 1 FROM %s WHERE group_id = $1 AND user_id = $2)", m.table)
+	err := m.conn.QueryRowCtx(ctx, &exists, query, group_id, user_id)
+	if err != nil {
+		// EXISTS 总是返回一行，不会出现 ErrNotFound
+		return false, err
+	}
+	return exists, nil
+}
+
+func (m *defaultGroupmembersModel) GetBatchMemberInfo(ctx context.Context, groupId, lastId int64, pageSize int64) ([]*group.MemberInfo, int64, error) {
+	// 1. SQL：选择必要字段 + id，并用 EXTRACT 转换时间戳
+	query := fmt.Sprintf(`
+    SELECT id, user_id, role, group_nickname,
+           (EXTRACT(epoch FROM join_time)*1000)::bigint AS join_time,
+           (EXTRACT(epoch FROM mute_until)*1000)::bigint AS mute_until
+    FROM %s
+    WHERE group_id = $1 AND id < $2
+    ORDER BY id DESC
+    LIMIT $3
+	`, m.table)
+
+	var rows []memberRow
+	err := m.conn.QueryRowsCtx(ctx, &rows, query, groupId, lastId, pageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// 2. 转换 rows 为 protobuf 结构
+	members := make([]*group.MemberInfo, 0, len(rows))
+	for _, row := range rows {
+		muteUntil := int64(0)
+		if row.MuteUntil.Valid {
+			muteUntil = row.MuteUntil.Int64
+		}
+		members = append(members, &group.MemberInfo{
+			UserId:        row.UserId,
+			Role:          row.Role,
+			GroupNickname: row.GroupNickname,
+			JoinTime:      row.JoinTime,
+			MuteUntil:     muteUntil,
+		})
+	}
+
+	// 3. 计算下一页游标：如果没有更多数据，返回 0
+	var nextCursor int64
+	if len(rows) > 0 {
+		// 因为 id 是降序，最后一条记录的 id 最小，作为下一页游标
+		nextCursor = rows[len(rows)-1].Id
+	} else {
+		nextCursor = 0 // 表示已到末尾
+	}
+
+	return members, nextCursor, nil
 }
 
 func (m *defaultGroupmembersModel) tableName() string {
