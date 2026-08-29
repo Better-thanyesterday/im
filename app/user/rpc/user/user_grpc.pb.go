@@ -19,16 +19,46 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	User_Login_FullMethodName    = "/user.User/Login"
-	User_Register_FullMethodName = "/user.User/Register"
+	User_Login_FullMethodName            = "/user.User/Login"
+	User_Register_FullMethodName         = "/user.User/Register"
+	User_Logout_FullMethodName           = "/user.User/Logout"
+	User_ResetPassword_FullMethodName    = "/user.User/ResetPassword"
+	User_GetProfile_FullMethodName       = "/user.User/GetProfile"
+	User_UpdateProfile_FullMethodName    = "/user.User/UpdateProfile"
+	User_GetDevices_FullMethodName       = "/user.User/GetDevices"
+	User_KickDevice_FullMethodName       = "/user.User/KickDevice"
+	User_AddFriend_FullMethodName        = "/user.User/AddFriend"
+	User_AcceptFriend_FullMethodName     = "/user.User/AcceptFriend"
+	User_GetFriends_FullMethodName       = "/user.User/GetFriends"
+	User_DeleteFriend_FullMethodName     = "/user.User/DeleteFriend"
+	User_BlockUser_FullMethodName        = "/user.User/BlockUser"
+	User_UnblockUser_FullMethodName      = "/user.User/UnblockUser"
+	User_GetFriendApplies_FullMethodName = "/user.User/GetFriendApplies"
 )
 
 // UserClient is the client API for User service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UserClient interface {
+	// 账号管理
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
+	Logout(ctx context.Context, in *LogoutReq, opts ...grpc.CallOption) (*LogoutResp, error)
+	ResetPassword(ctx context.Context, in *ResetPasswordReq, opts ...grpc.CallOption) (*ResetPasswordResp, error)
+	// 用户资料
+	GetProfile(ctx context.Context, in *GetProfileReq, opts ...grpc.CallOption) (*Profile, error)
+	UpdateProfile(ctx context.Context, in *UpdateProfileReq, opts ...grpc.CallOption) (*UpdateProfileResp, error)
+	// 设备管理
+	GetDevices(ctx context.Context, in *GetDevicesReq, opts ...grpc.CallOption) (*GetDevicesResp, error)
+	KickDevice(ctx context.Context, in *KickDeviceReq, opts ...grpc.CallOption) (*KickDeviceResp, error)
+	// 好友管理
+	AddFriend(ctx context.Context, in *AddFriendReq, opts ...grpc.CallOption) (*AddFriendResp, error)
+	AcceptFriend(ctx context.Context, in *AcceptFriendReq, opts ...grpc.CallOption) (*AcceptFriendResp, error)
+	GetFriends(ctx context.Context, in *GetFriendsReq, opts ...grpc.CallOption) (*GetFriendsResp, error)
+	DeleteFriend(ctx context.Context, in *DeleteFriendReq, opts ...grpc.CallOption) (*DeleteFriendResp, error)
+	BlockUser(ctx context.Context, in *BlockUserReq, opts ...grpc.CallOption) (*BlockUserResp, error)
+	UnblockUser(ctx context.Context, in *UnblockUserReq, opts ...grpc.CallOption) (*UnblockUserResp, error)
+	GetFriendApplies(ctx context.Context, in *GetFriendAppliesReq, opts ...grpc.CallOption) (*GetFriendAppliesResp, error)
 }
 
 type userClient struct {
@@ -59,12 +89,159 @@ func (c *userClient) Register(ctx context.Context, in *RegisterRequest, opts ...
 	return out, nil
 }
 
+func (c *userClient) Logout(ctx context.Context, in *LogoutReq, opts ...grpc.CallOption) (*LogoutResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LogoutResp)
+	err := c.cc.Invoke(ctx, User_Logout_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userClient) ResetPassword(ctx context.Context, in *ResetPasswordReq, opts ...grpc.CallOption) (*ResetPasswordResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResetPasswordResp)
+	err := c.cc.Invoke(ctx, User_ResetPassword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userClient) GetProfile(ctx context.Context, in *GetProfileReq, opts ...grpc.CallOption) (*Profile, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Profile)
+	err := c.cc.Invoke(ctx, User_GetProfile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userClient) UpdateProfile(ctx context.Context, in *UpdateProfileReq, opts ...grpc.CallOption) (*UpdateProfileResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateProfileResp)
+	err := c.cc.Invoke(ctx, User_UpdateProfile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userClient) GetDevices(ctx context.Context, in *GetDevicesReq, opts ...grpc.CallOption) (*GetDevicesResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetDevicesResp)
+	err := c.cc.Invoke(ctx, User_GetDevices_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userClient) KickDevice(ctx context.Context, in *KickDeviceReq, opts ...grpc.CallOption) (*KickDeviceResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(KickDeviceResp)
+	err := c.cc.Invoke(ctx, User_KickDevice_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userClient) AddFriend(ctx context.Context, in *AddFriendReq, opts ...grpc.CallOption) (*AddFriendResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddFriendResp)
+	err := c.cc.Invoke(ctx, User_AddFriend_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userClient) AcceptFriend(ctx context.Context, in *AcceptFriendReq, opts ...grpc.CallOption) (*AcceptFriendResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AcceptFriendResp)
+	err := c.cc.Invoke(ctx, User_AcceptFriend_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userClient) GetFriends(ctx context.Context, in *GetFriendsReq, opts ...grpc.CallOption) (*GetFriendsResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetFriendsResp)
+	err := c.cc.Invoke(ctx, User_GetFriends_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userClient) DeleteFriend(ctx context.Context, in *DeleteFriendReq, opts ...grpc.CallOption) (*DeleteFriendResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteFriendResp)
+	err := c.cc.Invoke(ctx, User_DeleteFriend_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userClient) BlockUser(ctx context.Context, in *BlockUserReq, opts ...grpc.CallOption) (*BlockUserResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BlockUserResp)
+	err := c.cc.Invoke(ctx, User_BlockUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userClient) UnblockUser(ctx context.Context, in *UnblockUserReq, opts ...grpc.CallOption) (*UnblockUserResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UnblockUserResp)
+	err := c.cc.Invoke(ctx, User_UnblockUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userClient) GetFriendApplies(ctx context.Context, in *GetFriendAppliesReq, opts ...grpc.CallOption) (*GetFriendAppliesResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetFriendAppliesResp)
+	err := c.cc.Invoke(ctx, User_GetFriendApplies_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServer is the server API for User service.
 // All implementations must embed UnimplementedUserServer
 // for forward compatibility.
 type UserServer interface {
+	// 账号管理
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	Register(context.Context, *RegisterRequest) (*RegisterResponse, error)
+	Logout(context.Context, *LogoutReq) (*LogoutResp, error)
+	ResetPassword(context.Context, *ResetPasswordReq) (*ResetPasswordResp, error)
+	// 用户资料
+	GetProfile(context.Context, *GetProfileReq) (*Profile, error)
+	UpdateProfile(context.Context, *UpdateProfileReq) (*UpdateProfileResp, error)
+	// 设备管理
+	GetDevices(context.Context, *GetDevicesReq) (*GetDevicesResp, error)
+	KickDevice(context.Context, *KickDeviceReq) (*KickDeviceResp, error)
+	// 好友管理
+	AddFriend(context.Context, *AddFriendReq) (*AddFriendResp, error)
+	AcceptFriend(context.Context, *AcceptFriendReq) (*AcceptFriendResp, error)
+	GetFriends(context.Context, *GetFriendsReq) (*GetFriendsResp, error)
+	DeleteFriend(context.Context, *DeleteFriendReq) (*DeleteFriendResp, error)
+	BlockUser(context.Context, *BlockUserReq) (*BlockUserResp, error)
+	UnblockUser(context.Context, *UnblockUserReq) (*UnblockUserResp, error)
+	GetFriendApplies(context.Context, *GetFriendAppliesReq) (*GetFriendAppliesResp, error)
 	mustEmbedUnimplementedUserServer()
 }
 
@@ -80,6 +257,45 @@ func (UnimplementedUserServer) Login(context.Context, *LoginRequest) (*LoginResp
 }
 func (UnimplementedUserServer) Register(context.Context, *RegisterRequest) (*RegisterResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Register not implemented")
+}
+func (UnimplementedUserServer) Logout(context.Context, *LogoutReq) (*LogoutResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method Logout not implemented")
+}
+func (UnimplementedUserServer) ResetPassword(context.Context, *ResetPasswordReq) (*ResetPasswordResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResetPassword not implemented")
+}
+func (UnimplementedUserServer) GetProfile(context.Context, *GetProfileReq) (*Profile, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetProfile not implemented")
+}
+func (UnimplementedUserServer) UpdateProfile(context.Context, *UpdateProfileReq) (*UpdateProfileResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateProfile not implemented")
+}
+func (UnimplementedUserServer) GetDevices(context.Context, *GetDevicesReq) (*GetDevicesResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetDevices not implemented")
+}
+func (UnimplementedUserServer) KickDevice(context.Context, *KickDeviceReq) (*KickDeviceResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method KickDevice not implemented")
+}
+func (UnimplementedUserServer) AddFriend(context.Context, *AddFriendReq) (*AddFriendResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddFriend not implemented")
+}
+func (UnimplementedUserServer) AcceptFriend(context.Context, *AcceptFriendReq) (*AcceptFriendResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method AcceptFriend not implemented")
+}
+func (UnimplementedUserServer) GetFriends(context.Context, *GetFriendsReq) (*GetFriendsResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetFriends not implemented")
+}
+func (UnimplementedUserServer) DeleteFriend(context.Context, *DeleteFriendReq) (*DeleteFriendResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteFriend not implemented")
+}
+func (UnimplementedUserServer) BlockUser(context.Context, *BlockUserReq) (*BlockUserResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method BlockUser not implemented")
+}
+func (UnimplementedUserServer) UnblockUser(context.Context, *UnblockUserReq) (*UnblockUserResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method UnblockUser not implemented")
+}
+func (UnimplementedUserServer) GetFriendApplies(context.Context, *GetFriendAppliesReq) (*GetFriendAppliesResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetFriendApplies not implemented")
 }
 func (UnimplementedUserServer) mustEmbedUnimplementedUserServer() {}
 func (UnimplementedUserServer) testEmbeddedByValue()              {}
@@ -138,6 +354,240 @@ func _User_Register_Handler(srv interface{}, ctx context.Context, dec func(inter
 	return interceptor(ctx, in, info, handler)
 }
 
+func _User_Logout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LogoutReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).Logout(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_Logout_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).Logout(ctx, req.(*LogoutReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _User_ResetPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResetPasswordReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).ResetPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_ResetPassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).ResetPassword(ctx, req.(*ResetPasswordReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _User_GetProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetProfileReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).GetProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_GetProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).GetProfile(ctx, req.(*GetProfileReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _User_UpdateProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateProfileReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).UpdateProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_UpdateProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).UpdateProfile(ctx, req.(*UpdateProfileReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _User_GetDevices_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDevicesReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).GetDevices(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_GetDevices_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).GetDevices(ctx, req.(*GetDevicesReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _User_KickDevice_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(KickDeviceReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).KickDevice(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_KickDevice_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).KickDevice(ctx, req.(*KickDeviceReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _User_AddFriend_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddFriendReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).AddFriend(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_AddFriend_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).AddFriend(ctx, req.(*AddFriendReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _User_AcceptFriend_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AcceptFriendReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).AcceptFriend(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_AcceptFriend_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).AcceptFriend(ctx, req.(*AcceptFriendReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _User_GetFriends_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetFriendsReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).GetFriends(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_GetFriends_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).GetFriends(ctx, req.(*GetFriendsReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _User_DeleteFriend_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteFriendReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).DeleteFriend(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_DeleteFriend_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).DeleteFriend(ctx, req.(*DeleteFriendReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _User_BlockUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BlockUserReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).BlockUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_BlockUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).BlockUser(ctx, req.(*BlockUserReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _User_UnblockUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnblockUserReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).UnblockUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_UnblockUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).UnblockUser(ctx, req.(*UnblockUserReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _User_GetFriendApplies_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetFriendAppliesReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).GetFriendApplies(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_GetFriendApplies_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).GetFriendApplies(ctx, req.(*GetFriendAppliesReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // User_ServiceDesc is the grpc.ServiceDesc for User service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -152,6 +602,58 @@ var User_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Register",
 			Handler:    _User_Register_Handler,
+		},
+		{
+			MethodName: "Logout",
+			Handler:    _User_Logout_Handler,
+		},
+		{
+			MethodName: "ResetPassword",
+			Handler:    _User_ResetPassword_Handler,
+		},
+		{
+			MethodName: "GetProfile",
+			Handler:    _User_GetProfile_Handler,
+		},
+		{
+			MethodName: "UpdateProfile",
+			Handler:    _User_UpdateProfile_Handler,
+		},
+		{
+			MethodName: "GetDevices",
+			Handler:    _User_GetDevices_Handler,
+		},
+		{
+			MethodName: "KickDevice",
+			Handler:    _User_KickDevice_Handler,
+		},
+		{
+			MethodName: "AddFriend",
+			Handler:    _User_AddFriend_Handler,
+		},
+		{
+			MethodName: "AcceptFriend",
+			Handler:    _User_AcceptFriend_Handler,
+		},
+		{
+			MethodName: "GetFriends",
+			Handler:    _User_GetFriends_Handler,
+		},
+		{
+			MethodName: "DeleteFriend",
+			Handler:    _User_DeleteFriend_Handler,
+		},
+		{
+			MethodName: "BlockUser",
+			Handler:    _User_BlockUser_Handler,
+		},
+		{
+			MethodName: "UnblockUser",
+			Handler:    _User_UnblockUser_Handler,
+		},
+		{
+			MethodName: "GetFriendApplies",
+			Handler:    _User_GetFriendApplies_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -23,6 +23,7 @@ func NewUserServer(svcCtx *svc.ServiceContext) *UserServer {
 	}
 }
 
+// 账号管理
 func (s *UserServer) Login(ctx context.Context, in *user.LoginRequest) (*user.LoginResponse, error) {
 	l := logic.NewLoginLogic(ctx, s.svcCtx)
 	return l.Login(in)
@@ -31,4 +32,72 @@ func (s *UserServer) Login(ctx context.Context, in *user.LoginRequest) (*user.Lo
 func (s *UserServer) Register(ctx context.Context, in *user.RegisterRequest) (*user.RegisterResponse, error) {
 	l := logic.NewRegisterLogic(ctx, s.svcCtx)
 	return l.Register(in)
+}
+
+func (s *UserServer) Logout(ctx context.Context, in *user.LogoutReq) (*user.LogoutResp, error) {
+	l := logic.NewLogoutLogic(ctx, s.svcCtx)
+	return l.Logout(in)
+}
+
+func (s *UserServer) ResetPassword(ctx context.Context, in *user.ResetPasswordReq) (*user.ResetPasswordResp, error) {
+	l := logic.NewResetPasswordLogic(ctx, s.svcCtx)
+	return l.ResetPassword(in)
+}
+
+// 用户资料
+func (s *UserServer) GetProfile(ctx context.Context, in *user.GetProfileReq) (*user.Profile, error) {
+	l := logic.NewGetProfileLogic(ctx, s.svcCtx)
+	return l.GetProfile(in)
+}
+
+func (s *UserServer) UpdateProfile(ctx context.Context, in *user.UpdateProfileReq) (*user.UpdateProfileResp, error) {
+	l := logic.NewUpdateProfileLogic(ctx, s.svcCtx)
+	return l.UpdateProfile(in)
+}
+
+// 设备管理
+func (s *UserServer) GetDevices(ctx context.Context, in *user.GetDevicesReq) (*user.GetDevicesResp, error) {
+	l := logic.NewGetDevicesLogic(ctx, s.svcCtx)
+	return l.GetDevices(in)
+}
+
+func (s *UserServer) KickDevice(ctx context.Context, in *user.KickDeviceReq) (*user.KickDeviceResp, error) {
+	l := logic.NewKickDeviceLogic(ctx, s.svcCtx)
+	return l.KickDevice(in)
+}
+
+// 好友管理
+func (s *UserServer) AddFriend(ctx context.Context, in *user.AddFriendReq) (*user.AddFriendResp, error) {
+	l := logic.NewAddFriendLogic(ctx, s.svcCtx)
+	return l.AddFriend(in)
+}
+
+func (s *UserServer) AcceptFriend(ctx context.Context, in *user.AcceptFriendReq) (*user.AcceptFriendResp, error) {
+	l := logic.NewAcceptFriendLogic(ctx, s.svcCtx)
+	return l.AcceptFriend(in)
+}
+
+func (s *UserServer) GetFriends(ctx context.Context, in *user.GetFriendsReq) (*user.GetFriendsResp, error) {
+	l := logic.NewGetFriendsLogic(ctx, s.svcCtx)
+	return l.GetFriends(in)
+}
+
+func (s *UserServer) DeleteFriend(ctx context.Context, in *user.DeleteFriendReq) (*user.DeleteFriendResp, error) {
+	l := logic.NewDeleteFriendLogic(ctx, s.svcCtx)
+	return l.DeleteFriend(in)
+}
+
+func (s *UserServer) BlockUser(ctx context.Context, in *user.BlockUserReq) (*user.BlockUserResp, error) {
+	l := logic.NewBlockUserLogic(ctx, s.svcCtx)
+	return l.BlockUser(in)
+}
+
+func (s *UserServer) UnblockUser(ctx context.Context, in *user.UnblockUserReq) (*user.UnblockUserResp, error) {
+	l := logic.NewUnblockUserLogic(ctx, s.svcCtx)
+	return l.UnblockUser(in)
+}
+
+func (s *UserServer) GetFriendApplies(ctx context.Context, in *user.GetFriendAppliesReq) (*user.GetFriendAppliesResp, error) {
+	l := logic.NewGetFriendAppliesLogic(ctx, s.svcCtx)
+	return l.GetFriendApplies(in)
 }

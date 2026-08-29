@@ -38,7 +38,7 @@ func (l *LoginLogic) Login(in *user.LoginRequest) (*user.LoginResponse, error) {
 	}
 	_,err =l.svcCtx.DevicesModel.Insert(l.ctx,&models.Devices{
 		Userid: u.Id,
-		Devicetype: in.Devicetype,
+		Devicetype: int64(in.Devicetype),
 		Deviceid: in.Deviceid,
 		Status: 1,
 	})

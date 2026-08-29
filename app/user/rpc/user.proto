@@ -29,7 +29,205 @@ message LoginResponse {
     int64 userid = 1;
 }
 
+message LogoutReq {
+    string token = 1;
+}
+
+message LogoutResp {
+    bool success = 1;
+}
+
+
+message ResetPasswordReq {
+    string phone = 1;      // 手机号
+    string email = 2;      // 邮箱
+    string old_password = 3; // 旧密码（可选，若通过验证码则可留空）
+    string new_password = 4;
+    string verify_code = 5; // 验证码
+}
+
+message ResetPasswordResp {
+    bool success = 1;
+}
+
+message GetProfileReq {
+    int64 user_id = 1;     // 要查询的用户 ID（若为 0 则查当前登录用户）
+}
+
+message Profile {
+    int64 user_id = 1;
+    string phone = 2;
+    string email = 3;
+    string nickname = 4;
+    string avatar = 5;
+    string signature = 6;
+    int32 gender = 7;      // 0-未知 1-男 2-女
+    string region = 8;
+    int64 birthday = 9;    // Unix 毫秒时间戳
+    int32 status = 10;     // 1-正常 2-冻结 3-注销
+    int64 created_at = 11;
+    int64 updated_at = 12;
+}
+
+message UpdateProfileReq {
+    string nickname = 1;
+    string avatar = 2;
+    string signature = 3;
+    int32 gender = 4;
+    string region = 5;
+    int64 birthday = 6;    // 时间戳
+}
+
+message UpdateProfileResp {
+    bool success = 1;
+}
+
+// ---------- 设备管理 ----------
+message DeviceInfo {
+    int64 id = 1;
+    int32 device_type = 2; // 1-iOS 2-Android 3-Web 4-PC 5-小程序
+    string device_name = 3;
+    string device_id = 4;
+    string location = 5;   // 登录位置（可选）
+    int64 login_at = 6;    // 最近登录时间（毫秒时间戳）
+    int64 logout_at = 7;
+    int64 last_active_at = 8;
+    int32 status = 9;      // 1-正常 2-失效 3-被踢
+}
+
+message GetDevicesReq {
+    int64 user_id = 1;     // 若为 0 则查当前用户
+}
+
+message GetDevicesResp {
+    repeated DeviceInfo devices = 1;
+}
+
+message KickDeviceReq {
+    int64 device_id = 1;
+}
+
+message KickDeviceResp {
+    bool success = 1;
+}
+
+// ---------- 好友关系 ----------
+message FriendInfo {
+    int64 user_id = 1;          // 好友的用户 ID
+    string nickname = 2;        // 好友的全局昵称
+    string avatar = 3;
+    string remark = 4;          // 当前用户给好友设置的备注名
+    int64 friend_group_id = 5;  // 所属好友分组 ID（若未分组则为 0）
+    int64 created_at = 6;       // 成为好友的时间
+}
+
+message FriendApplyInfo {
+    int64 id = 1;
+    int64 applicant_id = 2;     // 申请人 ID
+    string applicant_nickname = 3;
+    string applicant_avatar = 4;
+    int64 target_id = 5;        // 被申请人 ID
+    string apply_reason = 6;
+    int32 status = 7;           // 1-待处理 2-已接受 3-已拒绝
+    int64 created_at = 8;
+    int64 handled_at = 9;
+}
+
+message AddFriendReq {
+    int64 target_user_id = 1;
+    string apply_reason = 2;    // 附言（可选）
+}
+
+message AddFriendResp {
+    int64 apply_id = 1;
+}
+
+message AcceptFriendReq {
+    int64 apply_id = 1;
+    string remark = 2;          // 接受时设置的备注名（可选）
+}
+
+message AcceptFriendResp {
+    bool success = 1;
+}
+
+message GetFriendsReq {
+    int64 user_id = 1;          // 若为 0 则查当前用户
+    int64 friend_group_id = 2;  // 可选，按分组过滤
+    string keyword = 3;         // 可选，模糊搜索好友昵称/备注
+    int32 page = 4;
+    int32 page_size = 5;
+}
+
+message GetFriendsResp {
+    repeated FriendInfo friends = 1;
+    int32 total = 2;
+}
+
+message DeleteFriendReq {
+    int64 friend_user_id = 1;
+}
+
+message DeleteFriendResp {
+    bool success = 1;
+}
+
+message BlockUserReq {
+    int64 target_user_id = 1;
+    int64 user_id = 2;
+}
+
+message BlockUserResp {
+    bool success = 1;
+}
+
+message UnblockUserReq {
+    int64 target_user_id = 1;
+    int64 user_id = 2;
+}
+
+message UnblockUserResp {
+    bool success = 1;
+}
+
+// ---------- 好友分组 ----------
+message FriendGroup {
+    int64 id = 1;
+    string name = 2;
+    int32 sort_order = 3;
+}
+
+// ---------- 好友申请列表 ----------
+message GetFriendAppliesReq {
+    int64 user_id = 1;        // 若为 0 则查当前用户
+    int32 status = 2;         // 可选，1-待处理 2-已接受 3-已拒绝
+    int32 page = 3;
+    int32 page_size = 4;
+}
+
+message GetFriendAppliesResp {
+    repeated FriendApplyInfo applies = 1;
+    int32 total = 2;
+}
+
 service User {
+    //账号管理
     rpc Login (LoginRequest) returns (LoginResponse);
     rpc Register (RegisterRequest) returns (RegisterResponse);
+    rpc Logout(LogoutReq) returns (LogoutResp);
+    rpc ResetPassword(ResetPasswordReq) returns (ResetPasswordResp);
+    // 用户资料
+    rpc GetProfile(GetProfileReq) returns (Profile);
+    rpc UpdateProfile(UpdateProfileReq) returns (UpdateProfileResp);
+    //设备管理
+    rpc GetDevices(GetDevicesReq) returns (GetDevicesResp);
+    rpc KickDevice(KickDeviceReq) returns (KickDeviceResp);
+    //好友管理
+    rpc AddFriend(AddFriendReq) returns (AddFriendResp);
+    rpc AcceptFriend(AcceptFriendReq) returns (AcceptFriendResp);
+    rpc GetFriends(GetFriendsReq) returns (GetFriendsResp);
+    rpc DeleteFriend(DeleteFriendReq) returns (DeleteFriendResp);
+    rpc BlockUser(BlockUserReq) returns (BlockUserResp);
+    rpc UnblockUser(UnblockUserReq) returns (UnblockUserResp);
+    rpc GetFriendApplies(GetFriendAppliesReq) returns (GetFriendAppliesResp);
 }

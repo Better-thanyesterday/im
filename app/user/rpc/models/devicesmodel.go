@@ -1,9 +1,6 @@
 package models
 
-import (
-	"github.com/zeromicro/go-zero/core/stores/cache"
-	"github.com/zeromicro/go-zero/core/stores/sqlx"
-)
+import "github.com/zeromicro/go-zero/core/stores/sqlx"
 
 var _ DevicesModel = (*customDevicesModel)(nil)
 
@@ -12,6 +9,7 @@ type (
 	// and implement the added methods in customDevicesModel.
 	DevicesModel interface {
 		devicesModel
+		withSession(session sqlx.Session) DevicesModel
 	}
 
 	customDevicesModel struct {
@@ -20,8 +18,12 @@ type (
 )
 
 // NewDevicesModel returns a model for the database table.
-func NewDevicesModel(conn sqlx.SqlConn, c cache.CacheConf, opts ...cache.Option) DevicesModel {
+func NewDevicesModel(conn sqlx.SqlConn) DevicesModel {
 	return &customDevicesModel{
-		defaultDevicesModel: newDevicesModel(conn, c, opts...),
+		defaultDevicesModel: newDevicesModel(conn),
 	}
+}
+
+func (m *customDevicesModel) withSession(session sqlx.Session) DevicesModel {
+	return NewDevicesModel(sqlx.NewSqlConnFromSession(session))
 }

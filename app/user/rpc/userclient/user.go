@@ -14,14 +14,61 @@ import (
 )
 
 type (
-	LoginRequest     = user.LoginRequest
-	LoginResponse    = user.LoginResponse
-	RegisterRequest  = user.RegisterRequest
-	RegisterResponse = user.RegisterResponse
+	AcceptFriendReq      = user.AcceptFriendReq
+	AcceptFriendResp     = user.AcceptFriendResp
+	AddFriendReq         = user.AddFriendReq
+	AddFriendResp        = user.AddFriendResp
+	BlockUserReq         = user.BlockUserReq
+	BlockUserResp        = user.BlockUserResp
+	DeleteFriendReq      = user.DeleteFriendReq
+	DeleteFriendResp     = user.DeleteFriendResp
+	DeviceInfo           = user.DeviceInfo
+	FriendApplyInfo      = user.FriendApplyInfo
+	FriendGroup          = user.FriendGroup
+	FriendInfo           = user.FriendInfo
+	GetDevicesReq        = user.GetDevicesReq
+	GetDevicesResp       = user.GetDevicesResp
+	GetFriendAppliesReq  = user.GetFriendAppliesReq
+	GetFriendAppliesResp = user.GetFriendAppliesResp
+	GetFriendsReq        = user.GetFriendsReq
+	GetFriendsResp       = user.GetFriendsResp
+	GetProfileReq        = user.GetProfileReq
+	KickDeviceReq        = user.KickDeviceReq
+	KickDeviceResp       = user.KickDeviceResp
+	LoginRequest         = user.LoginRequest
+	LoginResponse        = user.LoginResponse
+	LogoutReq            = user.LogoutReq
+	LogoutResp           = user.LogoutResp
+	Profile              = user.Profile
+	RegisterRequest      = user.RegisterRequest
+	RegisterResponse     = user.RegisterResponse
+	ResetPasswordReq     = user.ResetPasswordReq
+	ResetPasswordResp    = user.ResetPasswordResp
+	UnblockUserReq       = user.UnblockUserReq
+	UnblockUserResp      = user.UnblockUserResp
+	UpdateProfileReq     = user.UpdateProfileReq
+	UpdateProfileResp    = user.UpdateProfileResp
 
 	User interface {
+		// 账号管理
 		Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 		Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
+		Logout(ctx context.Context, in *LogoutReq, opts ...grpc.CallOption) (*LogoutResp, error)
+		ResetPassword(ctx context.Context, in *ResetPasswordReq, opts ...grpc.CallOption) (*ResetPasswordResp, error)
+		// 用户资料
+		GetProfile(ctx context.Context, in *GetProfileReq, opts ...grpc.CallOption) (*Profile, error)
+		UpdateProfile(ctx context.Context, in *UpdateProfileReq, opts ...grpc.CallOption) (*UpdateProfileResp, error)
+		// 设备管理
+		GetDevices(ctx context.Context, in *GetDevicesReq, opts ...grpc.CallOption) (*GetDevicesResp, error)
+		KickDevice(ctx context.Context, in *KickDeviceReq, opts ...grpc.CallOption) (*KickDeviceResp, error)
+		// 好友管理
+		AddFriend(ctx context.Context, in *AddFriendReq, opts ...grpc.CallOption) (*AddFriendResp, error)
+		AcceptFriend(ctx context.Context, in *AcceptFriendReq, opts ...grpc.CallOption) (*AcceptFriendResp, error)
+		GetFriends(ctx context.Context, in *GetFriendsReq, opts ...grpc.CallOption) (*GetFriendsResp, error)
+		DeleteFriend(ctx context.Context, in *DeleteFriendReq, opts ...grpc.CallOption) (*DeleteFriendResp, error)
+		BlockUser(ctx context.Context, in *BlockUserReq, opts ...grpc.CallOption) (*BlockUserResp, error)
+		UnblockUser(ctx context.Context, in *UnblockUserReq, opts ...grpc.CallOption) (*UnblockUserResp, error)
+		GetFriendApplies(ctx context.Context, in *GetFriendAppliesReq, opts ...grpc.CallOption) (*GetFriendAppliesResp, error)
 	}
 
 	defaultUser struct {
@@ -35,6 +82,7 @@ func NewUser(cli zrpc.Client) User {
 	}
 }
 
+// 账号管理
 func (m *defaultUser) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error) {
 	client := user.NewUserClient(m.cli.Conn())
 	return client.Login(ctx, in, opts...)
@@ -43,4 +91,72 @@ func (m *defaultUser) Login(ctx context.Context, in *LoginRequest, opts ...grpc.
 func (m *defaultUser) Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error) {
 	client := user.NewUserClient(m.cli.Conn())
 	return client.Register(ctx, in, opts...)
+}
+
+func (m *defaultUser) Logout(ctx context.Context, in *LogoutReq, opts ...grpc.CallOption) (*LogoutResp, error) {
+	client := user.NewUserClient(m.cli.Conn())
+	return client.Logout(ctx, in, opts...)
+}
+
+func (m *defaultUser) ResetPassword(ctx context.Context, in *ResetPasswordReq, opts ...grpc.CallOption) (*ResetPasswordResp, error) {
+	client := user.NewUserClient(m.cli.Conn())
+	return client.ResetPassword(ctx, in, opts...)
+}
+
+// 用户资料
+func (m *defaultUser) GetProfile(ctx context.Context, in *GetProfileReq, opts ...grpc.CallOption) (*Profile, error) {
+	client := user.NewUserClient(m.cli.Conn())
+	return client.GetProfile(ctx, in, opts...)
+}
+
+func (m *defaultUser) UpdateProfile(ctx context.Context, in *UpdateProfileReq, opts ...grpc.CallOption) (*UpdateProfileResp, error) {
+	client := user.NewUserClient(m.cli.Conn())
+	return client.UpdateProfile(ctx, in, opts...)
+}
+
+// 设备管理
+func (m *defaultUser) GetDevices(ctx context.Context, in *GetDevicesReq, opts ...grpc.CallOption) (*GetDevicesResp, error) {
+	client := user.NewUserClient(m.cli.Conn())
+	return client.GetDevices(ctx, in, opts...)
+}
+
+func (m *defaultUser) KickDevice(ctx context.Context, in *KickDeviceReq, opts ...grpc.CallOption) (*KickDeviceResp, error) {
+	client := user.NewUserClient(m.cli.Conn())
+	return client.KickDevice(ctx, in, opts...)
+}
+
+// 好友管理
+func (m *defaultUser) AddFriend(ctx context.Context, in *AddFriendReq, opts ...grpc.CallOption) (*AddFriendResp, error) {
+	client := user.NewUserClient(m.cli.Conn())
+	return client.AddFriend(ctx, in, opts...)
+}
+
+func (m *defaultUser) AcceptFriend(ctx context.Context, in *AcceptFriendReq, opts ...grpc.CallOption) (*AcceptFriendResp, error) {
+	client := user.NewUserClient(m.cli.Conn())
+	return client.AcceptFriend(ctx, in, opts...)
+}
+
+func (m *defaultUser) GetFriends(ctx context.Context, in *GetFriendsReq, opts ...grpc.CallOption) (*GetFriendsResp, error) {
+	client := user.NewUserClient(m.cli.Conn())
+	return client.GetFriends(ctx, in, opts...)
+}
+
+func (m *defaultUser) DeleteFriend(ctx context.Context, in *DeleteFriendReq, opts ...grpc.CallOption) (*DeleteFriendResp, error) {
+	client := user.NewUserClient(m.cli.Conn())
+	return client.DeleteFriend(ctx, in, opts...)
+}
+
+func (m *defaultUser) BlockUser(ctx context.Context, in *BlockUserReq, opts ...grpc.CallOption) (*BlockUserResp, error) {
+	client := user.NewUserClient(m.cli.Conn())
+	return client.BlockUser(ctx, in, opts...)
+}
+
+func (m *defaultUser) UnblockUser(ctx context.Context, in *UnblockUserReq, opts ...grpc.CallOption) (*UnblockUserResp, error) {
+	client := user.NewUserClient(m.cli.Conn())
+	return client.UnblockUser(ctx, in, opts...)
+}
+
+func (m *defaultUser) GetFriendApplies(ctx context.Context, in *GetFriendAppliesReq, opts ...grpc.CallOption) (*GetFriendAppliesResp, error) {
+	client := user.NewUserClient(m.cli.Conn())
+	return client.GetFriendApplies(ctx, in, opts...)
 }

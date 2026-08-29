@@ -12,8 +12,6 @@ import (
 	"time"
 
 	"github.com/zeromicro/go-zero/core/stores/builder"
-	"github.com/zeromicro/go-zero/core/stores/cache"
-	"github.com/zeromicro/go-zero/core/stores/sqlc"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/core/stringx"
 )
@@ -23,27 +21,26 @@ var (
 	devicesRows                = strings.Join(devicesFieldNames, ",")
 	devicesRowsExpectAutoSet   = strings.Join(stringx.Remove(devicesFieldNames, "id", "create_at", "create_time", "created_at", "update_at", "update_time", "updated_at"), ",")
 	devicesRowsWithPlaceHolder = builder.PostgreSqlJoin(stringx.Remove(devicesFieldNames, "id", "create_at", "create_time", "created_at", "update_at", "update_time", "updated_at"))
-
-	cachePublicDevicesIdPrefix = "cache:public:devices:id:"
 )
 
 type (
 	devicesModel interface {
 		Insert(ctx context.Context, data *Devices) (sql.Result, error)
 		FindOne(ctx context.Context, id int64) (*Devices, error)
+		FindByUserId(ctx context.Context, id int64) ([]Devices, error)
 		Update(ctx context.Context, data *Devices) error
 		Delete(ctx context.Context, id int64) error
 	}
 
 	defaultDevicesModel struct {
-		sqlc.CachedConn
+		conn  sqlx.SqlConn
 		table string
 	}
 
 	Devices struct {
 		Id               int64          `db:"id"`
 		Userid           int64          `db:"userid"`
-		Devicetype       int32          `db:"devicetype"`
+		Devicetype       int64          `db:"devicetype"`
 		Devicename       sql.NullString `db:"devicename"`
 		Deviceid         string         `db:"deviceid"`
 		Location         sql.NullString `db:"location"`
@@ -58,64 +55,53 @@ type (
 	}
 )
 
-func newDevicesModel(conn sqlx.SqlConn, c cache.CacheConf, opts ...cache.Option) *defaultDevicesModel {
+func newDevicesModel(conn sqlx.SqlConn) *defaultDevicesModel {
 	return &defaultDevicesModel{
-		CachedConn: sqlc.NewConn(conn, c, opts...),
-		table:      `"public"."devices"`,
+		conn:  conn,
+		table: `"public"."devices"`,
 	}
 }
 
 func (m *defaultDevicesModel) Delete(ctx context.Context, id int64) error {
-	publicDevicesIdKey := fmt.Sprintf("%s%v", cachePublicDevicesIdPrefix, id)
-	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
-		query := fmt.Sprintf("delete from %s where id = $1", m.table)
-		return conn.ExecCtx(ctx, query, id)
-	}, publicDevicesIdKey)
+	query := fmt.Sprintf("delete from %s where id = $1", m.table)
+	_, err := m.conn.ExecCtx(ctx, query, id)
 	return err
 }
 
 func (m *defaultDevicesModel) FindOne(ctx context.Context, id int64) (*Devices, error) {
-	publicDevicesIdKey := fmt.Sprintf("%s%v", cachePublicDevicesIdPrefix, id)
+	query := fmt.Sprintf("select %s from %s where id = $1 limit 1", devicesRows, m.table)
 	var resp Devices
-	err := m.QueryRowCtx(ctx, &resp, publicDevicesIdKey, func(ctx context.Context, conn sqlx.SqlConn, v any) error {
-		query := fmt.Sprintf("select %s from %s where id = $1 limit 1", devicesRows, m.table)
-		return conn.QueryRowCtx(ctx, v, query, id)
-	})
+	err := m.conn.QueryRowCtx(ctx, &resp, query, id)
 	switch err {
 	case nil:
 		return &resp, nil
-	case sqlc.ErrNotFound:
+	case sqlx.ErrNotFound:
 		return nil, ErrNotFound
 	default:
 		return nil, err
 	}
 }
 
+func (m *defaultDevicesModel) FindByUserId(ctx context.Context, userid int64) ([]Devices, error) {
+	query := fmt.Sprintf("select %s from %s where user_id = $1", devicesRows, m.table)
+	var resp []Devices
+	err := m.conn.QueryRowsCtx(ctx, &resp, query, userid)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil // 空切片表示没有设备，err == nil
+}
+
 func (m *defaultDevicesModel) Insert(ctx context.Context, data *Devices) (sql.Result, error) {
-	publicDevicesIdKey := fmt.Sprintf("%s%v", cachePublicDevicesIdPrefix, data.Id)
-	ret, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
-		query := fmt.Sprintf("insert into %s (%s) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)", m.table, devicesRowsExpectAutoSet)
-		return conn.ExecCtx(ctx, query, data.Userid, data.Devicetype, data.Devicename, data.Deviceid, data.Location, data.LoginAt, data.LogoutAt, data.LastActiveAt, data.AccessTokenHash, data.RefreshTokenHash, data.Status)
-	}, publicDevicesIdKey)
+	query := fmt.Sprintf("insert into %s (%s) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)", m.table, devicesRowsExpectAutoSet)
+	ret, err := m.conn.ExecCtx(ctx, query, data.Userid, data.Devicetype, data.Devicename, data.Deviceid, data.Location, data.LoginAt, data.LogoutAt, data.LastActiveAt, data.AccessTokenHash, data.RefreshTokenHash, data.Status)
 	return ret, err
 }
 
 func (m *defaultDevicesModel) Update(ctx context.Context, data *Devices) error {
-	publicDevicesIdKey := fmt.Sprintf("%s%v", cachePublicDevicesIdPrefix, data.Id)
-	_, err := m.ExecCtx(ctx, func(ctx context.Context, conn sqlx.SqlConn) (result sql.Result, err error) {
-		query := fmt.Sprintf("update %s set %s where id = $1", m.table, devicesRowsWithPlaceHolder)
-		return conn.ExecCtx(ctx, query, data.Id, data.Userid, data.Devicetype, data.Devicename, data.Deviceid, data.Location, data.LoginAt, data.LogoutAt, data.LastActiveAt, data.AccessTokenHash, data.RefreshTokenHash, data.Status)
-	}, publicDevicesIdKey)
+	query := fmt.Sprintf("update %s set %s where id = $1", m.table, devicesRowsWithPlaceHolder)
+	_, err := m.conn.ExecCtx(ctx, query, data.Id, data.Userid, data.Devicetype, data.Devicename, data.Deviceid, data.Location, data.LoginAt, data.LogoutAt, data.LastActiveAt, data.AccessTokenHash, data.RefreshTokenHash, data.Status)
 	return err
-}
-
-func (m *defaultDevicesModel) formatPrimary(primary any) string {
-	return fmt.Sprintf("%s%v", cachePublicDevicesIdPrefix, primary)
-}
-
-func (m *defaultDevicesModel) queryPrimary(ctx context.Context, conn sqlx.SqlConn, v, primary any) error {
-	query := fmt.Sprintf("select %s from %s where id = $1 limit 1", devicesRows, m.table)
-	return conn.QueryRowCtx(ctx, v, query, primary)
 }
 
 func (m *defaultDevicesModel) tableName() string {

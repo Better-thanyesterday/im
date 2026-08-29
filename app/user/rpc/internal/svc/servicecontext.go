@@ -13,6 +13,9 @@ type ServiceContext struct {
 	Config config.Config
 	UsersModel models.UsersModel
 	DevicesModel models.DevicesModel
+	FriendsModel models.FriendsModel
+	FriendAppliesModel models.FriendappliesModel
+	FriendGroupsModel models.FriendgroupsModel
 	Snokflake *utils.Snowflake
 	Redis  redis.Redis
 }
@@ -26,9 +29,12 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	rds :=redis.MustNewRedis(c.RedisCache)
 	return &ServiceContext{
 		Config: c,
-		UsersModel: models.NewUsersModel(sqlconn,c.Cache),
+		UsersModel: models.NewUsersModel(sqlconn),
 		Snokflake: Snokflake,
-		DevicesModel: models.NewDevicesModel(sqlconn,c.Cache),
+		DevicesModel: models.NewDevicesModel(sqlconn),
 		Redis: *rds,
+		FriendsModel: models.NewFriendsModel(sqlconn),
+		FriendGroupsModel: models.NewFriendgroupsModel(sqlconn),
+		FriendAppliesModel: models.NewFriendappliesModel(sqlconn),
 	}
 }
