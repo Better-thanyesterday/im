@@ -5,6 +5,7 @@ package logic
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"im-platform/app/gateway/api/internal/svc"
 	"im-platform/app/gateway/api/internal/types"
@@ -41,6 +42,10 @@ func (l *LoginLogic) Login(req *types.LoginReq) (resp *types.LoginResp, err erro
 	})
 	if err != nil {
 		return nil, err
+	}
+	if loginResp.Userid <= 0 {
+		l.Logger.Errorf("login: rpc returned invalid userid=%d, phone=%s", loginResp.Userid, req.Phone)
+		return nil, errors.New("账号或密码错误")
 	}
 	token, err := l.svcCtx.TokenManager.Issue(l.ctx, utils.TokenInfo{
 		UserID:     loginResp.Userid,

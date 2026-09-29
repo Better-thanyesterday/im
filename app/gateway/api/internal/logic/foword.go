@@ -26,6 +26,12 @@ func HandleFrame(svcCtx *svc.ServiceContext, c *conn.Conn, data []byte) {
 		if json.Unmarshal(payload, &in) != nil {
 			return
 		}
+		// sender_id 不信任客户端,以握手鉴权写入 conn 的 userId 为准
+		in.SenderId = c.UserId()
+		if in.SenderId <= 0 {
+			logx.Errorf("unauthenticated conn send frame, drop it, userid=%d", in.SenderId)
+			return
+		}
 		svcCtx.Message.SendMessage(context.Background(), &in)
 	case protocol.FrameAck:
 		// -> svcCtx.MessageRpc.AckMessage
