@@ -29,7 +29,11 @@ func NewAckMessageLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AckMes
 // AckMessage 统一 ACK 入口：已送达 / 已读
 func (l *AckMessageLogic) AckMessage(in *message.AckMessageReq) (*message.AckMessageResp, error) {
 	// todo: add your logic here and delete this line
-	readerId :=in.UserId
+	// 身份以 gateway 注入的 metadata 为准,请求字段仅作内部调用回退,防止伪造他人已读回执
+	readerId := userIDFromCtx(l.ctx)
+	if readerId <= 0 {
+		readerId = in.UserId
+	}
 	if readerId <= 0 {
 		return nil, constants.NewMsgError(constants.ErrCodeMsgInValidParam)
 	}
@@ -57,6 +61,11 @@ func (l *AckMessageLogic) handleDelivered(in *message.AckMessageReq, readerId in
 	if msg.Senderid == readerId {
 		return &message.AckMessageResp{}, nil
 	}
+	// conv_id 由客户端携带,以消息实际归属会话为准,防止跨会话伪造
+	if msg.Convid != in.ConvId {
+		logx.Errorf("ack conv mismatch: msg=%d expect=%s got=%s reader=%d", in.MsgId, msg.Convid, in.ConvId, readerId)
+		return &message.AckMessageResp{}, nil
+	}
 
 	// 推送给发送方：你的消息对方已收到
 	// 这里复用 Push.Deliver，payload 带状态标识
@@ -73,6 +82,11 @@ func (l *AckMessageLogic) handleRead(in *message.AckMessageReq, readerId int64) 
 	}
 	// 自己读自己的消息？忽略
 	if msg.Senderid == readerId {
+		return &message.AckMessageResp{}, nil
+	}
+	// conv_id 由客户端携带,以消息实际归属会话为准,防止跨会话伪造
+	if msg.Convid != in.ConvId {
+		logx.Errorf("read conv mismatch: msg=%d expect=%s got=%s reader=%d", in.MsgId, msg.Convid, in.ConvId, readerId)
 		return &message.AckMessageResp{}, nil
 	}
 	// 单聊：更新 inbox 已读状态（如果单聊走了 inbox）
@@ -105,9 +119,3 @@ func (l *AckMessageLogic) notifySender(senderId int64, convId string, msgId int6
 	})
 	return err
 }
-
-// func (l *AckMessageLogic) getUserIdFromCtx() int64 {
-// 	// go-zero 从 gRPC metadata 取 user_id（Gateway 注入）
-// 	// 实际项目中根据你的 metadata key 调整
-// 	return l.ctx.Value("x-user-id").(int64)
-// }

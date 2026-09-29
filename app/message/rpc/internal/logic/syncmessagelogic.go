@@ -31,7 +31,12 @@ func NewSyncMessageLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SyncM
 // SyncMessages 断线补发 + 消息漫游入口
 func (l *SyncMessageLogic) SyncMessage(in *message.SyncMessageReq) (*message.SyncMessageResp, error) {
 	// todo: add your logic here and delete this line
-	if in.UserId <= 0 {
+	// 身份以 gateway 注入的 metadata 为准,请求字段仅作内部调用回退,防止拉取他人离线消息
+	userId := userIDFromCtx(l.ctx)
+	if userId <= 0 {
+		userId = in.UserId
+	}
+	if userId <= 0 {
 		return nil, constants.NewMsgError(constants.ErrCodeMsgInValidParam)
 	}
 	//构造ConvSyncs包含多条离线信息
@@ -43,7 +48,7 @@ func (l *SyncMessageLogic) SyncMessage(in *message.SyncMessageReq) (*message.Syn
 		if conv.ConvId == "" {
 			continue
 		}
-		cs, err := l.SyncSingleConv(in.UserId, conv)
+		cs, err := l.SyncSingleConv(userId, conv)
 		if err != nil {
 			logx.Errorf("sync conv %s err: %v", conv.ConvId, err)
 			continue
@@ -193,12 +198,4 @@ func (l *SyncMessageLogic) toMessage(m *models.Messages) *message.MessageBody {
 		SendTime:    m.Sendtime.UnixMilli(),
 		ClientMsgId: m.Clientmsgid,
 	}
-}
-
-func (l *SyncMessageLogic) getUserIdFromCtx() int64 {
-	v := l.ctx.Value("x-user-id")
-	if v == nil {
-		return 0
-	}
-	return v.(int64)
 }
