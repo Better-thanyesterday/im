@@ -8,7 +8,7 @@ import (
 	"im-platform/app/gateway/api/internal/config"
 	"im-platform/app/group/rpc/groupclient"
 	"im-platform/app/message/rpc/messageclient"
-	"im-platform/app/user/rpc/userclient"
+	userclient "im-platform/app/user/rpc/userclient"
 	"im-platform/common/utils"
 	"time"
 
@@ -21,20 +21,20 @@ type ServiceContext struct {
 	userclient.User
 	groupclient.Group
 	TokenManager *utils.TokenManager
-	ConnManager *conn.ConnManager
+	ConnManager  *conn.ConnManager
 	messageclient.Message
 	Redis redis.Redis
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
-	rds:=redis.MustNewRedis(c.Redis)
+	rds := redis.MustNewRedis(c.Redis)
 	return &ServiceContext{
-		Config: c,
-		User: userclient.NewUser(zrpc.MustNewClient(c.UserRpc)),
-		Message: messageclient.NewMessage(zrpc.MustNewClient(c.MsgRpc)),
-		TokenManager: utils.NewTokenManager(rds,7*24*time.Hour),
-		ConnManager: conn.NewManager(16),
-		Redis:*rds,
-		Group: groupclient.NewGroup(zrpc.MustNewClient(c.GroupRpc)),
+		Config:       c,
+		User:         userclient.NewUser(zrpc.MustNewClient(c.UserRpc)),
+		Message:      messageclient.NewMessage(zrpc.MustNewClient(c.MsgRpc)),
+		TokenManager: utils.NewTokenManager(rds, 7*24*time.Hour),
+		ConnManager:  conn.NewManager(16),
+		Redis:        *rds,
+		Group:        groupclient.NewGroup(zrpc.MustNewClient(c.GroupRpc)),
 	}
 }

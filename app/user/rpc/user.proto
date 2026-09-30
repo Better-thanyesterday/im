@@ -52,6 +52,7 @@ message ResetPasswordResp {
 
 message GetProfileReq {
     int64 user_id = 1;     // 要查询的用户 ID（若为 0 则查当前登录用户）
+    int64 viewer_id = 2;   // 发起查询的登录用户 ID：只有本人能拿到 phone/email
 }
 
 message Profile {
@@ -70,6 +71,7 @@ message Profile {
 }
 
 message UpdateProfileReq {
+    int64 user_id = 7;     // 要更新的用户 ID(鉴权后的本人)
     string nickname = 1;
     string avatar = 2;
     string signature = 3;
@@ -105,6 +107,7 @@ message GetDevicesResp {
 
 message KickDeviceReq {
     int64 device_id = 1;
+    int64 user_id = 2;     // 发起踢出的用户 ID,必须与设备归属一致
 }
 
 message KickDeviceResp {
@@ -166,6 +169,7 @@ message GetFriendsResp {
 
 message DeleteFriendReq {
     int64 friend_user_id = 1;
+    int64 user_id = 2;     // 发起删除的用户 ID,必须与关系归属一致
 }
 
 message DeleteFriendResp {
@@ -230,4 +234,23 @@ service User {
     rpc BlockUser(BlockUserReq) returns (BlockUserResp);
     rpc UnblockUser(UnblockUserReq) returns (UnblockUserResp);
     rpc GetFriendApplies(GetFriendAppliesReq) returns (GetFriendAppliesResp);
+    //关系校验（message rpc 单聊前置校验用）
+    rpc CheckFriend(CheckFriendReq) returns (CheckFriendResp);
+    rpc IsBlocked(IsBlockedReq) returns (IsBlockedResp);
+}
+
+// ---------- 关系校验 ----------
+message CheckFriendReq {
+    int64 user_id = 1;     // 发送方
+    int64 friend_id = 2;   // 接收方
+}
+message CheckFriendResp {
+    bool is_friend = 1;
+}
+message IsBlockedReq {
+    int64 user_id = 1;     // 拉黑关系归属方（接收方）
+    int64 target_id = 2;   // 被检查对象（发送方）
+}
+message IsBlockedResp {
+    bool is_blocked = 1;
 }

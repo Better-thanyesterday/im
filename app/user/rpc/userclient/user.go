@@ -2,7 +2,7 @@
 // goctl 1.10.1
 // Source: user.proto
 
-package userclient
+package userClient
 
 import (
 	"context"
@@ -20,6 +20,8 @@ type (
 	AddFriendResp        = user.AddFriendResp
 	BlockUserReq         = user.BlockUserReq
 	BlockUserResp        = user.BlockUserResp
+	CheckFriendReq       = user.CheckFriendReq
+	CheckFriendResp      = user.CheckFriendResp
 	DeleteFriendReq      = user.DeleteFriendReq
 	DeleteFriendResp     = user.DeleteFriendResp
 	DeviceInfo           = user.DeviceInfo
@@ -33,6 +35,8 @@ type (
 	GetFriendsReq        = user.GetFriendsReq
 	GetFriendsResp       = user.GetFriendsResp
 	GetProfileReq        = user.GetProfileReq
+	IsBlockedReq         = user.IsBlockedReq
+	IsBlockedResp        = user.IsBlockedResp
 	KickDeviceReq        = user.KickDeviceReq
 	KickDeviceResp       = user.KickDeviceResp
 	LoginRequest         = user.LoginRequest
@@ -69,6 +73,9 @@ type (
 		BlockUser(ctx context.Context, in *BlockUserReq, opts ...grpc.CallOption) (*BlockUserResp, error)
 		UnblockUser(ctx context.Context, in *UnblockUserReq, opts ...grpc.CallOption) (*UnblockUserResp, error)
 		GetFriendApplies(ctx context.Context, in *GetFriendAppliesReq, opts ...grpc.CallOption) (*GetFriendAppliesResp, error)
+		// 关系校验（message rpc 单聊前置校验用）
+		CheckFriend(ctx context.Context, in *CheckFriendReq, opts ...grpc.CallOption) (*CheckFriendResp, error)
+		IsBlocked(ctx context.Context, in *IsBlockedReq, opts ...grpc.CallOption) (*IsBlockedResp, error)
 	}
 
 	defaultUser struct {
@@ -159,4 +166,15 @@ func (m *defaultUser) UnblockUser(ctx context.Context, in *UnblockUserReq, opts 
 func (m *defaultUser) GetFriendApplies(ctx context.Context, in *GetFriendAppliesReq, opts ...grpc.CallOption) (*GetFriendAppliesResp, error) {
 	client := user.NewUserClient(m.cli.Conn())
 	return client.GetFriendApplies(ctx, in, opts...)
+}
+
+// 关系校验（message rpc 单聊前置校验用）
+func (m *defaultUser) CheckFriend(ctx context.Context, in *CheckFriendReq, opts ...grpc.CallOption) (*CheckFriendResp, error) {
+	client := user.NewUserClient(m.cli.Conn())
+	return client.CheckFriend(ctx, in, opts...)
+}
+
+func (m *defaultUser) IsBlocked(ctx context.Context, in *IsBlockedReq, opts ...grpc.CallOption) (*IsBlockedResp, error) {
+	client := user.NewUserClient(m.cli.Conn())
+	return client.IsBlocked(ctx, in, opts...)
 }

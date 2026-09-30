@@ -8,6 +8,7 @@ import (
 	"im-platform/app/gateway/api/internal/svc"
 	"im-platform/common/middleware"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/gorilla/websocket"
@@ -17,7 +18,19 @@ import (
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin:     func(r *http.Request) bool { return true },
+	// 非浏览器客户端(原生 App)不携带 Origin,放行;
+	// 带 Origin 的请求必须是同源,防止浏览器侧跨站 WS 劫持
+	CheckOrigin: func(r *http.Request) bool {
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			return true
+		}
+		u, err := url.Parse(origin)
+		if err != nil {
+			return false
+		}
+		return u.Host == r.Host
+	},
 }
 
 func WsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {

@@ -33,7 +33,7 @@ func (l *GetProfileLogic) GetProfile(in *user.GetProfileReq) (*user.Profile, err
 		return nil,err
 	}
 	gender,_:=strconv.ParseInt(u.Gender,10,64)
-	return &user.Profile{
+	p := &user.Profile{
 		UserId: u.Id,
 		Avatar: u.Avatar,
 		Email: u.Email,
@@ -44,5 +44,11 @@ func (l *GetProfileLogic) GetProfile(in *user.GetProfileReq) (*user.Profile, err
 		Phone: u.Phone,
 		Nickname: u.Nickname,
 		Status: int32(u.Status.Int64),
-	}, nil
+	}
+	// 手机号/邮箱是敏感字段,只有本人(或 user_id=0 表示查自己)可见
+	if in.UserId != 0 && in.ViewerId != in.UserId {
+		p.Phone = ""
+		p.Email = ""
+	}
+	return p, nil
 }

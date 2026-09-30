@@ -4,6 +4,7 @@ import (
 	"context"
 	"im-platform/common/utils"
 	"net/http"
+	"strings"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
@@ -35,7 +36,11 @@ func AuthMiddleware(tm *utils.TokenManager) func(next http.HandlerFunc) http.Han
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			ctx:=r.Context()
+			// 兼容 "Bearer <token>" 与裸 token 两种携带方式
 			tokenStr:=r.Header.Get("Authorization")
+			if parts := strings.SplitN(tokenStr, " ", 2); len(parts) == 2 && strings.EqualFold(parts[0], "Bearer") {
+				tokenStr = strings.TrimSpace(parts[1])
+			}
 			if tokenStr =="" {
 				httpx.Error(w, &AuthError{Code: 100002, Msg: "Token缺失"})
 				return

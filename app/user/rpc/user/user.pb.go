@@ -463,7 +463,8 @@ func (x *ResetPasswordResp) GetSuccess() bool {
 
 type GetProfileReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"` // 要查询的用户 ID（若为 0 则查当前登录用户）
+	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`       // 要查询的用户 ID（若为 0 则查当前登录用户）
+	ViewerId      int64                  `protobuf:"varint,2,opt,name=viewer_id,json=viewerId,proto3" json:"viewer_id,omitempty"` // 发起查询的登录用户 ID：只有本人能拿到 phone/email
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -501,6 +502,13 @@ func (*GetProfileReq) Descriptor() ([]byte, []int) {
 func (x *GetProfileReq) GetUserId() int64 {
 	if x != nil {
 		return x.UserId
+	}
+	return 0
+}
+
+func (x *GetProfileReq) GetViewerId() int64 {
+	if x != nil {
+		return x.ViewerId
 	}
 	return 0
 }
@@ -639,6 +647,7 @@ func (x *Profile) GetUpdatedAt() int64 {
 
 type UpdateProfileReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        int64                  `protobuf:"varint,7,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"` // 要更新的用户 ID(鉴权后的本人)
 	Nickname      string                 `protobuf:"bytes,1,opt,name=nickname,proto3" json:"nickname,omitempty"`
 	Avatar        string                 `protobuf:"bytes,2,opt,name=avatar,proto3" json:"avatar,omitempty"`
 	Signature     string                 `protobuf:"bytes,3,opt,name=signature,proto3" json:"signature,omitempty"`
@@ -677,6 +686,13 @@ func (x *UpdateProfileReq) ProtoReflect() protoreflect.Message {
 // Deprecated: Use UpdateProfileReq.ProtoReflect.Descriptor instead.
 func (*UpdateProfileReq) Descriptor() ([]byte, []int) {
 	return file_user_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *UpdateProfileReq) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
 }
 
 func (x *UpdateProfileReq) GetNickname() string {
@@ -965,6 +981,7 @@ func (x *GetDevicesResp) GetDevices() []*DeviceInfo {
 type KickDeviceReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	DeviceId      int64                  `protobuf:"varint,1,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	UserId        int64                  `protobuf:"varint,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"` // 发起踢出的用户 ID,必须与设备归属一致
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1002,6 +1019,13 @@ func (*KickDeviceReq) Descriptor() ([]byte, []int) {
 func (x *KickDeviceReq) GetDeviceId() int64 {
 	if x != nil {
 		return x.DeviceId
+	}
+	return 0
+}
+
+func (x *KickDeviceReq) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
 	}
 	return 0
 }
@@ -1566,6 +1590,7 @@ func (x *GetFriendsResp) GetTotal() int32 {
 type DeleteFriendReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	FriendUserId  int64                  `protobuf:"varint,1,opt,name=friend_user_id,json=friendUserId,proto3" json:"friend_user_id,omitempty"`
+	UserId        int64                  `protobuf:"varint,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"` // 发起删除的用户 ID,必须与关系归属一致
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1603,6 +1628,13 @@ func (*DeleteFriendReq) Descriptor() ([]byte, []int) {
 func (x *DeleteFriendReq) GetFriendUserId() int64 {
 	if x != nil {
 		return x.FriendUserId
+	}
+	return 0
+}
+
+func (x *DeleteFriendReq) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
 	}
 	return 0
 }
@@ -2025,6 +2057,199 @@ func (x *GetFriendAppliesResp) GetTotal() int32 {
 	return 0
 }
 
+// ---------- 关系校验 ----------
+type CheckFriendReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`       // 发送方
+	FriendId      int64                  `protobuf:"varint,2,opt,name=friend_id,json=friendId,proto3" json:"friend_id,omitempty"` // 接收方
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CheckFriendReq) Reset() {
+	*x = CheckFriendReq{}
+	mi := &file_user_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckFriendReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckFriendReq) ProtoMessage() {}
+
+func (x *CheckFriendReq) ProtoReflect() protoreflect.Message {
+	mi := &file_user_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckFriendReq.ProtoReflect.Descriptor instead.
+func (*CheckFriendReq) Descriptor() ([]byte, []int) {
+	return file_user_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *CheckFriendReq) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *CheckFriendReq) GetFriendId() int64 {
+	if x != nil {
+		return x.FriendId
+	}
+	return 0
+}
+
+type CheckFriendResp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	IsFriend      bool                   `protobuf:"varint,1,opt,name=is_friend,json=isFriend,proto3" json:"is_friend,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CheckFriendResp) Reset() {
+	*x = CheckFriendResp{}
+	mi := &file_user_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckFriendResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckFriendResp) ProtoMessage() {}
+
+func (x *CheckFriendResp) ProtoReflect() protoreflect.Message {
+	mi := &file_user_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckFriendResp.ProtoReflect.Descriptor instead.
+func (*CheckFriendResp) Descriptor() ([]byte, []int) {
+	return file_user_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *CheckFriendResp) GetIsFriend() bool {
+	if x != nil {
+		return x.IsFriend
+	}
+	return false
+}
+
+type IsBlockedReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`       // 拉黑关系归属方（接收方）
+	TargetId      int64                  `protobuf:"varint,2,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"` // 被检查对象（发送方）
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IsBlockedReq) Reset() {
+	*x = IsBlockedReq{}
+	mi := &file_user_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IsBlockedReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IsBlockedReq) ProtoMessage() {}
+
+func (x *IsBlockedReq) ProtoReflect() protoreflect.Message {
+	mi := &file_user_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IsBlockedReq.ProtoReflect.Descriptor instead.
+func (*IsBlockedReq) Descriptor() ([]byte, []int) {
+	return file_user_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *IsBlockedReq) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *IsBlockedReq) GetTargetId() int64 {
+	if x != nil {
+		return x.TargetId
+	}
+	return 0
+}
+
+type IsBlockedResp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	IsBlocked     bool                   `protobuf:"varint,1,opt,name=is_blocked,json=isBlocked,proto3" json:"is_blocked,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IsBlockedResp) Reset() {
+	*x = IsBlockedResp{}
+	mi := &file_user_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IsBlockedResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IsBlockedResp) ProtoMessage() {}
+
+func (x *IsBlockedResp) ProtoReflect() protoreflect.Message {
+	mi := &file_user_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IsBlockedResp.ProtoReflect.Descriptor instead.
+func (*IsBlockedResp) Descriptor() ([]byte, []int) {
+	return file_user_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *IsBlockedResp) GetIsBlocked() bool {
+	if x != nil {
+		return x.IsBlocked
+	}
+	return false
+}
+
 var File_user_proto protoreflect.FileDescriptor
 
 const file_user_proto_rawDesc = "" +
@@ -2061,9 +2286,10 @@ const file_user_proto_rawDesc = "" +
 	"\vverify_code\x18\x05 \x01(\tR\n" +
 	"verifyCode\"-\n" +
 	"\x11ResetPasswordResp\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"(\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"E\n" +
 	"\rGetProfileReq\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\x03R\x06userId\"\xc2\x02\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1b\n" +
+	"\tviewer_id\x18\x02 \x01(\x03R\bviewerId\"\xc2\x02\n" +
 	"\aProfile\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x14\n" +
 	"\x05phone\x18\x02 \x01(\tR\x05phone\x12\x14\n" +
@@ -2079,8 +2305,9 @@ const file_user_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\v \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\f \x01(\x03R\tupdatedAt\"\xb0\x01\n" +
-	"\x10UpdateProfileReq\x12\x1a\n" +
+	"updated_at\x18\f \x01(\x03R\tupdatedAt\"\xc9\x01\n" +
+	"\x10UpdateProfileReq\x12\x17\n" +
+	"\auser_id\x18\a \x01(\x03R\x06userId\x12\x1a\n" +
 	"\bnickname\x18\x01 \x01(\tR\bnickname\x12\x16\n" +
 	"\x06avatar\x18\x02 \x01(\tR\x06avatar\x12\x1c\n" +
 	"\tsignature\x18\x03 \x01(\tR\tsignature\x12\x16\n" +
@@ -2105,9 +2332,10 @@ const file_user_proto_rawDesc = "" +
 	"\rGetDevicesReq\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\"<\n" +
 	"\x0eGetDevicesResp\x12*\n" +
-	"\adevices\x18\x01 \x03(\v2\x10.user.DeviceInfoR\adevices\",\n" +
+	"\adevices\x18\x01 \x03(\v2\x10.user.DeviceInfoR\adevices\"E\n" +
 	"\rKickDeviceReq\x12\x1b\n" +
-	"\tdevice_id\x18\x01 \x01(\x03R\bdeviceId\"*\n" +
+	"\tdevice_id\x18\x01 \x01(\x03R\bdeviceId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\x03R\x06userId\"*\n" +
 	"\x0eKickDeviceResp\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\"\xb8\x01\n" +
 	"\n" +
@@ -2149,9 +2377,10 @@ const file_user_proto_rawDesc = "" +
 	"\tpage_size\x18\x05 \x01(\x05R\bpageSize\"R\n" +
 	"\x0eGetFriendsResp\x12*\n" +
 	"\afriends\x18\x01 \x03(\v2\x10.user.FriendInfoR\afriends\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total\"7\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"P\n" +
 	"\x0fDeleteFriendReq\x12$\n" +
-	"\x0efriend_user_id\x18\x01 \x01(\x03R\ffriendUserId\",\n" +
+	"\x0efriend_user_id\x18\x01 \x01(\x03R\ffriendUserId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\x03R\x06userId\",\n" +
 	"\x10DeleteFriendResp\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\"M\n" +
 	"\fBlockUserReq\x12$\n" +
@@ -2176,7 +2405,18 @@ const file_user_proto_rawDesc = "" +
 	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\"]\n" +
 	"\x14GetFriendAppliesResp\x12/\n" +
 	"\aapplies\x18\x01 \x03(\v2\x15.user.FriendApplyInfoR\aapplies\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total2\xf2\x06\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"F\n" +
+	"\x0eCheckFriendReq\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1b\n" +
+	"\tfriend_id\x18\x02 \x01(\x03R\bfriendId\".\n" +
+	"\x0fCheckFriendResp\x12\x1b\n" +
+	"\tis_friend\x18\x01 \x01(\bR\bisFriend\"D\n" +
+	"\fIsBlockedReq\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1b\n" +
+	"\ttarget_id\x18\x02 \x01(\x03R\btargetId\".\n" +
+	"\rIsBlockedResp\x12\x1d\n" +
+	"\n" +
+	"is_blocked\x18\x01 \x01(\bR\tisBlocked2\xe4\a\n" +
 	"\x04User\x120\n" +
 	"\x05Login\x12\x12.user.LoginRequest\x1a\x13.user.LoginResponse\x129\n" +
 	"\bRegister\x12\x15.user.RegisterRequest\x1a\x16.user.RegisterResponse\x12+\n" +
@@ -2196,7 +2436,9 @@ const file_user_proto_rawDesc = "" +
 	"\fDeleteFriend\x12\x15.user.DeleteFriendReq\x1a\x16.user.DeleteFriendResp\x124\n" +
 	"\tBlockUser\x12\x12.user.BlockUserReq\x1a\x13.user.BlockUserResp\x12:\n" +
 	"\vUnblockUser\x12\x14.user.UnblockUserReq\x1a\x15.user.UnblockUserResp\x12I\n" +
-	"\x10GetFriendApplies\x12\x19.user.GetFriendAppliesReq\x1a\x1a.user.GetFriendAppliesRespB\bZ\x06./userb\x06proto3"
+	"\x10GetFriendApplies\x12\x19.user.GetFriendAppliesReq\x1a\x1a.user.GetFriendAppliesResp\x12:\n" +
+	"\vCheckFriend\x12\x14.user.CheckFriendReq\x1a\x15.user.CheckFriendResp\x124\n" +
+	"\tIsBlocked\x12\x12.user.IsBlockedReq\x1a\x13.user.IsBlockedRespB\bZ\x06./userb\x06proto3"
 
 var (
 	file_user_proto_rawDescOnce sync.Once
@@ -2210,7 +2452,7 @@ func file_user_proto_rawDescGZIP() []byte {
 	return file_user_proto_rawDescData
 }
 
-var file_user_proto_msgTypes = make([]protoimpl.MessageInfo, 34)
+var file_user_proto_msgTypes = make([]protoimpl.MessageInfo, 38)
 var file_user_proto_goTypes = []any{
 	(*RegisterRequest)(nil),      // 0: user.RegisterRequest
 	(*RegisterResponse)(nil),     // 1: user.RegisterResponse
@@ -2246,6 +2488,10 @@ var file_user_proto_goTypes = []any{
 	(*FriendGroup)(nil),          // 31: user.FriendGroup
 	(*GetFriendAppliesReq)(nil),  // 32: user.GetFriendAppliesReq
 	(*GetFriendAppliesResp)(nil), // 33: user.GetFriendAppliesResp
+	(*CheckFriendReq)(nil),       // 34: user.CheckFriendReq
+	(*CheckFriendResp)(nil),      // 35: user.CheckFriendResp
+	(*IsBlockedReq)(nil),         // 36: user.IsBlockedReq
+	(*IsBlockedResp)(nil),        // 37: user.IsBlockedResp
 }
 var file_user_proto_depIdxs = []int32{
 	12, // 0: user.GetDevicesResp.devices:type_name -> user.DeviceInfo
@@ -2266,23 +2512,27 @@ var file_user_proto_depIdxs = []int32{
 	27, // 15: user.User.BlockUser:input_type -> user.BlockUserReq
 	29, // 16: user.User.UnblockUser:input_type -> user.UnblockUserReq
 	32, // 17: user.User.GetFriendApplies:input_type -> user.GetFriendAppliesReq
-	3,  // 18: user.User.Login:output_type -> user.LoginResponse
-	1,  // 19: user.User.Register:output_type -> user.RegisterResponse
-	5,  // 20: user.User.Logout:output_type -> user.LogoutResp
-	7,  // 21: user.User.ResetPassword:output_type -> user.ResetPasswordResp
-	9,  // 22: user.User.GetProfile:output_type -> user.Profile
-	11, // 23: user.User.UpdateProfile:output_type -> user.UpdateProfileResp
-	14, // 24: user.User.GetDevices:output_type -> user.GetDevicesResp
-	16, // 25: user.User.KickDevice:output_type -> user.KickDeviceResp
-	20, // 26: user.User.AddFriend:output_type -> user.AddFriendResp
-	22, // 27: user.User.AcceptFriend:output_type -> user.AcceptFriendResp
-	24, // 28: user.User.GetFriends:output_type -> user.GetFriendsResp
-	26, // 29: user.User.DeleteFriend:output_type -> user.DeleteFriendResp
-	28, // 30: user.User.BlockUser:output_type -> user.BlockUserResp
-	30, // 31: user.User.UnblockUser:output_type -> user.UnblockUserResp
-	33, // 32: user.User.GetFriendApplies:output_type -> user.GetFriendAppliesResp
-	18, // [18:33] is the sub-list for method output_type
-	3,  // [3:18] is the sub-list for method input_type
+	34, // 18: user.User.CheckFriend:input_type -> user.CheckFriendReq
+	36, // 19: user.User.IsBlocked:input_type -> user.IsBlockedReq
+	3,  // 20: user.User.Login:output_type -> user.LoginResponse
+	1,  // 21: user.User.Register:output_type -> user.RegisterResponse
+	5,  // 22: user.User.Logout:output_type -> user.LogoutResp
+	7,  // 23: user.User.ResetPassword:output_type -> user.ResetPasswordResp
+	9,  // 24: user.User.GetProfile:output_type -> user.Profile
+	11, // 25: user.User.UpdateProfile:output_type -> user.UpdateProfileResp
+	14, // 26: user.User.GetDevices:output_type -> user.GetDevicesResp
+	16, // 27: user.User.KickDevice:output_type -> user.KickDeviceResp
+	20, // 28: user.User.AddFriend:output_type -> user.AddFriendResp
+	22, // 29: user.User.AcceptFriend:output_type -> user.AcceptFriendResp
+	24, // 30: user.User.GetFriends:output_type -> user.GetFriendsResp
+	26, // 31: user.User.DeleteFriend:output_type -> user.DeleteFriendResp
+	28, // 32: user.User.BlockUser:output_type -> user.BlockUserResp
+	30, // 33: user.User.UnblockUser:output_type -> user.UnblockUserResp
+	33, // 34: user.User.GetFriendApplies:output_type -> user.GetFriendAppliesResp
+	35, // 35: user.User.CheckFriend:output_type -> user.CheckFriendResp
+	37, // 36: user.User.IsBlocked:output_type -> user.IsBlockedResp
+	20, // [20:37] is the sub-list for method output_type
+	3,  // [3:20] is the sub-list for method input_type
 	3,  // [3:3] is the sub-list for extension type_name
 	3,  // [3:3] is the sub-list for extension extendee
 	0,  // [0:3] is the sub-list for field type_name
@@ -2299,7 +2549,7 @@ func file_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_user_proto_rawDesc), len(file_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   34,
+			NumMessages:   38,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -155,6 +155,34 @@ func (tm *TokenManager) Revoke(ctx context.Context, token string) error {
 	return err
 }
 
+// RevokeDevice 按设备踢出：拉黑该设备当前 token 并清除登录态（踢设备/改密后调用）
+// deviceID 为签发 Token 时使用的设备标识（LoginRequest.deviceid）
+func (tm *TokenManager) RevokeDevice(ctx context.Context, userID int64, deviceID string) error {
+	userTokensKey := UserTokensPrefix + strconv.FormatInt(userID, 10)
+	token, err := tm.rds.HgetCtx(ctx, userTokensKey, deviceID)
+	if err != nil {
+		return fmt.Errorf("get device token failed: %w", err)
+	}
+	if token == "" {
+		return nil // 该设备当前无在线 token
+	}
+	err = tm.rds.Pipelined(func(p redis.Pipeliner) error {
+		p.Del(ctx, TokenKeyPrefix+token)
+		p.HDel(ctx, userTokensKey, deviceID)
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("revoke device token failed: %w", err)
+	}
+	// 黑名单兜底,防止并发请求在删除后仍携带旧 token 通过校验
+	if err := tm.rds.SetexCtx(ctx, BlacktistPrefix+token, "kicked", 86400); err != nil {
+		return err
+	}
+	// 设备踢出标记,Gateway 心跳轮询发现后主动断连
+	_ = tm.rds.SetexCtx(ctx, KickNotifyPrefix+deviceID, "1", 86400)
+	return nil
+}
+
 // CheckBlackList Token加入黑名单
 // func (tm *TokenManager) AddBlackList(ctx context.Context, token string) error{
 

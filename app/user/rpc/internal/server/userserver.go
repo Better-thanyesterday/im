@@ -101,3 +101,14 @@ func (s *UserServer) GetFriendApplies(ctx context.Context, in *user.GetFriendApp
 	l := logic.NewGetFriendAppliesLogic(ctx, s.svcCtx)
 	return l.GetFriendApplies(in)
 }
+
+// 关系校验（message rpc 单聊前置校验用）
+func (s *UserServer) CheckFriend(ctx context.Context, in *user.CheckFriendReq) (*user.CheckFriendResp, error) {
+	l := logic.NewCheckFriendLogic(ctx, s.svcCtx)
+	return l.CheckFriend(in)
+}
+
+func (s *UserServer) IsBlocked(ctx context.Context, in *user.IsBlockedReq) (*user.IsBlockedResp, error) {
+	l := logic.NewIsBlockedLogic(ctx, s.svcCtx)
+	return l.IsBlocked(in)
+}

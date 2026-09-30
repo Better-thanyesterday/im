@@ -107,13 +107,11 @@ func (l *SendMessageLogic) validate(in *message.SendMessageReq) error {
 	switch in.Isgroup {
 	case false:
 		if !isGroupConv(in.Body.ConvId) {
-			parts := strings.Split(in.Body.ConvId, ":")
-			if len(parts) != 2 {
+			if in.ToUid <= 0 {
 				return constants.NewMsgError(constants.ErrCodeMsgInValidParam)
 			}
-			min_uid, err1 := strconv.ParseInt(parts[0], 10, 64)
-			max_uid, err2 := strconv.ParseInt(parts[1], 10, 64)
-			if min_uid <= 0 || max_uid <= 0 || err1 != nil || err2 != nil {
+			// conv_id 必须由发送方与接收方构成,防止向任意会话写消息
+			if in.Body.ConvId != constants.BuildSingleConvID(in.SenderId, in.ToUid) {
 				return constants.NewMsgError(constants.ErrCodeMsgInValidParam)
 			}
 		} else {

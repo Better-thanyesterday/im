@@ -20,6 +20,7 @@ type Config struct {
 	Kafka mq.Config
 	PushRpc zrpc.RpcClientConf
 	GroupRpc zrpc.RpcClientConf
-	RedisCache redis.RedisConf 
+	UserRpc  zrpc.RpcClientConf
+	RedisCache redis.RedisConf
 
 }

@@ -34,6 +34,8 @@ const (
 	User_BlockUser_FullMethodName        = "/user.User/BlockUser"
 	User_UnblockUser_FullMethodName      = "/user.User/UnblockUser"
 	User_GetFriendApplies_FullMethodName = "/user.User/GetFriendApplies"
+	User_CheckFriend_FullMethodName      = "/user.User/CheckFriend"
+	User_IsBlocked_FullMethodName        = "/user.User/IsBlocked"
 )
 
 // UserClient is the client API for User service.
@@ -59,6 +61,9 @@ type UserClient interface {
 	BlockUser(ctx context.Context, in *BlockUserReq, opts ...grpc.CallOption) (*BlockUserResp, error)
 	UnblockUser(ctx context.Context, in *UnblockUserReq, opts ...grpc.CallOption) (*UnblockUserResp, error)
 	GetFriendApplies(ctx context.Context, in *GetFriendAppliesReq, opts ...grpc.CallOption) (*GetFriendAppliesResp, error)
+	// 关系校验（message rpc 单聊前置校验用）
+	CheckFriend(ctx context.Context, in *CheckFriendReq, opts ...grpc.CallOption) (*CheckFriendResp, error)
+	IsBlocked(ctx context.Context, in *IsBlockedReq, opts ...grpc.CallOption) (*IsBlockedResp, error)
 }
 
 type userClient struct {
@@ -219,6 +224,26 @@ func (c *userClient) GetFriendApplies(ctx context.Context, in *GetFriendAppliesR
 	return out, nil
 }
 
+func (c *userClient) CheckFriend(ctx context.Context, in *CheckFriendReq, opts ...grpc.CallOption) (*CheckFriendResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckFriendResp)
+	err := c.cc.Invoke(ctx, User_CheckFriend_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userClient) IsBlocked(ctx context.Context, in *IsBlockedReq, opts ...grpc.CallOption) (*IsBlockedResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IsBlockedResp)
+	err := c.cc.Invoke(ctx, User_IsBlocked_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServer is the server API for User service.
 // All implementations must embed UnimplementedUserServer
 // for forward compatibility.
@@ -242,6 +267,9 @@ type UserServer interface {
 	BlockUser(context.Context, *BlockUserReq) (*BlockUserResp, error)
 	UnblockUser(context.Context, *UnblockUserReq) (*UnblockUserResp, error)
 	GetFriendApplies(context.Context, *GetFriendAppliesReq) (*GetFriendAppliesResp, error)
+	// 关系校验（message rpc 单聊前置校验用）
+	CheckFriend(context.Context, *CheckFriendReq) (*CheckFriendResp, error)
+	IsBlocked(context.Context, *IsBlockedReq) (*IsBlockedResp, error)
 	mustEmbedUnimplementedUserServer()
 }
 
@@ -296,6 +324,12 @@ func (UnimplementedUserServer) UnblockUser(context.Context, *UnblockUserReq) (*U
 }
 func (UnimplementedUserServer) GetFriendApplies(context.Context, *GetFriendAppliesReq) (*GetFriendAppliesResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetFriendApplies not implemented")
+}
+func (UnimplementedUserServer) CheckFriend(context.Context, *CheckFriendReq) (*CheckFriendResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method CheckFriend not implemented")
+}
+func (UnimplementedUserServer) IsBlocked(context.Context, *IsBlockedReq) (*IsBlockedResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method IsBlocked not implemented")
 }
 func (UnimplementedUserServer) mustEmbedUnimplementedUserServer() {}
 func (UnimplementedUserServer) testEmbeddedByValue()              {}
@@ -588,6 +622,42 @@ func _User_GetFriendApplies_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _User_CheckFriend_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckFriendReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).CheckFriend(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_CheckFriend_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).CheckFriend(ctx, req.(*CheckFriendReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _User_IsBlocked_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IsBlockedReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).IsBlocked(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_IsBlocked_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).IsBlocked(ctx, req.(*IsBlockedReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // User_ServiceDesc is the grpc.ServiceDesc for User service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -654,6 +724,14 @@ var User_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetFriendApplies",
 			Handler:    _User_GetFriendApplies_Handler,
+		},
+		{
+			MethodName: "CheckFriend",
+			Handler:    _User_CheckFriend_Handler,
+		},
+		{
+			MethodName: "IsBlocked",
+			Handler:    _User_IsBlocked_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

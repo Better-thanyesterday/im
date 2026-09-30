@@ -5,6 +5,7 @@ import (
 	"im-platform/app/message/rpc/internal/config"
 	"im-platform/app/message/rpc/models"
 	"im-platform/app/push/rpc/pushclient"
+	userclient "im-platform/app/user/rpc/userclient"
 	"im-platform/common/mq"
 	"im-platform/common/utils"
 
@@ -28,6 +29,7 @@ type ServiceContext struct {
 	SeqIdCache *utils.SeqIdCache
 	pushclient.Push
 	groupclient.Group
+	userclient.User
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -66,6 +68,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		KafkaConsumer: consumer,
 		Push:          pushclient.NewPush(zrpc.MustNewClient(c.PushRpc)),
 		Group:         groupclient.NewGroup(zrpc.MustNewClient(c.GroupRpc)),
+		User:          userclient.NewUser(zrpc.MustNewClient(c.UserRpc)),
 		SeqIdCache: utils.NewSeqIdCache(),
 	}
 }

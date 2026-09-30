@@ -2,10 +2,8 @@ package logic
 
 import (
 	"context"
-	"database/sql"
 
 	"im-platform/app/user/rpc/internal/svc"
-	"im-platform/app/user/rpc/models"
 	"im-platform/app/user/rpc/user"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -25,18 +23,20 @@ func NewLogoutLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LogoutLogi
 	}
 }
 
+// Logout 注销当前 token:删除 token 登录态并从用户 token 表移除。
+// 不再写 users.status(登出不是账号状态变更,且原实现 where id=0 静默 no-op 假成功)
 func (l *LogoutLogic) Logout(in *user.LogoutReq) (*user.LogoutResp, error) {
 	// todo: add your logic here and delete this line
-	err:=l.svcCtx.UsersModel.Update(l.ctx,&models.Users{
-		Status: sql.NullInt64{
-			Int64: 0,
-			Valid: true,
-		},
-	})
-	if err!=nil {
+	if in.Token == "" {
 		return &user.LogoutResp{
 			Success: false,
-	}, err
+		}, nil
+	}
+	if err := l.svcCtx.TokenManager.Revoke(l.ctx, in.Token); err != nil {
+		l.Logger.Errorf("logout revoke token failed: %v", err)
+		return &user.LogoutResp{
+			Success: false,
+		}, nil
 	}
 	return &user.LogoutResp{
 		Success: true,

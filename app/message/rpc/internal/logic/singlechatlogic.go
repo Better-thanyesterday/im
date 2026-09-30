@@ -8,6 +8,8 @@ import (
 	"im-platform/app/message/rpc/message"
 	"im-platform/app/message/rpc/models"
 	"im-platform/app/push/rpc/push"
+	userclient "im-platform/app/user/rpc/userclient"
+	"im-platform/common/constants"
 	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -29,26 +31,26 @@ func NewSingleChatLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Single
 
 func (l *SingleChatLogic) Send(in *message.SendMessageReq, convid string) (*message.SendMessageResp, error) {
 	//1.检查是否为好友和黑名单
-	// isFriend, err := l.svcCtx.UserRpc.CheckFriend(l.ctx, &user.CheckFriendReq{
-	// 	UserId:   in.SenderId,
-	// 	FriendId: in.ReceiverId,
-	// })
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// if !isFriend.IsFriend {
-	// 	return nil, constants.NewErrCode(constants.ErrNotFriend) // 300003
-	// }
-	// blocked, err := l.svcCtx.UserRpc.IsBlocked(l.ctx, &user.IsBlockedReq{
-	// 	UserId:   in.ReceiverId, // 看接收方是否拉黑了发送方
-	// 	TargetId: in.SenderId,
-	// })
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// if blocked.IsBlocked {
-	// 	return nil, constants.NewErrCode(constants.ErrBlocked)
-	// }
+	isFriend, err := l.svcCtx.User.CheckFriend(l.ctx, &userclient.CheckFriendReq{
+		UserId:   in.SenderId,
+		FriendId: in.ToUid,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if !isFriend.IsFriend {
+		return nil, constants.NewMsgError(constants.ErrCodeMsgNotFriend)
+	}
+	blocked, err := l.svcCtx.User.IsBlocked(l.ctx, &userclient.IsBlockedReq{
+		UserId:   in.ToUid, // 看接收方是否拉黑了发送方
+		TargetId: in.SenderId,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if blocked.IsBlocked {
+		return nil, constants.NewMsgError(constants.ErrCodeMsgBlocked)
+	}
 	wdb := WriteDiffBundle{}
 	//2.分配seq_id
 	seqId, err, needAsync := NewSeqIdLogic(l.ctx, l.svcCtx).AllocateSeq(convid)

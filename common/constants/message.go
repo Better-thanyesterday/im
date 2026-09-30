@@ -96,6 +96,7 @@ const (
 	ErrCodeMsgNotFound        int64 = 300005 // 消息不存在
 	ErrCodeMsgRecallTimeout   int64 = 300006 // 撤回超时（默认 2 分钟）
 	ErrCodeMsgRecallForbidden int64 = 300007 // 无权限撤回（非发送方）
+	ErrCodeMsgNotFriend       int64 = 300008 // 非好友,禁止单聊
 )
 
 // MsgErrMsg 错误码 → 错误文案
@@ -107,6 +108,7 @@ var MsgErrMsg = map[int64]string{
 	ErrCodeMsgNotFound:        "消息不存在",
 	ErrCodeMsgRecallTimeout:   "撤回超时，仅支持撤回 2 分钟内的消息",
 	ErrCodeMsgRecallForbidden: "无权限撤回该消息",
+	ErrCodeMsgNotFriend:       "仅好友之间可发送单聊消息",
 }
 
 // MsgError 消息服务业务错误：logic 层直接返回，Gateway 捕获后映射为统一响应码

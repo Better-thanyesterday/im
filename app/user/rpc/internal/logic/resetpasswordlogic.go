@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"im-platform/app/user/rpc/internal/svc"
-	"im-platform/app/user/rpc/models"
 	"im-platform/app/user/rpc/user"
 	"im-platform/common/utils"
 
@@ -39,13 +38,17 @@ func (l *ResetPasswordLogic) ResetPassword(in *user.ResetPasswordReq) (*user.Res
 			Success: false,
 		}, err
 	}
-	PasswordHash, _ := utils.HashPassword(in.NewPassword)
-	err = l.svcCtx.UsersModel.Update(l.ctx, &models.Users{
-		PasswordHash: PasswordHash,
-		Id:           u.Id,
-	})
+	PasswordHash, err := utils.HashPassword(in.NewPassword)
 	if err != nil {
-		logx.Errorf("update password is error")
+		logx.Errorf("hash password error: %v", err)
+		return &user.ResetPasswordResp{
+			Success: false,
+		}, err
+	}
+	// 定向更新密码列,避免全列覆盖把 email/phone/nickname 等清零
+	err = l.svcCtx.UsersModel.UpdatePassword(l.ctx, u.Id, PasswordHash)
+	if err != nil {
+		logx.Errorf("update password is error: %v", err)
 		return &user.ResetPasswordResp{
 			Success: false,
 		}, err
