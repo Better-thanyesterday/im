@@ -1269,6 +1269,7 @@ func (x *FriendApplyInfo) GetHandledAt() int64 {
 
 type AddFriendReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        int64                  `protobuf:"varint,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"` // 申请人 uid(鉴权后的本人)
 	TargetUserId  int64                  `protobuf:"varint,1,opt,name=target_user_id,json=targetUserId,proto3" json:"target_user_id,omitempty"`
 	ApplyReason   string                 `protobuf:"bytes,2,opt,name=apply_reason,json=applyReason,proto3" json:"apply_reason,omitempty"` // 附言（可选）
 	unknownFields protoimpl.UnknownFields
@@ -1303,6 +1304,13 @@ func (x *AddFriendReq) ProtoReflect() protoreflect.Message {
 // Deprecated: Use AddFriendReq.ProtoReflect.Descriptor instead.
 func (*AddFriendReq) Descriptor() ([]byte, []int) {
 	return file_user_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *AddFriendReq) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
 }
 
 func (x *AddFriendReq) GetTargetUserId() int64 {
@@ -2358,8 +2366,9 @@ const file_user_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\b \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"handled_at\x18\t \x01(\x03R\thandledAt\"W\n" +
-	"\fAddFriendReq\x12$\n" +
+	"handled_at\x18\t \x01(\x03R\thandledAt\"p\n" +
+	"\fAddFriendReq\x12\x17\n" +
+	"\auser_id\x18\x03 \x01(\x03R\x06userId\x12$\n" +
 	"\x0etarget_user_id\x18\x01 \x01(\x03R\ftargetUserId\x12!\n" +
 	"\fapply_reason\x18\x02 \x01(\tR\vapplyReason\"*\n" +
 	"\rAddFriendResp\x12\x19\n" +

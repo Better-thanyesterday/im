@@ -20,14 +20,14 @@ import (
 // Redis Key 设计：
 //   im:token:{token}          -> Hash  {user_id, device_id, device_type, created_at}
 //   im:user_tokens:{user_id}  -> Hash  {device_id: token, ...}
-//   im:token_blacktist:{token}-> String "kicked_at"（被踢Token快速拦截）
+//   im:token_blacklist:{token}-> String "kicked_at"（被踢Token快速拦截）
 //   im:kick_notify:{device_id}-> String "1"（设备被踢标记，Gateway心跳轮询）
 // ==================================================
 
 const (
 	TokenKeyPrefix   = "im:token:"
 	UserTokensPrefix = "im:user_tokens:"
-	BlacktistPrefix  = "im:token_blacktist:"
+	BlacklistPrefix  = "im:token_blacklist:"
 	KickNotifyPrefix = "im:kick_notify:"
 	TokenLength      = 22 // base64.RawURLEncoding.EncodeToString(16bytes) = 22chars
 )
@@ -61,50 +61,59 @@ func (tm *TokenManager) Issue(ctx context.Context, ti TokenInfo, ttl ...time.Dur
 	if err != nil {
 		return "", fmt.Errorf("gen token failed: %w", err)
 	}
-	vaildttl := tm.defaultTTL
+	validTTL := tm.defaultTTL
 	if len(ttl) > 0 && ttl[0] > 0 {
-		vaildttl = ttl[0]
+		validTTL = ttl[0]
 	}
 	tokenkey := TokenKeyPrefix + token
 	userTokensKey := UserTokensPrefix + strconv.FormatInt(ti.UserID, 10)
+	// 多端互踢:同设备重新登录时,读 user_tokens 里该设备旧 token 并拉黑+删除。
+	// 原实现 im:user_tokens 只写不读,旧 token 在自然过期前一直有效
+	if ti.DeviceID != "" {
+		if oldToken, gerr := tm.rds.HgetCtx(ctx, userTokensKey, ti.DeviceID); gerr == nil && oldToken != "" && oldToken != token {
+			_ = tm.rds.SetexCtx(ctx, BlacklistPrefix+oldToken, "relogin", int(validTTL.Seconds()))
+			_, _ = tm.rds.DelCtx(ctx, TokenKeyPrefix+oldToken)
+			logx.WithContext(ctx).Infof("kicked old token on relogin | user_id=%d device_id=%s old=%s...", ti.UserID, ti.DeviceID, oldToken[:6])
+		}
+	}
 	now := time.Now()
 	err = tm.rds.Pipelined(func(p redis.Pipeliner) error {
-		p.HMSet(ctx,tokenkey, map[string]string{
-			"user_id":          strconv.FormatInt(ti.UserID, 10),
+		p.HMSet(ctx, tokenkey, map[string]string{
+			"user_id":     strconv.FormatInt(ti.UserID, 10),
 			"device_id":   ti.DeviceID,
 			"device_type": strconv.FormatInt(int64(ti.DeviceType), 10),
 			"created_at":  strconv.FormatInt(now.Unix(), 10),
 		})
-		p.Expire(ctx, tokenkey, vaildttl+time.Hour)
-		p.HSet(ctx,userTokensKey, ti.DeviceID, token)
-		p.Expire(ctx,userTokensKey, vaildttl+time.Hour)
+		p.Expire(ctx, tokenkey, validTTL+time.Hour)
+		p.HSet(ctx, userTokensKey, ti.DeviceID, token)
+		p.Expire(ctx, userTokensKey, validTTL+time.Hour)
 		return nil
 	})
 	if err != nil {
-		return "", fmt.Errorf("redis pipetine failed: %w", err)
+		return "", fmt.Errorf("redis pipeline failed: %w", err)
 	}
 	logx.WithContext(ctx).Infof("token issued | user_id=%d device_id=%s token=%s...", ti.UserID, ti.DeviceID, token[:6])
 	return token, nil
 }
 
 func (tm *TokenManager) Verify(ctx context.Context, token string) (*TokenInfo, error) {
-	if len(token)!=TokenLength{
-		return nil, fmt.Errorf("invaild token format")
+	if len(token) != TokenLength {
+		return nil, fmt.Errorf("invalid token format")
 	}
-	
-	blacktisted ,err :=tm.rds.ExistsCtx(ctx,BlacktistPrefix+token)
-	if err!=nil{
+
+	blacklisted, err := tm.rds.ExistsCtx(ctx, BlacklistPrefix+token)
+	if err != nil {
 		return nil, fmt.Errorf("redis error")
 	}
-	if blacktisted{
+	if blacklisted {
 		return nil, fmt.Errorf("token has been revoked")
 	}
-	tokenkey:= TokenKeyPrefix+token
-	data,err :=tm.rds.HgetallCtx(ctx,tokenkey)
-	if err!=nil{
-		return nil, fmt.Errorf("redis err:%w",err)
+	tokenkey := TokenKeyPrefix + token
+	data, err := tm.rds.HgetallCtx(ctx, tokenkey)
+	if err != nil {
+		return nil, fmt.Errorf("redis err:%w", err)
 	}
-	if len(data)==0 {
+	if len(data) == 0 {
 		return nil, fmt.Errorf("token not found")
 	}
 	userID, _ := strconv.ParseInt(data["user_id"], 10, 64)
@@ -120,6 +129,7 @@ func (tm *TokenManager) Verify(ctx context.Context, token string) (*TokenInfo, e
 	}, nil
 
 }
+
 // Refresh Token刷新
 // 旧Token加入黑名单（短期），签发新Token，保持同一device_id
 func (tm *TokenManager) Refresh(ctx context.Context, oldToken string, ttl ...time.Duration) (string, error) {
@@ -129,10 +139,18 @@ func (tm *TokenManager) Refresh(ctx context.Context, oldToken string, ttl ...tim
 	}
 
 	// 旧Token加入黑名单，TTL=5分钟（给客户端缓冲时间）
-	err = tm.rds.SetexCtx(ctx, BlacktistPrefix+oldToken, "refreshed", 300)
-	if err!=nil {
-		return "", fmt.Errorf("set old token to blacktist failed: %w", err)
+	err = tm.rds.SetexCtx(ctx, BlacklistPrefix+oldToken, "refreshed", 300)
+	if err != nil {
+		return "", fmt.Errorf("set old token to blacklist failed: %w", err)
 	}
+	// 必须同时删除旧 token 的登录态:黑名单 5 分钟后过期,
+	// 若 im:token:{old} 还在,旧 token 会"复活"
+	userTokensKey := UserTokensPrefix + strconv.FormatInt(info.UserID, 10)
+	_, _ = tm.rds.DelCtx(ctx, TokenKeyPrefix+oldToken)
+	// user_tokens 映射不删:签发新 Token 时同一 device_id 会覆盖,
+	// Issue 的互踢逻辑靠它发现旧 token,但此时旧 token 就是本次刷新的,
+	// 先删掉防止 Issue 把刚拉黑的旧 token 再踢一遍(无害但产生噪音日志)
+	_, _ = tm.rds.HdelCtx(ctx, userTokensKey, info.DeviceID)
 	// 签发新Token
 	return tm.Issue(ctx, *info, ttl...)
 }
@@ -148,8 +166,8 @@ func (tm *TokenManager) Revoke(ctx context.Context, token string) error {
 	userTokensKey := UserTokensPrefix + strconv.FormatInt(info.UserID, 10)
 
 	err = tm.rds.Pipelined(func(p redis.Pipeliner) error {
-		p.Del(ctx,tokenKey)
-		p.HDel(ctx,userTokensKey, info.DeviceID)
+		p.Del(ctx, tokenKey)
+		p.HDel(ctx, userTokensKey, info.DeviceID)
 		return nil
 	})
 	return err
@@ -175,7 +193,7 @@ func (tm *TokenManager) RevokeDevice(ctx context.Context, userID int64, deviceID
 		return fmt.Errorf("revoke device token failed: %w", err)
 	}
 	// 黑名单兜底,防止并发请求在删除后仍携带旧 token 通过校验
-	if err := tm.rds.SetexCtx(ctx, BlacktistPrefix+token, "kicked", 86400); err != nil {
+	if err := tm.rds.SetexCtx(ctx, BlacklistPrefix+token, "kicked", 86400); err != nil {
 		return err
 	}
 	// 设备踢出标记,Gateway 心跳轮询发现后主动断连

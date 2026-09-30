@@ -25,7 +25,7 @@ func NewRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Register
 
 func (l *RegisterLogic) Register(in *user.RegisterRequest) (*user.RegisterResponse, error) {
 	// todo: add your logic here and delete this line
-	Id:= l.svcCtx.Snokflake.NextID()
+	Id:= l.svcCtx.Snowflake.NextID()
 	PasswordHash,_:= utils.HashPassword(in.Password)
 	acc,err := l.svcCtx.UsersModel.InsertWithoutAccount(l.ctx,&models.Users{
 		Phone: in.Phone,

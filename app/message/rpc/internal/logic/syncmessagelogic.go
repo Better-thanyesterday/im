@@ -80,10 +80,14 @@ func (l *SyncMessageLogic) SyncSingleConv(userId int64, conv *message.SyncMessag
 	var msgs []*message.MessageBody
 	var hasMore bool
 	if diff <= 1000 {
-		// 小差值：优先 Redis 离线信箱，失败降级 PG
+		// 小差值：优先 Redis 离线信箱，失败/为空降级 PG
 		msgs, hasMore, err = l.syncFromOffline(userId, conv.ConvId, startSeq, serverSeq, limit)
-		if err == nil && hasMore == false || err != nil {
+		// 优先级修复:原条件 err == nil && hasMore == false || err != nil 因运算符优先级,
+		// 成功取到数据也会误打错误日志并白查一次 DB;正确语义是"失败或没取到"才降级
+		if err != nil {
 			logx.Errorf("offline sync failed, fallback to db: %v", err)
+		}
+		if err != nil || len(msgs) == 0 {
 			msgs, hasMore, err = l.syncFromDB(conv.ConvId, startSeq, serverSeq, limit)
 		}
 	} else {
@@ -97,38 +101,35 @@ func (l *SyncMessageLogic) SyncSingleConv(userId int64, conv *message.SyncMessag
 	return cs, nil
 }
 
-// getServerSeq 获取会话当前最大 Seq
+// getServerSeq 获取会话当前最大 Seq。
+// 必须以 messages 表 max(seqid) 为准:Redis im:seq 是 +100 批量预分配计数器,
+// 值含未分配的 padding(会话只有 1 条消息时计数器已是 100,diff 虚高反复空拉)
 func (l *SyncMessageLogic) getServerSeq(convId string) (int64, error) {
-	seqKey := fmt.Sprintf("im:seq:%s", convId)
-	val, err := l.svcCtx.Redis.GetCtx(l.ctx, seqKey)
-	if err == nil && val != "" {
-		return strconv.ParseInt(val, 10, 64)
-	}
-	seq, err := l.svcCtx.SeqModel.FindOne(l.ctx, convId)
-	if err != nil {
-		return 0, err
-	}
-	return seq.MaxSeq, nil
+	return l.svcCtx.MessagesModel.MaxSeq(l.ctx, convId)
 }
 
 // syncFromOffline 从 Redis 离线信箱拉取
 // 离线信箱: ZSet key=im:offline:{user_id}, member=msg_id, score=seq_id
 func (l *SyncMessageLogic) syncFromOffline(userId int64, convId string, startSeq, endSeq, limit int64) ([]*message.MessageBody, bool, error) {
 	offlineKey := fmt.Sprintf("im:offlineinbox:%d", userId)
-	// 按 score（seq_id）范围取 msg_id 列表
-	members, err := l.svcCtx.Redis.ZrevrangebyscoreWithScoresCtx (l.ctx, offlineKey, startSeq, endSeq)
+	// 带 LIMIT:大区间(如长离线)一次性拉取会打爆内存,超出的部分标记 has_more 走下轮
+	members, err := l.svcCtx.Redis.ZrevrangebyscoreWithScoresAndLimitCtx(l.ctx, offlineKey, startSeq, endSeq, 0, int(limit))
 	if err != nil {
 		return nil, false, err
 	}
 	if len(members) == 0 {
 		return nil, false, nil
 	}
-	// 提取 msg_id
+	// 提取 msg_id 与实际取到的最高水位
 	msgIds := make([]int64, 0, len(members))
+	var maxFetched int64
 	for _, m := range members {
 		id, _ := strconv.ParseInt(m.Key, 10, 64)
 		if id > 0 {
 			msgIds = append(msgIds, id)
+		}
+		if m.Score > maxFetched {
+			maxFetched = m.Score
 		}
 	}
 	// 批量反查 PG 获取完整消息（过滤非本会话的）
@@ -146,15 +147,19 @@ func (l *SyncMessageLogic) syncFromOffline(userId int64, convId string, startSeq
 		if int64(len(result)) >= limit {
 			return result, true, nil
 		}
-
+	}
+	// 已消费区间清理:信箱是缓存(PG 兜底),不清会无限增长;
+	// 只清实际取到的 [startSeq, maxFetched],hasMore 的剩余部分留给下一轮
+	if maxFetched > 0 {
+		if _, err := l.svcCtx.Redis.ZremrangebyscoreCtx(l.ctx, offlineKey, startSeq, maxFetched); err != nil {
+			logx.Errorf("cleanup offline inbox failed: key=%s err=%v", offlineKey, err)
+		}
 	}
 	// 如果 Redis 取出的消息没能覆盖到 endSeq，说明中间有缺失（过期/清理）
 	// 返回已有部分，并标记 has_more，客户端会再次 sync，下次走 PG 补全
-
 	if len(result) > 0 && result[len(result)-1].SeqId < endSeq {
 		return result, true, nil
 	}
-
 	return result, false, nil
 }
 

@@ -44,12 +44,13 @@ const (
 // ============================================================================
 // ACK 类型（客户端经 Gateway 上报，对应 AckMessage.ack_type）
 // 消息生命周期：已发送 → 已送达 → 已读
+// 注意:不要再定义 MsgStatusDelivered/MsgStatusRead 之类的常量,
+// 旧定义值 2/3 与 MsgStatusRecalled/MsgStatusDeleted 撞值,已删除;
+// 已读状态用 AckTypeRead + read_seq 水位表达,不走 messages.status 列
 // ============================================================================
 const (
 	AckTypeDelivered int64 = 1 // 已送达（客户端收到消息）
 	AckTypeRead      int64 = 2 // 已读（客户端打开会话）
-	MsgStatusDelivered = 2 // 消息状态：已送达
-	MsgStatusRead      = 3 // 消息状态：已读
 )
 
 // ============================================================================

@@ -9,6 +9,7 @@ GatewayRpc:
 # 对外暴露地址（写入 Redis 供 Push 查询）
 Gateway:
   GrpcAddr: "127.0.0.1:18081"  # 或 127.0.0.1:18081
+  BucketNum: 16              # 连接分桶数,0=默认 16
 
 Redis:
     Host: 127.0.0.1:6379

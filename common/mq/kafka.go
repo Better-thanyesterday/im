@@ -149,10 +149,21 @@ func (p *Producer) Close() error {
 // 返回的 err 是真实发送结果：网络错误、Broker 宕机、超时都能捕获。
 // 适合 IM 消息"Kafka 失败则降级写 PG"的场景。
 func (p *Producer) Publish(ctx context.Context, topic string, data []byte) error {
-	_, _, err := p.syncP.SendMessage(&sarama.ProducerMessage{
+	return p.PublishWithKey(ctx, topic, "", data)
+}
+
+// PublishWithKey 带消息 key 的同步发送。
+// 配合 HashPartitioner:同 key(如 conv_id)的消息落入同一分区,消费端才有顺序保证;
+// 不带 key 时 HashPartitioner 形同虚设,同会话消息可能乱序
+func (p *Producer) PublishWithKey(ctx context.Context, topic, key string, data []byte) error {
+	m := &sarama.ProducerMessage{
 		Topic: topic,
 		Value: sarama.ByteEncoder(data),
-	})
+	}
+	if key != "" {
+		m.Key = sarama.StringEncoder(key)
+	}
+	_, _, err := p.syncP.SendMessage(m)
 	if err != nil {
 		return fmt.Errorf("kafka sync publish failed: %w", err)
 	}
@@ -237,23 +248,44 @@ func (h *GroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim s
 		if !json.Valid(msg.Value) {
 			logx.Errorf("invalid json, skip message: topic=%s raw=%s", msg.Topic, string(msg.Value))
 			session.MarkMessage(msg, "")
-			cancel()
-			continue
-		}
-		// 3. 调用业务处理逻辑
-		if err := h.Handler(ctx, msg); err != nil {
-			logx.Errorf("handle message failed, topic=%s, partition=%d, offset=%d, err=%v",
-				msg.Topic, msg.Partition, msg.Offset, err)
-
-			// 处理失败不 Mark，让 Kafka 重试。
-			// 注意：如果是不可恢复的致命错误，需引入重试上限或死信队列，防止无限重试。
+			session.Commit() // AutoCommit 已关闭,必须显式提交
 			cancel()
 			continue
 		}
 
-		// 4. 业务成功，手动标记并提交 offset
+		// 2. 内联重试:仅"不 Mark"并不能让 Kafka 重投——后续消息 Mark 后
+		//    committed offset 会越过失败消息,造成静默丢失。
+		//    这里重试若干次,仍失败则标记提交并记日志(毒丸消息,防止单条坏数据卡死整个分区;
+		//    生产环境建议在此接入死信队列)
+		var err error
+		for attempt := 1; ; attempt++ {
+			err = h.Handler(ctx, msg)
+			if err == nil || attempt >= maxInlineRetries {
+				break
+			}
+			logx.Errorf("handle message failed (attempt %d/%d), topic=%s, partition=%d, offset=%d, err=%v",
+				attempt, maxInlineRetries, msg.Topic, msg.Partition, msg.Offset, err)
+			select {
+			case <-ctx.Done():
+			case <-time.After(retryBackoff(attempt)):
+			}
+		}
+		if err != nil {
+			logx.Errorf("message dropped after %d retries: topic=%s partition=%d offset=%d err=%v",
+				maxInlineRetries, msg.Topic, msg.Partition, msg.Offset, err)
+		}
+
+		// 3. 无论成败都标记并显式提交(AutoCommit 关闭,不 Commit 则 offset 永不推进,
+		//    重启/Rebalance 后整段重放),配合消费端幂等保证重放安全
 		session.MarkMessage(msg, "")
-		cancel() // 释放 context 资源
+		session.Commit()
+		cancel()
 	}
 	return nil
+}
+
+const maxInlineRetries = 3
+
+func retryBackoff(attempt int) time.Duration {
+	return time.Duration(attempt+1) * 500 * time.Millisecond
 }

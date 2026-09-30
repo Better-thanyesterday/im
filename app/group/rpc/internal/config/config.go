@@ -7,7 +7,7 @@ type Config struct {
 	Postgres struct {
 		DataSource string
 	}
-	SnokFlake struct {
+	Snowflake struct {
 		WorkNode int64
 	}
 }

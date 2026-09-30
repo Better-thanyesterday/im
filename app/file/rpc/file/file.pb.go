@@ -2,9 +2,9 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v7.35.1
-// source: media.proto
+// source: file.proto
 
-package media
+package file
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -36,7 +36,7 @@ type CreateUploadTaskReq struct {
 
 func (x *CreateUploadTaskReq) Reset() {
 	*x = CreateUploadTaskReq{}
-	mi := &file_media_proto_msgTypes[0]
+	mi := &file_file_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -48,7 +48,7 @@ func (x *CreateUploadTaskReq) String() string {
 func (*CreateUploadTaskReq) ProtoMessage() {}
 
 func (x *CreateUploadTaskReq) ProtoReflect() protoreflect.Message {
-	mi := &file_media_proto_msgTypes[0]
+	mi := &file_file_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -61,7 +61,7 @@ func (x *CreateUploadTaskReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateUploadTaskReq.ProtoReflect.Descriptor instead.
 func (*CreateUploadTaskReq) Descriptor() ([]byte, []int) {
-	return file_media_proto_rawDescGZIP(), []int{0}
+	return file_file_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *CreateUploadTaskReq) GetFileName() string {
@@ -124,7 +124,7 @@ type CreateUploadTaskResp struct {
 
 func (x *CreateUploadTaskResp) Reset() {
 	*x = CreateUploadTaskResp{}
-	mi := &file_media_proto_msgTypes[1]
+	mi := &file_file_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -136,7 +136,7 @@ func (x *CreateUploadTaskResp) String() string {
 func (*CreateUploadTaskResp) ProtoMessage() {}
 
 func (x *CreateUploadTaskResp) ProtoReflect() protoreflect.Message {
-	mi := &file_media_proto_msgTypes[1]
+	mi := &file_file_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -149,7 +149,7 @@ func (x *CreateUploadTaskResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateUploadTaskResp.ProtoReflect.Descriptor instead.
 func (*CreateUploadTaskResp) Descriptor() ([]byte, []int) {
-	return file_media_proto_rawDescGZIP(), []int{1}
+	return file_file_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *CreateUploadTaskResp) GetFileId() string {
@@ -183,7 +183,7 @@ type ChunkUploadInfo struct {
 
 func (x *ChunkUploadInfo) Reset() {
 	*x = ChunkUploadInfo{}
-	mi := &file_media_proto_msgTypes[2]
+	mi := &file_file_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -195,7 +195,7 @@ func (x *ChunkUploadInfo) String() string {
 func (*ChunkUploadInfo) ProtoMessage() {}
 
 func (x *ChunkUploadInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_media_proto_msgTypes[2]
+	mi := &file_file_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -208,7 +208,7 @@ func (x *ChunkUploadInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChunkUploadInfo.ProtoReflect.Descriptor instead.
 func (*ChunkUploadInfo) Descriptor() ([]byte, []int) {
-	return file_media_proto_rawDescGZIP(), []int{2}
+	return file_file_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ChunkUploadInfo) GetChunkIndex() int32 {
@@ -236,7 +236,7 @@ type CompleteUploadReq struct {
 
 func (x *CompleteUploadReq) Reset() {
 	*x = CompleteUploadReq{}
-	mi := &file_media_proto_msgTypes[3]
+	mi := &file_file_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -248,7 +248,7 @@ func (x *CompleteUploadReq) String() string {
 func (*CompleteUploadReq) ProtoMessage() {}
 
 func (x *CompleteUploadReq) ProtoReflect() protoreflect.Message {
-	mi := &file_media_proto_msgTypes[3]
+	mi := &file_file_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -261,7 +261,7 @@ func (x *CompleteUploadReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompleteUploadReq.ProtoReflect.Descriptor instead.
 func (*CompleteUploadReq) Descriptor() ([]byte, []int) {
-	return file_media_proto_rawDescGZIP(), []int{3}
+	return file_file_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *CompleteUploadReq) GetFileId() string {
@@ -296,7 +296,7 @@ type CompleteUploadResp struct {
 
 func (x *CompleteUploadResp) Reset() {
 	*x = CompleteUploadResp{}
-	mi := &file_media_proto_msgTypes[4]
+	mi := &file_file_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -308,7 +308,7 @@ func (x *CompleteUploadResp) String() string {
 func (*CompleteUploadResp) ProtoMessage() {}
 
 func (x *CompleteUploadResp) ProtoReflect() protoreflect.Message {
-	mi := &file_media_proto_msgTypes[4]
+	mi := &file_file_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -321,7 +321,7 @@ func (x *CompleteUploadResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompleteUploadResp.ProtoReflect.Descriptor instead.
 func (*CompleteUploadResp) Descriptor() ([]byte, []int) {
-	return file_media_proto_rawDescGZIP(), []int{4}
+	return file_file_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *CompleteUploadResp) GetFileId() string {
@@ -354,7 +354,7 @@ type GetFileMetaReq struct {
 
 func (x *GetFileMetaReq) Reset() {
 	*x = GetFileMetaReq{}
-	mi := &file_media_proto_msgTypes[5]
+	mi := &file_file_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -366,7 +366,7 @@ func (x *GetFileMetaReq) String() string {
 func (*GetFileMetaReq) ProtoMessage() {}
 
 func (x *GetFileMetaReq) ProtoReflect() protoreflect.Message {
-	mi := &file_media_proto_msgTypes[5]
+	mi := &file_file_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -379,7 +379,7 @@ func (x *GetFileMetaReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetFileMetaReq.ProtoReflect.Descriptor instead.
 func (*GetFileMetaReq) Descriptor() ([]byte, []int) {
-	return file_media_proto_rawDescGZIP(), []int{5}
+	return file_file_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetFileMetaReq) GetFileId() string {
@@ -410,7 +410,7 @@ type GetFileMetaResp struct {
 
 func (x *GetFileMetaResp) Reset() {
 	*x = GetFileMetaResp{}
-	mi := &file_media_proto_msgTypes[6]
+	mi := &file_file_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -422,7 +422,7 @@ func (x *GetFileMetaResp) String() string {
 func (*GetFileMetaResp) ProtoMessage() {}
 
 func (x *GetFileMetaResp) ProtoReflect() protoreflect.Message {
-	mi := &file_media_proto_msgTypes[6]
+	mi := &file_file_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -435,7 +435,7 @@ func (x *GetFileMetaResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetFileMetaResp.ProtoReflect.Descriptor instead.
 func (*GetFileMetaResp) Descriptor() ([]byte, []int) {
-	return file_media_proto_rawDescGZIP(), []int{6}
+	return file_file_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetFileMetaResp) GetFileId() string {
@@ -520,7 +520,7 @@ type AuditResult struct {
 
 func (x *AuditResult) Reset() {
 	*x = AuditResult{}
-	mi := &file_media_proto_msgTypes[7]
+	mi := &file_file_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -532,7 +532,7 @@ func (x *AuditResult) String() string {
 func (*AuditResult) ProtoMessage() {}
 
 func (x *AuditResult) ProtoReflect() protoreflect.Message {
-	mi := &file_media_proto_msgTypes[7]
+	mi := &file_file_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -545,7 +545,7 @@ func (x *AuditResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuditResult.ProtoReflect.Descriptor instead.
 func (*AuditResult) Descriptor() ([]byte, []int) {
-	return file_media_proto_rawDescGZIP(), []int{7}
+	return file_file_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *AuditResult) GetAuditType() int32 {
@@ -586,7 +586,7 @@ type GeneratePresignedUrlReq struct {
 
 func (x *GeneratePresignedUrlReq) Reset() {
 	*x = GeneratePresignedUrlReq{}
-	mi := &file_media_proto_msgTypes[8]
+	mi := &file_file_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -598,7 +598,7 @@ func (x *GeneratePresignedUrlReq) String() string {
 func (*GeneratePresignedUrlReq) ProtoMessage() {}
 
 func (x *GeneratePresignedUrlReq) ProtoReflect() protoreflect.Message {
-	mi := &file_media_proto_msgTypes[8]
+	mi := &file_file_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -611,7 +611,7 @@ func (x *GeneratePresignedUrlReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GeneratePresignedUrlReq.ProtoReflect.Descriptor instead.
 func (*GeneratePresignedUrlReq) Descriptor() ([]byte, []int) {
-	return file_media_proto_rawDescGZIP(), []int{8}
+	return file_file_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GeneratePresignedUrlReq) GetFileId() string {
@@ -639,7 +639,7 @@ type GeneratePresignedUrlResp struct {
 
 func (x *GeneratePresignedUrlResp) Reset() {
 	*x = GeneratePresignedUrlResp{}
-	mi := &file_media_proto_msgTypes[9]
+	mi := &file_file_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -651,7 +651,7 @@ func (x *GeneratePresignedUrlResp) String() string {
 func (*GeneratePresignedUrlResp) ProtoMessage() {}
 
 func (x *GeneratePresignedUrlResp) ProtoReflect() protoreflect.Message {
-	mi := &file_media_proto_msgTypes[9]
+	mi := &file_file_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -664,7 +664,7 @@ func (x *GeneratePresignedUrlResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GeneratePresignedUrlResp.ProtoReflect.Descriptor instead.
 func (*GeneratePresignedUrlResp) Descriptor() ([]byte, []int) {
-	return file_media_proto_rawDescGZIP(), []int{9}
+	return file_file_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GeneratePresignedUrlResp) GetFileId() string {
@@ -698,7 +698,7 @@ type DeleteFileReq struct {
 
 func (x *DeleteFileReq) Reset() {
 	*x = DeleteFileReq{}
-	mi := &file_media_proto_msgTypes[10]
+	mi := &file_file_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -710,7 +710,7 @@ func (x *DeleteFileReq) String() string {
 func (*DeleteFileReq) ProtoMessage() {}
 
 func (x *DeleteFileReq) ProtoReflect() protoreflect.Message {
-	mi := &file_media_proto_msgTypes[10]
+	mi := &file_file_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -723,7 +723,7 @@ func (x *DeleteFileReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteFileReq.ProtoReflect.Descriptor instead.
 func (*DeleteFileReq) Descriptor() ([]byte, []int) {
-	return file_media_proto_rawDescGZIP(), []int{10}
+	return file_file_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *DeleteFileReq) GetFileId() string {
@@ -748,7 +748,7 @@ type DeleteFileResp struct {
 
 func (x *DeleteFileResp) Reset() {
 	*x = DeleteFileResp{}
-	mi := &file_media_proto_msgTypes[11]
+	mi := &file_file_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -760,7 +760,7 @@ func (x *DeleteFileResp) String() string {
 func (*DeleteFileResp) ProtoMessage() {}
 
 func (x *DeleteFileResp) ProtoReflect() protoreflect.Message {
-	mi := &file_media_proto_msgTypes[11]
+	mi := &file_file_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -773,14 +773,15 @@ func (x *DeleteFileResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteFileResp.ProtoReflect.Descriptor instead.
 func (*DeleteFileResp) Descriptor() ([]byte, []int) {
-	return file_media_proto_rawDescGZIP(), []int{11}
+	return file_file_proto_rawDescGZIP(), []int{11}
 }
 
-var File_media_proto protoreflect.FileDescriptor
+var File_file_proto protoreflect.FileDescriptor
 
-const file_media_proto_rawDesc = "" +
+const file_file_proto_rawDesc = "" +
 	"\n" +
-	"\vmedia.proto\x12\x05media\"\xec\x01\n" +
+	"\n" +
+	"file.proto\x12\x04file\"\xec\x01\n" +
 	"\x13CreateUploadTaskReq\x12\x1b\n" +
 	"\tfile_name\x18\x01 \x01(\tR\bfileName\x12\x1b\n" +
 	"\tfile_size\x18\x02 \x01(\x03R\bfileSize\x12\x1b\n" +
@@ -790,11 +791,11 @@ const file_media_proto_rawDesc = "" +
 	"chunk_size\x18\x05 \x01(\x03R\tchunkSize\x12\x1f\n" +
 	"\vuploader_id\x18\x06 \x01(\x03R\n" +
 	"uploaderId\x12\x1b\n" +
-	"\tfile_type\x18\a \x01(\x05R\bfileType\"|\n" +
+	"\tfile_type\x18\a \x01(\x05R\bfileType\"{\n" +
 	"\x14CreateUploadTaskResp\x12\x17\n" +
 	"\afile_id\x18\x01 \x01(\tR\x06fileId\x12\x1b\n" +
-	"\tupload_id\x18\x02 \x01(\tR\buploadId\x12.\n" +
-	"\x06chunks\x18\x03 \x03(\v2\x16.media.ChunkUploadInfoR\x06chunks\"W\n" +
+	"\tupload_id\x18\x02 \x01(\tR\buploadId\x12-\n" +
+	"\x06chunks\x18\x03 \x03(\v2\x15.file.ChunkUploadInfoR\x06chunks\"W\n" +
 	"\x0fChunkUploadInfo\x12\x1f\n" +
 	"\vchunk_index\x18\x01 \x01(\x05R\n" +
 	"chunkIndex\x12#\n" +
@@ -808,7 +809,7 @@ const file_media_proto_rawDesc = "" +
 	"\x03url\x18\x02 \x01(\tR\x03url\x12\x16\n" +
 	"\x06status\x18\x03 \x01(\x05R\x06status\")\n" +
 	"\x0eGetFileMetaReq\x12\x17\n" +
-	"\afile_id\x18\x01 \x01(\tR\x06fileId\"\xb6\x03\n" +
+	"\afile_id\x18\x01 \x01(\tR\x06fileId\"\xb4\x03\n" +
 	"\x0fGetFileMetaResp\x12\x17\n" +
 	"\afile_id\x18\x01 \x01(\tR\x06fileId\x12\x1b\n" +
 	"\tfile_name\x18\x02 \x01(\tR\bfileName\x12\x1b\n" +
@@ -819,12 +820,12 @@ const file_media_proto_rawDesc = "" +
 	"uploaderId\x12\x1f\n" +
 	"\vupload_time\x18\a \x01(\x03R\n" +
 	"uploadTime\x12\x16\n" +
-	"\x06status\x18\b \x01(\x05R\x06status\x12F\n" +
+	"\x06status\x18\b \x01(\x05R\x06status\x12E\n" +
 	"\n" +
-	"thumbnails\x18\t \x03(\v2&.media.GetFileMetaResp.ThumbnailsEntryR\n" +
-	"thumbnails\x125\n" +
+	"thumbnails\x18\t \x03(\v2%.file.GetFileMetaResp.ThumbnailsEntryR\n" +
+	"thumbnails\x124\n" +
 	"\faudit_result\x18\n" +
-	" \x01(\v2\x12.media.AuditResultR\vauditResult\x1a=\n" +
+	" \x01(\v2\x11.file.AuditResultR\vauditResult\x1a=\n" +
 	"\x0fThumbnailsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"{\n" +
@@ -847,57 +848,57 @@ const file_media_proto_rawDesc = "" +
 	"\afile_id\x18\x01 \x01(\tR\x06fileId\x12\x1f\n" +
 	"\voperator_id\x18\x02 \x01(\x03R\n" +
 	"operatorId\"\x10\n" +
-	"\x0eDeleteFileResp2\xed\x02\n" +
-	"\x05Media\x12K\n" +
-	"\x10CreateUploadTask\x12\x1a.media.CreateUploadTaskReq\x1a\x1b.media.CreateUploadTaskResp\x12E\n" +
-	"\x0eCompleteUpload\x12\x18.media.CompleteUploadReq\x1a\x19.media.CompleteUploadResp\x12<\n" +
-	"\vGetFileMeta\x12\x15.media.GetFileMetaReq\x1a\x16.media.GetFileMetaResp\x12W\n" +
-	"\x14GeneratePresignedUrl\x12\x1e.media.GeneratePresignedUrlReq\x1a\x1f.media.GeneratePresignedUrlResp\x129\n" +
+	"\x0eDeleteFileResp2\xe2\x02\n" +
+	"\x04File\x12I\n" +
+	"\x10CreateUploadTask\x12\x19.file.CreateUploadTaskReq\x1a\x1a.file.CreateUploadTaskResp\x12C\n" +
+	"\x0eCompleteUpload\x12\x17.file.CompleteUploadReq\x1a\x18.file.CompleteUploadResp\x12:\n" +
+	"\vGetFileMeta\x12\x14.file.GetFileMetaReq\x1a\x15.file.GetFileMetaResp\x12U\n" +
+	"\x14GeneratePresignedUrl\x12\x1d.file.GeneratePresignedUrlReq\x1a\x1e.file.GeneratePresignedUrlResp\x127\n" +
 	"\n" +
-	"DeleteFile\x12\x14.media.DeleteFileReq\x1a\x15.media.DeleteFileRespB\tZ\a./mediab\x06proto3"
+	"DeleteFile\x12\x13.file.DeleteFileReq\x1a\x14.file.DeleteFileRespB\bZ\x06./fileb\x06proto3"
 
 var (
-	file_media_proto_rawDescOnce sync.Once
-	file_media_proto_rawDescData []byte
+	file_file_proto_rawDescOnce sync.Once
+	file_file_proto_rawDescData []byte
 )
 
-func file_media_proto_rawDescGZIP() []byte {
-	file_media_proto_rawDescOnce.Do(func() {
-		file_media_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_media_proto_rawDesc), len(file_media_proto_rawDesc)))
+func file_file_proto_rawDescGZIP() []byte {
+	file_file_proto_rawDescOnce.Do(func() {
+		file_file_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_file_proto_rawDesc), len(file_file_proto_rawDesc)))
 	})
-	return file_media_proto_rawDescData
+	return file_file_proto_rawDescData
 }
 
-var file_media_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
-var file_media_proto_goTypes = []any{
-	(*CreateUploadTaskReq)(nil),      // 0: media.CreateUploadTaskReq
-	(*CreateUploadTaskResp)(nil),     // 1: media.CreateUploadTaskResp
-	(*ChunkUploadInfo)(nil),          // 2: media.ChunkUploadInfo
-	(*CompleteUploadReq)(nil),        // 3: media.CompleteUploadReq
-	(*CompleteUploadResp)(nil),       // 4: media.CompleteUploadResp
-	(*GetFileMetaReq)(nil),           // 5: media.GetFileMetaReq
-	(*GetFileMetaResp)(nil),          // 6: media.GetFileMetaResp
-	(*AuditResult)(nil),              // 7: media.AuditResult
-	(*GeneratePresignedUrlReq)(nil),  // 8: media.GeneratePresignedUrlReq
-	(*GeneratePresignedUrlResp)(nil), // 9: media.GeneratePresignedUrlResp
-	(*DeleteFileReq)(nil),            // 10: media.DeleteFileReq
-	(*DeleteFileResp)(nil),           // 11: media.DeleteFileResp
-	nil,                              // 12: media.GetFileMetaResp.ThumbnailsEntry
+var file_file_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_file_proto_goTypes = []any{
+	(*CreateUploadTaskReq)(nil),      // 0: file.CreateUploadTaskReq
+	(*CreateUploadTaskResp)(nil),     // 1: file.CreateUploadTaskResp
+	(*ChunkUploadInfo)(nil),          // 2: file.ChunkUploadInfo
+	(*CompleteUploadReq)(nil),        // 3: file.CompleteUploadReq
+	(*CompleteUploadResp)(nil),       // 4: file.CompleteUploadResp
+	(*GetFileMetaReq)(nil),           // 5: file.GetFileMetaReq
+	(*GetFileMetaResp)(nil),          // 6: file.GetFileMetaResp
+	(*AuditResult)(nil),              // 7: file.AuditResult
+	(*GeneratePresignedUrlReq)(nil),  // 8: file.GeneratePresignedUrlReq
+	(*GeneratePresignedUrlResp)(nil), // 9: file.GeneratePresignedUrlResp
+	(*DeleteFileReq)(nil),            // 10: file.DeleteFileReq
+	(*DeleteFileResp)(nil),           // 11: file.DeleteFileResp
+	nil,                              // 12: file.GetFileMetaResp.ThumbnailsEntry
 }
-var file_media_proto_depIdxs = []int32{
-	2,  // 0: media.CreateUploadTaskResp.chunks:type_name -> media.ChunkUploadInfo
-	12, // 1: media.GetFileMetaResp.thumbnails:type_name -> media.GetFileMetaResp.ThumbnailsEntry
-	7,  // 2: media.GetFileMetaResp.audit_result:type_name -> media.AuditResult
-	0,  // 3: media.Media.CreateUploadTask:input_type -> media.CreateUploadTaskReq
-	3,  // 4: media.Media.CompleteUpload:input_type -> media.CompleteUploadReq
-	5,  // 5: media.Media.GetFileMeta:input_type -> media.GetFileMetaReq
-	8,  // 6: media.Media.GeneratePresignedUrl:input_type -> media.GeneratePresignedUrlReq
-	10, // 7: media.Media.DeleteFile:input_type -> media.DeleteFileReq
-	1,  // 8: media.Media.CreateUploadTask:output_type -> media.CreateUploadTaskResp
-	4,  // 9: media.Media.CompleteUpload:output_type -> media.CompleteUploadResp
-	6,  // 10: media.Media.GetFileMeta:output_type -> media.GetFileMetaResp
-	9,  // 11: media.Media.GeneratePresignedUrl:output_type -> media.GeneratePresignedUrlResp
-	11, // 12: media.Media.DeleteFile:output_type -> media.DeleteFileResp
+var file_file_proto_depIdxs = []int32{
+	2,  // 0: file.CreateUploadTaskResp.chunks:type_name -> file.ChunkUploadInfo
+	12, // 1: file.GetFileMetaResp.thumbnails:type_name -> file.GetFileMetaResp.ThumbnailsEntry
+	7,  // 2: file.GetFileMetaResp.audit_result:type_name -> file.AuditResult
+	0,  // 3: file.File.CreateUploadTask:input_type -> file.CreateUploadTaskReq
+	3,  // 4: file.File.CompleteUpload:input_type -> file.CompleteUploadReq
+	5,  // 5: file.File.GetFileMeta:input_type -> file.GetFileMetaReq
+	8,  // 6: file.File.GeneratePresignedUrl:input_type -> file.GeneratePresignedUrlReq
+	10, // 7: file.File.DeleteFile:input_type -> file.DeleteFileReq
+	1,  // 8: file.File.CreateUploadTask:output_type -> file.CreateUploadTaskResp
+	4,  // 9: file.File.CompleteUpload:output_type -> file.CompleteUploadResp
+	6,  // 10: file.File.GetFileMeta:output_type -> file.GetFileMetaResp
+	9,  // 11: file.File.GeneratePresignedUrl:output_type -> file.GeneratePresignedUrlResp
+	11, // 12: file.File.DeleteFile:output_type -> file.DeleteFileResp
 	8,  // [8:13] is the sub-list for method output_type
 	3,  // [3:8] is the sub-list for method input_type
 	3,  // [3:3] is the sub-list for extension type_name
@@ -905,26 +906,26 @@ var file_media_proto_depIdxs = []int32{
 	0,  // [0:3] is the sub-list for field type_name
 }
 
-func init() { file_media_proto_init() }
-func file_media_proto_init() {
-	if File_media_proto != nil {
+func init() { file_file_proto_init() }
+func file_file_proto_init() {
+	if File_file_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_media_proto_rawDesc), len(file_media_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_file_proto_rawDesc), len(file_file_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_media_proto_goTypes,
-		DependencyIndexes: file_media_proto_depIdxs,
-		MessageInfos:      file_media_proto_msgTypes,
+		GoTypes:           file_file_proto_goTypes,
+		DependencyIndexes: file_file_proto_depIdxs,
+		MessageInfos:      file_file_proto_msgTypes,
 	}.Build()
-	File_media_proto = out.File
-	file_media_proto_goTypes = nil
-	file_media_proto_depIdxs = nil
+	File_file_proto = out.File
+	file_file_proto_goTypes = nil
+	file_file_proto_depIdxs = nil
 }

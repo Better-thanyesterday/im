@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"im-platform/app/message/rpc/internal/svc"
+	"strconv"
 	_ "sync/atomic"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -27,13 +28,13 @@ func NewSeqIdLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SeqIdLogic 
 
 // AllocateSeq 为指定会话分配下一个 SeqID
 // 策略：Redis INCR（主）→ 批量预取（优化）→ PG 兜底（降级）
-func (l *SeqIdLogic) AllocateSeq(convId string) (int64, error, bool) {
+func (l *SeqIdLogic) AllocateSeq(convId string) (seq int64, needAsync bool, err error) {
 	//local Cache hit
 	seg, ok := l.svcCtx.SeqIdCache.Get(convId);
 	if  ok{
 		l.Infof("seq hit cache, conv=%s, seq=%d", convId, seg)
 		//写缓存成功写kafka
-		return seg, nil, true
+		return seg, true, nil
 	}
 	// 2. Redis 批量预取：一次 INCRBY 拿 N 个 Seq，减少 90% 的 Redis 往返
 	
@@ -47,18 +48,37 @@ func (l *SeqIdLogic) AllocateSeq(convId string) (int64, error, bool) {
 		seq,err := l.allocateFromPG(convId);
 		if  err != nil {
 			logx.Errorf("allocateFromPG failed, fallback to pg: %v", err)
-			return 0,err,false
+			return 0, false, err
 			// 兜底失败写kafka
 		}
 		l.svcCtx.SeqIdCache.Put(convId,seq,0)
-		return seq ,nil, false
+		// PG 分配的号必须回填 Redis(只前进不回退),否则 Redis 恢复后计数器
+		// 停在旧值,会重复分配 PG 已发出的号
+		l.backfillRedisSeq(seqKey, seq)
+		return seq, false, nil
 	}
-	_ = l.svcCtx.Redis.Expire(seqKey, 86400*30)
+	// seq 计数器是会话的永久单调状态,绝不能设 TTL:
+	// 过期后从 0 重新计数,所有端按旧 seq 同步会整体错乱
 	start := maxSeq - batchSize
-	l.svcCtx.SeqIdCache.Put(convId,start,maxSeq)
-	l.Infof("seq preallocated, conv=%s, range=[%d,%d]", convId, start, maxSeq)
+	l.svcCtx.SeqIdCache.Put(convId, start, maxSeq)
+	l.Infof("seq preallocated, conv=%s, range=[%d,%d]", convId, start+1, maxSeq)
 	//redis 成功写kafka
-	return start, nil, true
+	return start + 1, true, nil
+}
+
+// backfillRedisSeq 把 PG 分配出的水位回填到 Redis(仅前进),尽力而为
+func (l *SeqIdLogic) backfillRedisSeq(seqKey string, pgSeq int64) {
+	lua := `
+		local cur = tonumber(redis.call('GET', KEYS[1]) or '0')
+		local target = tonumber(ARGV[1])
+		if cur < target then
+			redis.call('SET', KEYS[1], target)
+		end
+		return 1
+	`
+	if _, err := l.svcCtx.Redis.EvalCtx(l.ctx, lua, []string{seqKey}, strconv.FormatInt(pgSeq, 10)); err != nil {
+		logx.Errorf("backfill redis seq failed: key=%s seq=%d err=%v", seqKey, pgSeq, err)
+	}
 }
 
 // allocateFromPG PG 兜底：直接行锁更新 seq_counters 表
@@ -91,8 +111,6 @@ func (l *SeqIdLogic) BatchAllocateSeq(convId string, count int) ([]int64, error)
 		}
 		return seqs, nil
 	}
-	_ = l.svcCtx.Redis.Expire(seqKey, 86400*30)
-
 	// 生成连续序列号
 	seqs := make([]int64, count)
 	start := maxSeq - int64(count) + 1

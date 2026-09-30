@@ -6,7 +6,7 @@ Etcd:
   Key: user.rpc
 
 Postgres:
-  DataSource: postgres://postgres:root@127.0.0.1:5432/im_user?sslmode=disable
+  DataSource: postgres://postgres:root@127.0.0.1:5432/im_user?sslmode=disable  # TODO: 密码移出配置文件(环境变量/密管),生产启用 sslmode=require
 
 Cache:
   - Host: 127.0.0.1:6379
@@ -18,5 +18,5 @@ RedisCache:
     Type: node
     Pass: ""
 
-SnokFlake:
-  WorkNode: 1
+Snowflake:
+  WorkNode: 0  # 0=按 IP+PID 自动派生,多副本不撞号

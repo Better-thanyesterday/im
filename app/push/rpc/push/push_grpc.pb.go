@@ -19,8 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Push_Deliver_FullMethodName     = "/push.Push/Deliver"
-	Push_ClearUnread_FullMethodName = "/push.Push/ClearUnread"
+	Push_Deliver_FullMethodName      = "/push.Push/Deliver"
+	Push_BatchDeliver_FullMethodName = "/push.Push/BatchDeliver"
+	Push_ClearUnread_FullMethodName  = "/push.Push/ClearUnread"
 )
 
 // PushClient is the client API for Push service.
@@ -29,6 +30,8 @@ const (
 type PushClient interface {
 	// 在线实时推送 + 离线存储 + 未读计数：按 Redis 在线状态决定走 Gateway.PushToConn 还是写 im:offline
 	Deliver(ctx context.Context, in *DeliverReq, opts ...grpc.CallOption) (*DeliverResp, error)
+	// 批量投递:内部按受限并发逐个走 Deliver 语义(在线推送/离线兜底/未读计数)
+	BatchDeliver(ctx context.Context, in *BatchDeliverReq, opts ...grpc.CallOption) (*BatchDeliverResp, error)
 	// 清零 im:unread:{user_id} 中对应会话的计数
 	ClearUnread(ctx context.Context, in *ClearUnreadReq, opts ...grpc.CallOption) (*ClearUnreadResp, error)
 }
@@ -51,6 +54,16 @@ func (c *pushClient) Deliver(ctx context.Context, in *DeliverReq, opts ...grpc.C
 	return out, nil
 }
 
+func (c *pushClient) BatchDeliver(ctx context.Context, in *BatchDeliverReq, opts ...grpc.CallOption) (*BatchDeliverResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchDeliverResp)
+	err := c.cc.Invoke(ctx, Push_BatchDeliver_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *pushClient) ClearUnread(ctx context.Context, in *ClearUnreadReq, opts ...grpc.CallOption) (*ClearUnreadResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ClearUnreadResp)
@@ -67,6 +80,8 @@ func (c *pushClient) ClearUnread(ctx context.Context, in *ClearUnreadReq, opts .
 type PushServer interface {
 	// 在线实时推送 + 离线存储 + 未读计数：按 Redis 在线状态决定走 Gateway.PushToConn 还是写 im:offline
 	Deliver(context.Context, *DeliverReq) (*DeliverResp, error)
+	// 批量投递:内部按受限并发逐个走 Deliver 语义(在线推送/离线兜底/未读计数)
+	BatchDeliver(context.Context, *BatchDeliverReq) (*BatchDeliverResp, error)
 	// 清零 im:unread:{user_id} 中对应会话的计数
 	ClearUnread(context.Context, *ClearUnreadReq) (*ClearUnreadResp, error)
 	mustEmbedUnimplementedPushServer()
@@ -81,6 +96,9 @@ type UnimplementedPushServer struct{}
 
 func (UnimplementedPushServer) Deliver(context.Context, *DeliverReq) (*DeliverResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method Deliver not implemented")
+}
+func (UnimplementedPushServer) BatchDeliver(context.Context, *BatchDeliverReq) (*BatchDeliverResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method BatchDeliver not implemented")
 }
 func (UnimplementedPushServer) ClearUnread(context.Context, *ClearUnreadReq) (*ClearUnreadResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method ClearUnread not implemented")
@@ -124,6 +142,24 @@ func _Push_Deliver_Handler(srv interface{}, ctx context.Context, dec func(interf
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Push_BatchDeliver_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchDeliverReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PushServer).BatchDeliver(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Push_BatchDeliver_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PushServer).BatchDeliver(ctx, req.(*BatchDeliverReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Push_ClearUnread_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ClearUnreadReq)
 	if err := dec(in); err != nil {
@@ -152,6 +188,10 @@ var Push_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Deliver",
 			Handler:    _Push_Deliver_Handler,
+		},
+		{
+			MethodName: "BatchDeliver",
+			Handler:    _Push_BatchDeliver_Handler,
 		},
 		{
 			MethodName: "ClearUnread",

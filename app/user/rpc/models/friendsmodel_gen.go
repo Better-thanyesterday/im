@@ -29,7 +29,7 @@ type (
 		FindOne(ctx context.Context, friendId int64) (*Friends, error)
 		Update(ctx context.Context, data *Friends) error
 		Delete(ctx context.Context, friendId int64) error
-		FindFriendsByUserId(ctx context.Context,userId int64,keyword string,page, pageSize int32,) ([]friendInfoRow, error) 
+		// FindFriendsByUserId 已迁移至 friendsmodel.go 自定义实现(原生成版 SQL 损坏)
 	}
 
 	defaultFriendsModel struct {
@@ -95,28 +95,6 @@ func (m *defaultFriendsModel) Update(ctx context.Context, data *Friends) error {
 	return err
 }
 
-func (m *defaultFriendsModel) FindFriendsByUserId(ctx context.Context,userId int64,keyword string, page, pageSize int32,) ([]friendInfoRow, error)  {
-	query := fmt.Sprintf(`SELECT 
-    	f.friend_id AS user_id,
-    	COALESCE(u.nickname, '') AS nickname,
-    	COALESCE(u.avatar, '') AS avatar,
-    	COALESCE(f.remark, '') AS remark,
-    	COALESCE(f.friend_group_id, 0) AS friend_group_id,
-    	EXTRACT(epoch FROM f.created_at) * 1000 AS created_at
-	FROM friends_$suffix f
-	LEFT JOIN users u ON f.friend_id = u.id
-	WHERE f.user_id = $1
-  		AND f.status = 1   -- 只查正常好友（未被拉黑）
-  	AND ($2 = '' OR u.nickname ILIKE '%' || $2 || '%' OR f.remark ILIKE '%' || $2 || '%')  -- 可选搜索关键词
-	ORDER BY f.created_at DESC
-	LIMIT $3 OFFSET $4;`, m.table)
-	var resp []friendInfoRow
-	err := m.conn.QueryRowsCtx(ctx, &resp, query, userId,keyword)
-	if err != nil {
-		return nil, err
-	}
-	return resp, nil
-}
 func (m *defaultFriendsModel) tableName() string {
 	return m.table
 }

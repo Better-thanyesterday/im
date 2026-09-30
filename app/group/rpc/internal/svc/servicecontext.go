@@ -14,7 +14,7 @@ type ServiceContext struct {
 	GroupMembersModel models.GroupmembersModel
 	GroupSettingsModel models.GroupsettingsModel
 	GroupAppliesModel models.GroupappliesModel
-	Snokflake     *utils.Snowflake
+	Snowflake     *utils.Snowflake
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -23,11 +23,14 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	gmember:=models.NewGroupmembersModel(sqlconn)
 	gsettings:=models.NewGroupsettingsModel(sqlconn)
 	gapplies:=models.NewGroupappliesModel(sqlconn)
-	snokflake,_:=utils.NewSnowflake(c.SnokFlake.WorkNode)
+	snokflake,err:=utils.NewSnowflakeOrAuto(c.Snowflake.WorkNode)
+	if err!=nil{
+		panic(err)
+	}
 	return &ServiceContext{
 		Config: c,
 		GroupsModel: group,
-		Snokflake: snokflake,
+		Snowflake: snokflake,
 		GroupMembersModel: gmember,
 		GroupSettingsModel: gsettings,
 		GroupAppliesModel: gapplies,

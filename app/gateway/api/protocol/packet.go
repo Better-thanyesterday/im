@@ -2,7 +2,6 @@ package protocol
 
 import (
 	"encoding/binary"
-	"encoding/hex"
 	"errors"
 )
 const (
@@ -25,15 +24,16 @@ func EncodeFrame(frameType byte, payload []byte) []byte {
     return buf
 }
 
+// DecodeFrame 解析二进制帧 [type:1][len:4][payload],与 EncodeFrame 对称。
+// 原实现先做 hex 解码,任何二进制帧都解析失败
 func DecodeFrame(data []byte) (frameType byte, payload []byte, err error) {
-    rawBytes,err:=hex.DecodeString(string(data))
-    if len(rawBytes) < 5 {
+    if len(data) < 5 {
         return 0, nil, errors.New("frame too short")
     }
-    n := binary.BigEndian.Uint32(rawBytes[1:5])
-    if int(n) != len(rawBytes)-5 {
+    n := binary.BigEndian.Uint32(data[1:5])
+    if int(n) != len(data)-5 {
         return 0, nil, errors.New("frame length mismatch")
     }
-    return rawBytes[0], rawBytes[5:], nil
+    return data[0], data[5:], nil
 }
 

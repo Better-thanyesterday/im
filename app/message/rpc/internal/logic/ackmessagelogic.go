@@ -7,6 +7,7 @@ import (
 	"im-platform/app/message/rpc/message"
 	"im-platform/app/push/rpc/push"
 	"im-platform/common/constants"
+	"strconv"
 	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -89,24 +90,32 @@ func (l *AckMessageLogic) handleRead(in *message.AckMessageReq, readerId int64) 
 		logx.Errorf("read conv mismatch: msg=%d expect=%s got=%s reader=%d", in.MsgId, msg.Convid, in.ConvId, readerId)
 		return &message.AckMessageResp{}, nil
 	}
-	// 单聊：更新 inbox 已读状态（如果单聊走了 inbox）
-	// 如果单聊没写 inbox，用 Redis 做轻量标记
-	_ = l.markSingleRead(in.ConvId, readerId, in.MsgId)
+	// 已读水位:客户端上报的 read_seq 优先,缺省用本条消息的 seq
+	readSeq := in.ReadSeq
+	if readSeq <= 0 {
+		readSeq = msg.Seqid
+	}
+	// 1. Redis 已读水位:每 (conv, reader) 一个 key 存已读最大 seq,
+	//    替代原来每条消息一个 im:read:{conv}:{msg} key 的爆炸式设计
+	if err := l.markReadWatermark(in.ConvId, readerId, readSeq); err != nil {
+		logx.Errorf("mark read watermark failed: conv=%s reader=%d err=%v", in.ConvId, readerId, err)
+	}
+	// 2. PG 收件箱:该会话 <= 水位的行批量置已读(未读数持久层真源)
+	if err := l.svcCtx.InboxesModel.MarkConvRead(l.ctx, readerId, in.ConvId, readSeq); err != nil {
+		logx.Errorf("mark conv read failed: conv=%s reader=%d err=%v", in.ConvId, readerId, err)
+	}
+	// 3. 清 push 服务的 Redis 未读计数(闭环 ClearUnread 空实现)
+	if _, err := l.svcCtx.Push.ClearUnread(l.ctx, &push.ClearUnreadReq{
+		UserId: readerId,
+		ConvId: in.ConvId,
+		SeqId:  readSeq,
+	}); err != nil {
+		logx.Errorf("clear unread failed: conv=%s reader=%d err=%v", in.ConvId, readerId, err)
+	}
 	_ = l.notifySender(msg.Senderid, msg.Convid, in.MsgId)
 	return &message.AckMessageResp{}, nil
 }
-
-func (l *AckMessageLogic) markSingleRead(convId string, readerId, msgId int64) error {
-	// 方案 A：如果单聊也写了 inbox（写扩散模式）
-	// return l.svcCtx.InboxModel.MarkRead(l.ctx, readerId, convId, msgId)
-
-	// 方案 B：单聊未写 inbox，用 Redis 做已读标记（30 天过期）
-	key := fmt.Sprintf("im:read:%s:%d", convId, msgId)
-	err := l.svcCtx.Redis.SetexCtx(l.ctx, key, fmt.Sprintf("%d", readerId), 86400*30)
-	return err
-}
-func (l *AckMessageLogic) notifySender(senderId int64, convId string, msgId int64) error {
-	msg := push.PushMessage{
+func (l *AckMessageLogic) notifySender(senderId int64, convId string, msgId int64) error {	msg := push.PushMessage{
 		SenderId: senderId,
 		ConvId: convId,
 		MsgId: msgId,
@@ -117,5 +126,21 @@ func (l *AckMessageLogic) notifySender(senderId int64, convId string, msgId int6
 		PushType: push.PushType_PushTypeNotify,
 		Message:  &msg,
 	})
+	return err
+}
+
+// markReadWatermark 已读水位只前进不回退,key 为 im:read:{conv}:{reader}(30 天 TTL)
+func (l *AckMessageLogic) markReadWatermark(convId string, readerId, seq int64) error {
+	key := fmt.Sprintf("im:read:%s:%d", convId, readerId)
+	lua := `
+		local cur = tonumber(redis.call('GET', KEYS[1]) or '0')
+		local target = tonumber(ARGV[1])
+		if cur < target then
+			redis.call('SET', KEYS[1], target)
+			redis.call('EXPIRE', KEYS[1], 2592000)
+		end
+		return 1
+	`
+	_, err := l.svcCtx.Redis.EvalCtx(l.ctx, lua, []string{key}, strconv.FormatInt(seq, 10))
 	return err
 }

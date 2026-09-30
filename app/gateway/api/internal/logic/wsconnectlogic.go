@@ -38,10 +38,13 @@ func (l *WsConnectLogic) Register(c *conn.Conn) {
 		oldConn.Close() // 锁外踢，onClose → onConnClosed 正常加锁
 	}
 
-	// 4. 写 Redis 在线状态（覆盖旧值）
+	// 4. 写 Redis 在线状态:
+	//    Hash 是设备注册表(field=设备类型, value=gateway 地址,无 key 级 TTL);
+	//    每设备独立活性 key 带 90s TTL,由心跳续期,崩溃后 90s 自动失效
 	l.svcCtx.Redis.Hset(fmt.Sprintf("im:online:%d", c.UserId()),
 		fmt.Sprintf("%d", c.DeviceType()), l.svcCtx.Config.Gateway.GrpcAddr)
-	_ = l.svcCtx.Redis.ExpireCtx(context.Background(), fmt.Sprintf("im:online:%d", c.UserId()), 90) // TTL 兜底，进程崩溃不残留
+	liveKey := fmt.Sprintf("im:online:%d:%d", c.UserId(), c.DeviceType())
+	_ = l.svcCtx.Redis.SetexCtx(context.Background(), liveKey, l.svcCtx.Config.Gateway.GrpcAddr, 90)
 	if _, err := l.svcCtx.Redis.Hdel(fmt.Sprintf("im:offline:%d", c.UserId()), fmt.Sprintf("%d", c.DeviceType())); err != nil {
 		logx.Errorf("redis hdel failed | user=%d device=%d err=%v", c.UserId(), c.DeviceType(), err)
 	}

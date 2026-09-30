@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             v7.35.1
-// source: media.proto
+// source: file.proto
 
-package media
+package file
 
 import (
 	context "context"
@@ -19,17 +19,17 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Media_CreateUploadTask_FullMethodName     = "/media.Media/CreateUploadTask"
-	Media_CompleteUpload_FullMethodName       = "/media.Media/CompleteUpload"
-	Media_GetFileMeta_FullMethodName          = "/media.Media/GetFileMeta"
-	Media_GeneratePresignedUrl_FullMethodName = "/media.Media/GeneratePresignedUrl"
-	Media_DeleteFile_FullMethodName           = "/media.Media/DeleteFile"
+	File_CreateUploadTask_FullMethodName     = "/file.File/CreateUploadTask"
+	File_CompleteUpload_FullMethodName       = "/file.File/CompleteUpload"
+	File_GetFileMeta_FullMethodName          = "/file.File/GetFileMeta"
+	File_GeneratePresignedUrl_FullMethodName = "/file.File/GeneratePresignedUrl"
+	File_DeleteFile_FullMethodName           = "/file.File/DeleteFile"
 )
 
-// MediaClient is the client API for Media service.
+// FileClient is the client API for File service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type MediaClient interface {
+type FileClient interface {
 	// 初始化分片上传任务，返回 upload_id 与各分片预签名 URL
 	CreateUploadTask(ctx context.Context, in *CreateUploadTaskReq, opts ...grpc.CallOption) (*CreateUploadTaskResp, error)
 	// 客户端所有分片上传完成后调用，触发合并、格式校验、安全审核
@@ -42,68 +42,68 @@ type MediaClient interface {
 	DeleteFile(ctx context.Context, in *DeleteFileReq, opts ...grpc.CallOption) (*DeleteFileResp, error)
 }
 
-type mediaClient struct {
+type fileClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewMediaClient(cc grpc.ClientConnInterface) MediaClient {
-	return &mediaClient{cc}
+func NewFileClient(cc grpc.ClientConnInterface) FileClient {
+	return &fileClient{cc}
 }
 
-func (c *mediaClient) CreateUploadTask(ctx context.Context, in *CreateUploadTaskReq, opts ...grpc.CallOption) (*CreateUploadTaskResp, error) {
+func (c *fileClient) CreateUploadTask(ctx context.Context, in *CreateUploadTaskReq, opts ...grpc.CallOption) (*CreateUploadTaskResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateUploadTaskResp)
-	err := c.cc.Invoke(ctx, Media_CreateUploadTask_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, File_CreateUploadTask_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *mediaClient) CompleteUpload(ctx context.Context, in *CompleteUploadReq, opts ...grpc.CallOption) (*CompleteUploadResp, error) {
+func (c *fileClient) CompleteUpload(ctx context.Context, in *CompleteUploadReq, opts ...grpc.CallOption) (*CompleteUploadResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CompleteUploadResp)
-	err := c.cc.Invoke(ctx, Media_CompleteUpload_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, File_CompleteUpload_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *mediaClient) GetFileMeta(ctx context.Context, in *GetFileMetaReq, opts ...grpc.CallOption) (*GetFileMetaResp, error) {
+func (c *fileClient) GetFileMeta(ctx context.Context, in *GetFileMetaReq, opts ...grpc.CallOption) (*GetFileMetaResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetFileMetaResp)
-	err := c.cc.Invoke(ctx, Media_GetFileMeta_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, File_GetFileMeta_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *mediaClient) GeneratePresignedUrl(ctx context.Context, in *GeneratePresignedUrlReq, opts ...grpc.CallOption) (*GeneratePresignedUrlResp, error) {
+func (c *fileClient) GeneratePresignedUrl(ctx context.Context, in *GeneratePresignedUrlReq, opts ...grpc.CallOption) (*GeneratePresignedUrlResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GeneratePresignedUrlResp)
-	err := c.cc.Invoke(ctx, Media_GeneratePresignedUrl_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, File_GeneratePresignedUrl_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *mediaClient) DeleteFile(ctx context.Context, in *DeleteFileReq, opts ...grpc.CallOption) (*DeleteFileResp, error) {
+func (c *fileClient) DeleteFile(ctx context.Context, in *DeleteFileReq, opts ...grpc.CallOption) (*DeleteFileResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DeleteFileResp)
-	err := c.cc.Invoke(ctx, Media_DeleteFile_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, File_DeleteFile_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// MediaServer is the server API for Media service.
-// All implementations must embed UnimplementedMediaServer
+// FileServer is the server API for File service.
+// All implementations must embed UnimplementedFileServer
 // for forward compatibility.
-type MediaServer interface {
+type FileServer interface {
 	// 初始化分片上传任务，返回 upload_id 与各分片预签名 URL
 	CreateUploadTask(context.Context, *CreateUploadTaskReq) (*CreateUploadTaskResp, error)
 	// 客户端所有分片上传完成后调用，触发合并、格式校验、安全审核
@@ -114,170 +114,170 @@ type MediaServer interface {
 	GeneratePresignedUrl(context.Context, *GeneratePresignedUrlReq) (*GeneratePresignedUrlResp, error)
 	// 删除文件（物理删除 MinIO + 清理元数据）
 	DeleteFile(context.Context, *DeleteFileReq) (*DeleteFileResp, error)
-	mustEmbedUnimplementedMediaServer()
+	mustEmbedUnimplementedFileServer()
 }
 
-// UnimplementedMediaServer must be embedded to have
+// UnimplementedFileServer must be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
 // pointer dereference when methods are called.
-type UnimplementedMediaServer struct{}
+type UnimplementedFileServer struct{}
 
-func (UnimplementedMediaServer) CreateUploadTask(context.Context, *CreateUploadTaskReq) (*CreateUploadTaskResp, error) {
+func (UnimplementedFileServer) CreateUploadTask(context.Context, *CreateUploadTaskReq) (*CreateUploadTaskResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateUploadTask not implemented")
 }
-func (UnimplementedMediaServer) CompleteUpload(context.Context, *CompleteUploadReq) (*CompleteUploadResp, error) {
+func (UnimplementedFileServer) CompleteUpload(context.Context, *CompleteUploadReq) (*CompleteUploadResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method CompleteUpload not implemented")
 }
-func (UnimplementedMediaServer) GetFileMeta(context.Context, *GetFileMetaReq) (*GetFileMetaResp, error) {
+func (UnimplementedFileServer) GetFileMeta(context.Context, *GetFileMetaReq) (*GetFileMetaResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetFileMeta not implemented")
 }
-func (UnimplementedMediaServer) GeneratePresignedUrl(context.Context, *GeneratePresignedUrlReq) (*GeneratePresignedUrlResp, error) {
+func (UnimplementedFileServer) GeneratePresignedUrl(context.Context, *GeneratePresignedUrlReq) (*GeneratePresignedUrlResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method GeneratePresignedUrl not implemented")
 }
-func (UnimplementedMediaServer) DeleteFile(context.Context, *DeleteFileReq) (*DeleteFileResp, error) {
+func (UnimplementedFileServer) DeleteFile(context.Context, *DeleteFileReq) (*DeleteFileResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteFile not implemented")
 }
-func (UnimplementedMediaServer) mustEmbedUnimplementedMediaServer() {}
-func (UnimplementedMediaServer) testEmbeddedByValue()               {}
+func (UnimplementedFileServer) mustEmbedUnimplementedFileServer() {}
+func (UnimplementedFileServer) testEmbeddedByValue()              {}
 
-// UnsafeMediaServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to MediaServer will
+// UnsafeFileServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to FileServer will
 // result in compilation errors.
-type UnsafeMediaServer interface {
-	mustEmbedUnimplementedMediaServer()
+type UnsafeFileServer interface {
+	mustEmbedUnimplementedFileServer()
 }
 
-func RegisterMediaServer(s grpc.ServiceRegistrar, srv MediaServer) {
-	// If the following call panics, it indicates UnimplementedMediaServer was
+func RegisterFileServer(s grpc.ServiceRegistrar, srv FileServer) {
+	// If the following call panics, it indicates UnimplementedFileServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
 	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
 		t.testEmbeddedByValue()
 	}
-	s.RegisterService(&Media_ServiceDesc, srv)
+	s.RegisterService(&File_ServiceDesc, srv)
 }
 
-func _Media_CreateUploadTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _File_CreateUploadTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateUploadTaskReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MediaServer).CreateUploadTask(ctx, in)
+		return srv.(FileServer).CreateUploadTask(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Media_CreateUploadTask_FullMethodName,
+		FullMethod: File_CreateUploadTask_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MediaServer).CreateUploadTask(ctx, req.(*CreateUploadTaskReq))
+		return srv.(FileServer).CreateUploadTask(ctx, req.(*CreateUploadTaskReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Media_CompleteUpload_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _File_CompleteUpload_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CompleteUploadReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MediaServer).CompleteUpload(ctx, in)
+		return srv.(FileServer).CompleteUpload(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Media_CompleteUpload_FullMethodName,
+		FullMethod: File_CompleteUpload_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MediaServer).CompleteUpload(ctx, req.(*CompleteUploadReq))
+		return srv.(FileServer).CompleteUpload(ctx, req.(*CompleteUploadReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Media_GetFileMeta_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _File_GetFileMeta_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetFileMetaReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MediaServer).GetFileMeta(ctx, in)
+		return srv.(FileServer).GetFileMeta(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Media_GetFileMeta_FullMethodName,
+		FullMethod: File_GetFileMeta_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MediaServer).GetFileMeta(ctx, req.(*GetFileMetaReq))
+		return srv.(FileServer).GetFileMeta(ctx, req.(*GetFileMetaReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Media_GeneratePresignedUrl_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _File_GeneratePresignedUrl_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GeneratePresignedUrlReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MediaServer).GeneratePresignedUrl(ctx, in)
+		return srv.(FileServer).GeneratePresignedUrl(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Media_GeneratePresignedUrl_FullMethodName,
+		FullMethod: File_GeneratePresignedUrl_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MediaServer).GeneratePresignedUrl(ctx, req.(*GeneratePresignedUrlReq))
+		return srv.(FileServer).GeneratePresignedUrl(ctx, req.(*GeneratePresignedUrlReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Media_DeleteFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _File_DeleteFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeleteFileReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MediaServer).DeleteFile(ctx, in)
+		return srv.(FileServer).DeleteFile(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Media_DeleteFile_FullMethodName,
+		FullMethod: File_DeleteFile_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MediaServer).DeleteFile(ctx, req.(*DeleteFileReq))
+		return srv.(FileServer).DeleteFile(ctx, req.(*DeleteFileReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// Media_ServiceDesc is the grpc.ServiceDesc for Media service.
+// File_ServiceDesc is the grpc.ServiceDesc for File service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var Media_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "media.Media",
-	HandlerType: (*MediaServer)(nil),
+var File_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "file.File",
+	HandlerType: (*FileServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "CreateUploadTask",
-			Handler:    _Media_CreateUploadTask_Handler,
+			Handler:    _File_CreateUploadTask_Handler,
 		},
 		{
 			MethodName: "CompleteUpload",
-			Handler:    _Media_CompleteUpload_Handler,
+			Handler:    _File_CompleteUpload_Handler,
 		},
 		{
 			MethodName: "GetFileMeta",
-			Handler:    _Media_GetFileMeta_Handler,
+			Handler:    _File_GetFileMeta_Handler,
 		},
 		{
 			MethodName: "GeneratePresignedUrl",
-			Handler:    _Media_GeneratePresignedUrl_Handler,
+			Handler:    _File_GeneratePresignedUrl_Handler,
 		},
 		{
 			MethodName: "DeleteFile",
-			Handler:    _Media_DeleteFile_Handler,
+			Handler:    _File_DeleteFile_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "media.proto",
+	Metadata: "file.proto",
 }

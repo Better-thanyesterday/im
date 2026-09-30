@@ -56,6 +56,25 @@ func (l *SendMessageLogic) SendMessage(in *message.SendMessageReq) (*message.Sen
 		}, nil
 	}
 
+	// 4.5 统一占坑时序:分发前 SET NX EX,单聊/群聊一致;
+	//     持久化失败时释放占坑,允许客户端重试
+	acquired, err := l.svcCtx.DedupModel.TryAcquire(l.ctx, in.Body.ConvId, in.ClientMsgId)
+	if err == nil && !acquired {
+		// 占坑失败:上一请求在途或刚完成但 PG 反查未命中(极小窗口),按在途冲突处理
+		l.Infof("dedup acquire conflict, client_msg_id=%s", in.ClientMsgId)
+		msg, dbErr := l.svcCtx.MessagesModel.FindByClientMsgId(l.ctx, in.Body.ConvId, in.ClientMsgId)
+		if dbErr != nil {
+			return nil, constants.NewMsgError(constants.ErrCodeMsgIdempotentDup)
+		}
+		return &message.SendMessageResp{
+			MsgId:    msg.Id,
+			SeqId:    msg.Seqid,
+			ConvId:   msg.Convid,
+			SendTime: msg.Sendtime.UnixMilli(),
+			Isdup:    true,
+		}, nil
+	}
+
 	// 5. 类型分发：单聊 / 群聊
 	var resp *message.SendMessageResp
 	switch in.Isgroup {
@@ -84,16 +103,11 @@ func (l *SendMessageLogic) SendMessage(in *message.SendMessageReq) (*message.Sen
 				SendTime: msg.Sendtime.UnixMilli(),
 			}, nil
 		}
+		// 失败释放占坑,客户端重试不被幂等键挡住
+		l.svcCtx.DedupModel.Release(l.ctx, in.Body.ConvId, in.ClientMsgId)
 		return nil, err
 	}
-
-	// 7. 异步写入幂等缓存（不阻塞响应）
-	go func() {
-		ctx := context.Background()
-		if err := l.svcCtx.DedupModel.Set(ctx, in.Body.ConvId, in.ClientMsgId); err != nil {
-			logx.Errorf("dedup set err: %v", err)
-		}
-	}()
+	// 幂等键已在分发前由 TryAcquire 占坑,无需再写
 	return resp, nil
 }
 

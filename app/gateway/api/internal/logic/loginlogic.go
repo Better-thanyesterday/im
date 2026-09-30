@@ -6,12 +6,10 @@ package logic
 import (
 	"context"
 	"errors"
-	"fmt"
 	"im-platform/app/gateway/api/internal/svc"
 	"im-platform/app/gateway/api/internal/types"
 	"im-platform/app/user/rpc/user"
 	"im-platform/common/utils"
-	"strconv"
 	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -52,12 +50,8 @@ func (l *LoginLogic) Login(req *types.LoginReq) (resp *types.LoginResp, err erro
 		DeviceID:   req.DeviceId,
 		DeviceType: req.DeviceType,
 	}, time.Hour*24)
-	onlineKey := fmt.Sprintf("im:online:%d", loginResp.Userid)
-	err =l.svcCtx.Redis.HsetCtx(l.ctx, onlineKey, strconv.FormatInt(int64(req.DeviceType), 10), l.svcCtx.Config.Gateway.GrpcAddr)
-	if err != nil {
-		logx.Errorf("set im:online:onlineKey failed")
-	}
-	l.svcCtx.Redis.ExpireCtx(l.ctx,onlineKey,1900)	
+	// 不在这里写 im:online:HTTP 登录还没建 WS,写入的是"幽灵在线";
+	// 在线状态由 WS 连接注册(wsconnectlogic.Register)统一写入并由心跳续期
 	return &types.LoginResp{
 		Token: token,
 	}, nil

@@ -4,7 +4,7 @@ import (
 	"im-platform/app/group/rpc/groupclient"
 	"im-platform/app/message/rpc/internal/config"
 	"im-platform/app/message/rpc/models"
-	"im-platform/app/push/rpc/pushclient"
+	pushclient "im-platform/app/push/rpc/pushclient"
 	userclient "im-platform/app/user/rpc/userclient"
 	"im-platform/common/mq"
 	"im-platform/common/utils"
@@ -19,11 +19,11 @@ import (
 type ServiceContext struct {
 	Config        config.Config
 	MessagesModel models.MessagesModel
-	DedupModel    models.DedupModel
+	DedupModel    *models.DedupModel
 	InboxesModel  models.InboxesModel
 	SeqModel      models.SeqsModel
-	Redis         redis.Redis
-	Snokflake     *utils.Snowflake
+	Redis         *redis.Redis
+	Snowflake     *utils.Snowflake
 	KafkaProducer *mq.Producer
 	KafkaConsumer []*mq.Consumer
 	SeqIdCache *utils.SeqIdCache
@@ -35,10 +35,13 @@ type ServiceContext struct {
 func NewServiceContext(c config.Config) *ServiceContext {
 	sqlconn := sqlx.NewSqlConn("postgres", c.Postgres.DataSource)
 	rds := redis.MustNewRedis(c.RedisCache)
-	m := models.NewMessagesModel(sqlconn, c.Cache)
+	m := models.NewMessagesModel(sqlconn)
 	s := models.NewSeqsModel(sqlconn)
 	i := models.NewInboxesModel(sqlconn)
-	snokflake, _ := utils.NewSnowflake(c.SnokFlake.WorkNode)
+	snokflake, err := utils.NewSnowflakeOrAuto(c.Snowflake.WorkNode)
+	if err != nil {
+		panic(err)
+	}
 	// Kafka 生产者（只初始化 Producer，Consumer 在 main 里启动）
 	saramaCfg, err := mq.BuildSaramaConfig(c.Kafka)
 	if err != nil {
@@ -59,11 +62,11 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	return &ServiceContext{
 		Config:        c,
 		MessagesModel: m,
-		DedupModel:    *models.NewDedupModel(rds, m),
+		DedupModel:    models.NewDedupModel(rds, m),
 		InboxesModel:  i,
 		SeqModel:      s,
-		Redis:         *rds,
-		Snokflake:     snokflake,
+		Redis:         rds,
+		Snowflake:     snokflake,
 		KafkaProducer: producer,
 		KafkaConsumer: consumer,
 		Push:          pushclient.NewPush(zrpc.MustNewClient(c.PushRpc)),

@@ -20,8 +20,19 @@ message PushToConnResp {
 
 service Gateway{
     rpc PushToConn(PushToConnReq) returns (PushToConnResp);
-    //rpc BatchPushToConn(BatchPushToConnReq) returns (BatchPushToConnResp); // 可选，批量推送优化
+    // 批量推送:一次 RPC 推多个用户(群聊写扩散用,避免 O(N) 次 Deliver)
+    rpc BatchPushToConn(BatchPushToConnReq) returns (BatchPushToConnResp);
     //rpc KickConn(KickConnReq) returns (KickConnResp); // 踢人，文档里有提到多端互踢
     //rpc GetConnStats(GetConnStatsReq) returns (GetConnStatsResp); // 连接统计，文档提到 /conn/stats
+}
+
+message BatchPushToConnReq {
+    repeated int64 user_ids = 1; // 目标用户列表(其在本网关的全部在线设备都会收到)
+    bytes payload = 2;           // 业务消息体,Gateway 统一封装为 FramePush(0x10) 帧下发
+}
+
+message BatchPushToConnResp {
+    int32 success_count = 1;            // 成功收到推送的连接数
+    repeated int64 failed_user_ids = 2; // 本网关上无在线设备/全部设备投递失败的用户
 }
 

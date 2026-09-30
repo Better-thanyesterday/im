@@ -3,7 +3,6 @@ package config
 import (
 	"im-platform/common/mq"
 
-	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/zrpc"
 )
@@ -13,8 +12,7 @@ type Config struct {
 	Postgres struct {
 		DataSource string
 	}
-	Cache     cache.CacheConf
-	SnokFlake struct {
+	Snowflake struct {
 		WorkNode int64
 	}
 	Kafka mq.Config

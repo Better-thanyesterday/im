@@ -3,6 +3,7 @@ package logic
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
 	"im-platform/app/group/rpc/group"
@@ -29,44 +30,69 @@ func NewCreateGroupLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Creat
 // ==================== 群生命周期 ====================
 func (l *CreateGroupLogic) CreateGroup(in *group.CreateGroupReq) (*group.CreateGroupResp, error) {
 	// todo: add your logic here and delete this line
+	if in.CreatorId <= 0 || in.Name == "" {
+		return nil, fmt.Errorf("invalid create group req: creator=%d name=%q", in.CreatorId, in.Name)
+	}
+	maxMember := int64(in.MaxMember)
+	if maxMember <= 0 {
+		maxMember = 500
+	}
+	// 初始成员去重并排除创建者(创建者单独作为群主插入)
+	seen := map[int64]bool{in.CreatorId: true}
+	members := make([]*models.Groupmembers, 0, len(in.InitialMembers))
+	for _, uid := range in.InitialMembers {
+		if uid <= 0 || seen[uid] {
+			continue
+		}
+		seen[uid] = true
+		members = append(members, &models.Groupmembers{
+			Id:      l.svcCtx.Snowflake.NextID(),
+			Role:    3,
+			UserId:  uid,
+			JoinTime: time.Now(),
+			GroupNickname: sql.NullString{
+				String: in.Name,
+				Valid:  in.Name != "",
+			},
+		})
+	}
 	groupInf := &models.Groups{
-		Id:   l.svcCtx.Snokflake.NextID(),
+		Id:   l.svcCtx.Snowflake.NextID(),
 		Name: in.Name,
 		Avatar: sql.NullString{
 			String: in.Avatar,
 			Valid:  in.Avatar != "",
 		},
-		MemberCount:      1,
+		MemberCount:      int64(1 + len(members)),
 		MemberVersion:    1,
-		GroupType:        1,
+		MaxMember:        maxMember,
+		GroupType:        int64(in.GroupType),
 		Status:           1,
 		InvitePermission: int64(in.InvitePermission),
 		OwnerId:          in.CreatorId,
 		JoinApproval:     int64(in.JoinApproval),
 	}
-	_, err := l.svcCtx.GroupsModel.Insert(l.ctx, groupInf)
-	if err != nil {
-		logx.Errorf("create group fail:%v",err)
-		return nil, err
+	for _, mem := range members {
+		mem.GroupId = groupInf.Id
 	}
-	gmemberInf:=&models.Groupmembers{
-		Id: l.svcCtx.Snokflake.NextID(),
+	owner := &models.Groupmembers{
+		Id:      l.svcCtx.Snowflake.NextID(),
 		GroupId: groupInf.Id,
-		UserId: in.CreatorId,
-		Role: 1,
+		UserId:  in.CreatorId,
+		Role:    1,
 		GroupNickname: sql.NullString{
 			String: in.Name,
 			Valid:  in.Name != "",
 		},
 		JoinTime: time.Now(),
 	}
-	_,err=l.svcCtx.GroupMembersModel.Insert(l.ctx,gmemberInf)
-	if err != nil {
-		logx.Errorf("create groupmember fail:%v",err)
+	// 事务写库:群 + 群主 + 初始成员,任一步失败整体回滚,不再留孤儿群
+	if err := l.svcCtx.GroupsModel.CreateGroupTx(l.ctx, groupInf, append([]*models.Groupmembers{owner}, members...)); err != nil {
+		logx.Errorf("create group failed: %v", err)
 		return nil, err
 	}
 	return &group.CreateGroupResp{
-		MemberVersion: 1,
+		MemberVersion: groupInf.MemberVersion,
 		GroupId:       groupInf.Id,
 	}, nil
 }

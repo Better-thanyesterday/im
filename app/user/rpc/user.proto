@@ -137,6 +137,7 @@ message FriendApplyInfo {
 }
 
 message AddFriendReq {
+    int64 user_id = 3;          // 申请人 uid(鉴权后的本人)
     int64 target_user_id = 1;
     string apply_reason = 2;    // 附言（可选）
 }

@@ -2,8 +2,12 @@ package utils
 
 import (
 	"fmt"
+	"net"
+	"os"
 	"sync"
 	"time"
+
+	"github.com/zeromicro/go-zero/core/logx"
 )
 
 type Snowflake struct {
@@ -32,6 +36,61 @@ func NewSnowflake(worknode int64)(*Snowflake,error){
 		workNode:  worknode,
 		sequence:  0,
 	},nil
+}
+
+// NewSnowflakeOrAuto workNode>0 时按配置创建,否则自动派生
+func NewSnowflakeOrAuto(workNode int64) (*Snowflake, error) {
+	if workNode > 0 {
+		return NewSnowflake(workNode)
+	}
+	return NewSnowflakeAuto()
+}
+
+// NewSnowflakeAuto 从本机 IP 末两段 + 进程号自动派生 workNode。
+// 各服务硬编码同一个 WorkNode(如全是 1)时,多副本部署生成的 msgId 必然撞号;
+// 自动派生在同一 IP 上按 PID 区分副本,跨机按 IP 区分。冲突概率极低但仍非零,
+// 严格场景应改用 etcd/DB 分配节点号
+func NewSnowflakeAuto() (*Snowflake, error) {
+	node, err := deriveWorkNode()
+	if err != nil {
+		return nil, err
+	}
+	sf, err := NewSnowflake(node)
+	if err != nil {
+		return nil, err
+	}
+	logx.Infof("snowflake auto worknode=%d", node)
+	return sf, nil
+}
+
+// AdvertiseHost 返回本机对外可达的非回环 IPv4;找不到返回空串
+func AdvertiseHost() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return ""
+	}
+	for _, addr := range addrs {
+		ipnet, ok := addr.(*net.IPNet)
+		if !ok || ipnet.IP.IsLoopback() {
+			continue
+		}
+		if ip4 := ipnet.IP.To4(); ip4 != nil {
+			return ip4.String()
+		}
+	}
+	return ""
+}
+
+func deriveWorkNode() (int64, error) {
+	ipStr := AdvertiseHost()
+	if ipStr == "" {
+		// 找不到非回环 IPv4(极端环境):退化为 PID 派生
+		return int64(os.Getpid()) % (workNodeMax + 1), nil
+	}
+	ip4 := net.ParseIP(ipStr).To4()
+	// 末两段组合打散跨网段,再混入 PID 区分同机多副本
+	v := int64(ip4[2])*251 + int64(ip4[3])*31 + int64(os.Getpid())
+	return v % (workNodeMax + 1), nil
 }
 
 func (s *Snowflake) NextID() int64 {

@@ -1,0 +1,26 @@
+Name: file.rpc
+ListenOn: 0.0.0.0:18085
+Timeout: 0
+Etcd:
+  Hosts:
+  - 127.0.0.1:2379
+  Key: file.rpc
+
+Postgres:
+  DataSource: postgres://postgres:root@127.0.0.1:5432/im_file?sslmode=disable  # TODO: 密码移出配置文件(环境变量/密管),生产启用 sslmode=require
+
+Snowflake:
+  WorkNode: 0  # 0=按 IP+PID 自动派生,多副本不撞号
+
+Minio:
+  Endpoint: 127.0.0.1:9000
+  AccessKey: root
+  SecretKey: root
+  Bucket: im-files
+  UseSSL: false
+
+Telemetry:
+  Name: file.rpc
+  Endpoint: 127.0.0.1:4317
+  Sampler: 1.0
+  Batcher: otlpgrpc

@@ -47,8 +47,13 @@ func (l *GetFriendsLogic) GetFriends(in *user.GetFriendsReq) (*user.GetFriendsRe
 			CreatedAt: r.CreatedAt,
 		})
 	}
+	// Total 用同过滤条件的 count 查询,不再返回当前页行数
+	total, err := l.svcCtx.FriendsModel.CountFriends(l.ctx, in.UserId, in.Keyword)
+	if err != nil {
+		return nil, err
+	}
 	return &user.GetFriendsResp{
-		Total: int32(len(rows)),
+		Total: int32(total),
 		Friends: friends,
 	}, nil
 }

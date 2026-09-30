@@ -1,13 +1,13 @@
 syntax ="proto3";
 
-package media;
+package file;
 
-option go_package="./media";
-// Media 服务：文件元数据管理 + 预签名 URL 签发
-// 实际文件二进制上传/下载走 HTTP（app/media/api/media.api）， 
+option go_package="./file";
+// File 文件服务：文件元数据管理 + 预签名 URL 签发
+// 实际文件二进制上传/下载走 HTTP（app/file/api/file.api）， 
 // 元数据查询/分片任务管理走 gRPC。
 
-service Media {
+service File {
   // 初始化分片上传任务，返回 upload_id 与各分片预签名 URL
   rpc CreateUploadTask(CreateUploadTaskReq) returns (CreateUploadTaskResp);
 

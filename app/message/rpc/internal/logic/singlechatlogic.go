@@ -53,7 +53,7 @@ func (l *SingleChatLogic) Send(in *message.SendMessageReq, convid string) (*mess
 	}
 	wdb := WriteDiffBundle{}
 	//2.分配seq_id
-	seqId, err, needAsync := NewSeqIdLogic(l.ctx, l.svcCtx).AllocateSeq(convid)
+	seqId, needAsync, err := NewSeqIdLogic(l.ctx, l.svcCtx).AllocateSeq(convid)
 	if err != nil {
 		return nil, fmt.Errorf("allocate seq failed: %w", err)
 	}
@@ -67,9 +67,8 @@ func (l *SingleChatLogic) Send(in *message.SendMessageReq, convid string) (*mess
 		wdb.Seq=seq
 	}
 	//3.生成msg_id
-	msgId := l.svcCtx.Snokflake.NextID()
+	msgId := l.svcCtx.Snowflake.NextID()
 	content, _ := json.Marshal(in.Body.Content)
-	fmt.Println(in.Body)
 	msg := &models.Messages{
 		Id:          msgId,
 		Convid:      convid,
@@ -81,24 +80,36 @@ func (l *SingleChatLogic) Send(in *message.SendMessageReq, convid string) (*mess
 		Sendtime:    time.Now(),
 		Status:      1,
 	}
-	onlineKey := fmt.Sprintf("im:online:%d", in.ToUid)
-	isread ,err:=l.svcCtx.Redis.Exists(onlineKey)
-	if err != nil {
-		logx.Errorf("query redis is fail :%v",err)
-	}
+	// isread 恒为 false:已读状态由 AckMessage 的 read_seq 水位统一推进,
+	// "发送时对方是否在线"不是已读语义
 	inboxmsg:=models.Inboxes{
 		Userid: in.ToUid,
 		Msgid: msgId,
-		Isread: isread,
+		Isread: false,
 		Convid: convid,
 		Status: 1,
 		Seqid: seqId,
 	}
 	wdb.Inboxes=append(wdb.Inboxes, &inboxmsg)
+	// 发送方也写一行 inbox(isread=true,不计未读):
+	// 发送方的其他设备靠这行做离线补发/会话状态同步,原实现只写接收方导致缺位
+	senderInbox:=models.Inboxes{
+		Userid: in.SenderId,
+		Msgid: msgId,
+		Isread: true,
+		Convid: convid,
+		Status: 1,
+		Seqid: seqId,
+	}
+	wdb.Inboxes=append(wdb.Inboxes, &senderInbox)
 	wdb.Msg=msg
+	// WriteDiffPersistMsg 内部已含"Kafka 失败降级同步写 PG"兜底;
+	// 两者都失败说明消息彻底没落库,必须返回错误让客户端重发,
+	// 否则收方实时收到了但 Sync 永远拉不到
 	err=NewAsyncPersistMsg(l.ctx,l.svcCtx).WriteDiffPersistMsg(l.ctx,&wdb)
 	if err != nil {
-		logx.Errorf("kafka send fail :%v ",err)
+		logx.Errorf("persist msg failed, conv=%s msgId=%d: %v", convid, msgId, err)
+		return nil, fmt.Errorf("persist msg failed: %w", err)
 	}
 	
 	//5. 调用 Push 服务投递给接收方

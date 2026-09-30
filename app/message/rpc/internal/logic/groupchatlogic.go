@@ -13,7 +13,7 @@ import (
 	"im-platform/common/mq"
 	"im-platform/common/utils"
 	"math"
-	"sync"
+	"strconv"
 	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -49,7 +49,7 @@ func (l *GroupChatLogic) Send(in *message.SendMessageReq, convid string) (*messa
 	if groupInfo.Info.Status != 1 {
 		return nil, fmt.Errorf("group not available")
 	}
-	seqId, err, needAsync := NewSeqIdLogic(l.ctx, l.svcCtx).AllocateSeq(convid)
+	seqId, needAsync, err := NewSeqIdLogic(l.ctx, l.svcCtx).AllocateSeq(convid)
 	if err != nil {
 		return nil, fmt.Errorf("allocate seq failed: %w", err)
 	}
@@ -57,13 +57,19 @@ func (l *GroupChatLogic) Send(in *message.SendMessageReq, convid string) (*messa
 	if needAsync {
 		wdb.Seq = utils.BuildSeqEntity(convid, seqId)
 	}
-	msgId := l.svcCtx.Snokflake.NextID()
+	msgId := l.svcCtx.Snowflake.NextID()
 	// ========== 5. 构造消息体并异步持久化到 Kafka ==========
 	msg, _ := utils.BuildMsgEntity(msgId, seqId, convid, in)
 	wdb.Msg = msg
-	// ========== 6. 注册幂等键（24h TTL） ==========
-	l.svcCtx.DedupModel.Set(l.ctx, convid, in.ClientMsgId)
-	// ========== 7. 自适应扩散策略 ==========
+	// ========== 5.5 持久化消息主表与 seq(Kafka 异步,失败降级同步写 PG) ==========
+	// 必须先于扩散执行:inbox 消费依赖 messages 已落库;
+	// Kafka 与 PG 兜底都失败说明消息没落库,必须返回错误让客户端重发
+	if err := NewAsyncPersistMsg(l.ctx, l.svcCtx).WriteDiffPersistMsg(l.ctx, &wdb); err != nil {
+		l.Errorf("persist group msg failed: msgId=%d conv=%s err=%v", msgId, convid, err)
+		return nil, fmt.Errorf("persist msg failed: %w", err)
+	}
+	// ========== 6. 自适应扩散策略 ==========
+	// 幂等键已在 SendMessageLogic 分发前统一占坑(TryAcquire),此处不再写
 	if groupInfo.Info.MemberCount < 500 { // 小群 < 500人：写扩散
 		if err := l.writeDiffusion(msg, in, groupInfo.Info); err != nil {
 			l.Errorf("writeDiffusion error: %v", err)
@@ -84,7 +90,22 @@ func (l *GroupChatLogic) Send(in *message.SendMessageReq, convid string) (*messa
 	}, nil
 }
 
+// memberCheckState CheckMember 的缓存载荷
+type memberCheckState struct {
+	IsMember  bool  `json:"is_member"`
+	MuteUntil int64 `json:"mute_until"`
+}
+
 func (l *GroupChatLogic) validateSender(senderId, groupId int64) error {
+	// 结果按 (群,用户) 缓存 60s:原实现每条消息一次 CheckMember RPC + DB EXISTS;
+	// 禁言时间戳随缓存下发,陈旧窗口(≤60s)远小于典型禁言时长,可接受
+	cacheKey := fmt.Sprintf("im:gck:%d:%d", groupId, senderId)
+	if cached, err := l.svcCtx.Redis.GetCtx(l.ctx, cacheKey); err == nil && cached != "" {
+		var st memberCheckState
+		if json.Unmarshal([]byte(cached), &st) == nil {
+			return l.applyMemberCheck(st)
+		}
+	}
 	checkResp, err := l.svcCtx.Group.CheckMember(l.ctx, &group.CheckMemberReq{
 		GroupId: groupId,
 		UserId:  senderId,
@@ -92,55 +113,50 @@ func (l *GroupChatLogic) validateSender(senderId, groupId int64) error {
 	if err != nil {
 		return fmt.Errorf("check member rpc failed: %w", err)
 	}
-	if !checkResp.IsMember {
+	st := memberCheckState{
+		IsMember:  checkResp.IsMember,
+		MuteUntil: checkResp.MuteUntil,
+	}
+	if b, jerr := json.Marshal(&st); jerr == nil {
+		_ = l.svcCtx.Redis.SetexCtx(l.ctx, cacheKey, string(b), 60)
+	}
+	return l.applyMemberCheck(st)
+}
+
+func (l *GroupChatLogic) applyMemberCheck(st memberCheckState) error {
+	if !st.IsMember {
 		return fmt.Errorf("sender is not group member")
 	}
-	if checkResp.MuteUntil > 0 && time.Now().Unix() < checkResp.MuteUntil {
+	if st.MuteUntil > 0 && time.Now().Unix() < st.MuteUntil {
 		return fmt.Errorf("sender is muted")
 	}
 	return nil
 }
 
 // writeDiffusion 小群写扩散（< 500人）
-// 为每个成员（排除发送方、免打扰成员）生成 inbox，批量写入 Kafka；调用 Push.Deliver 投递
+// 成员列表走 member_version 缓存;实时推送合并为一次 BatchDeliver(push 内部受限并发),
+// 替代原来 O(N) 次 Push.Deliver(499 个 goroutine 打爆 push)
 func (l *GroupChatLogic) writeDiffusion(msg *models.Messages, in *message.SendMessageReq, groupinfo *group.GroupInfo) error {
 	// mentions := l.extractMentions(in.Extra)
 	// mentionSet := make(map[int64]struct{}, len(mentions))
 	// for _, uid := range mentions {
 	// 	mentionSet[uid] = struct{}{}
 	// }
-	// 分页拉取全量成员（每页 200，避免单次 RPC 过大）
-	var wb WriteDiffBundle
-	pageSize := int64(200)
-	var allMember []*group.MemberInfo
-	lastId := int64(math.MaxInt64)
-	for page := 1; ; page++ {
-		resp, err := l.svcCtx.Group.GetMembers(l.ctx, &group.GetMembersReq{
-			GroupId:  in.ToUid,
-			PageSize: int32(pageSize),
-			LastId:   lastId,
-		})
-		if err != nil {
-			return fmt.Errorf("get members failed: %w", err)
-		}
-		lastId = resp.LastId
-		allMember = append(allMember, resp.Members...)
-		if !resp.HasMore {
-			break
-		}
+	memberIds, err := l.groupMemberIds(groupinfo)
+	if err != nil {
+		return err
 	}
 	now := time.Now()
 	var inboxBatch []*models.Inboxes
-	var wg sync.WaitGroup
-	errCh := make(chan error, len(allMember))
+	var pushUserIds []int64
 	pushMsg := utils.BuildPushMessage(msg, in)
-	for _, member := range allMember {
-		if member.UserId == in.SenderId {
+	for _, uid := range memberIds {
+		if uid == in.SenderId {
 			continue
 		}
 		// 免打扰成员跳过，除非被 @ 提及 可以补全
 		inboxBatch = append(inboxBatch, &models.Inboxes{
-			Userid:    member.UserId,
+			Userid:    uid,
 			Msgid:     msg.Id,
 			Convid:    msg.Convid,
 			Isread:    false,
@@ -148,45 +164,81 @@ func (l *GroupChatLogic) writeDiffusion(msg *models.Messages, in *message.SendMe
 			CreatedAt: now,
 			Seqid:     msg.Seqid,
 		})
+		pushUserIds = append(pushUserIds, uid)
 		// 每 500 条刷一次 inbox Kafka
 		if len(inboxBatch) >= 500 {
-			wb.Inboxes = inboxBatch
-			err := NewAsyncPersistMsg(l.ctx, l.svcCtx).persistInboxes(l.ctx, inboxBatch)
-			if err != nil {
+			if err := NewAsyncPersistMsg(l.ctx, l.svcCtx).persistInboxes(l.ctx, inboxBatch); err != nil {
 				logx.Errorf("batch send inbox failed: %v", err)
 			}
 			inboxBatch = inboxBatch[:0]
 		}
-		wg.Add(1)
-		go func(uid int64) {
-			defer wg.Done()
-			_, err := l.svcCtx.Push.Deliver(l.ctx, &push.DeliverReq{
-				UserId:   uid,
-				PushType: push.PushType_PushTypeFull,
-				Message:  pushMsg,
-			})
-			if err != nil {
-				errCh <- fmt.Errorf("push to %d failed: %w", uid, err)
-			}
-
-		}(member.UserId)
 	}
 	// 刷入剩余 inbox
 	if len(inboxBatch) > 0 {
-		wb.Inboxes = inboxBatch
-		err := NewAsyncPersistMsg(l.ctx, l.svcCtx).persistInboxes(l.ctx, inboxBatch)
-		if err != nil {
+		if err := NewAsyncPersistMsg(l.ctx, l.svcCtx).persistInboxes(l.ctx, inboxBatch); err != nil {
 			logx.Errorf("batch send inbox failed: %v", err)
 		}
 	}
-	wg.Wait()
-	close(errCh)
-
-	// 收集推送错误（仅日志，不阻断）
-	for err := range errCh {
-		l.Errorf("push error: %v", err)
+	// 单次批量投递:实时推送失败/离线的用户由 push 内部走离线兜底
+	if len(pushUserIds) > 0 {
+		if _, err := l.svcCtx.Push.BatchDeliver(l.ctx, &push.BatchDeliverReq{
+			UserIds:  pushUserIds,
+			PushType: push.PushType_PushTypeFull,
+			Message:  pushMsg,
+		}); err != nil {
+			l.Errorf("batch deliver failed: conv=%s err=%v", msg.Convid, err)
+		}
 	}
 	return nil
+}
+
+// groupMemberIds 群成员列表缓存:cache key 携带 member_version,
+// 成员变更时版本递增(IncrMembers),缓存自动失效;TTL 30min 兜底兜住版本泄漏场景
+func (l *GroupChatLogic) groupMemberIds(groupInfo *group.GroupInfo) ([]int64, error) {
+	cacheKey := fmt.Sprintf("im:gmem:%d:v%d", groupInfo.Id, groupInfo.MemberVersion)
+	if members, err := l.svcCtx.Redis.Smembers(cacheKey); err == nil && len(members) > 0 {
+		ids := make([]int64, 0, len(members))
+		for _, s := range members {
+			if id, e := strconv.ParseInt(s, 10, 64); e == nil && id > 0 {
+				ids = append(ids, id)
+			}
+		}
+		if len(ids) > 0 {
+			return ids, nil
+		}
+	}
+	// miss:分页拉全量（每页 200，避免单次 RPC 过大）
+	pageSize := int64(200)
+	var ids []int64
+	lastId := int64(math.MaxInt64)
+	for {
+		resp, err := l.svcCtx.Group.GetMembers(l.ctx, &group.GetMembersReq{
+			GroupId:  groupInfo.Id,
+			PageSize: int32(pageSize),
+			LastId:   lastId,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("get members failed: %w", err)
+		}
+		for _, m := range resp.Members {
+			ids = append(ids, m.UserId)
+		}
+		lastId = resp.LastId
+		if !resp.HasMore {
+			break
+		}
+	}
+	// 回填缓存
+	if len(ids) > 0 {
+		members := make([]any, 0, len(ids))
+		for _, id := range ids {
+			members = append(members, strconv.FormatInt(id, 10))
+		}
+		if _, err := l.svcCtx.Redis.Sadd(cacheKey, members...); err == nil {
+			_ = l.svcCtx.Redis.Expire(cacheKey, 1800)
+		}
+	}
+	return ids, nil
 }
 
 // readDiffusion 大群读扩散（>= 500人）
@@ -219,7 +271,9 @@ func (l *GroupChatLogic) readDiffusion(msg *models.Messages, in *message.SendMes
 		"timestamp": msg.Sendtime.UnixMilli(),
 	}
 	payload, _ := json.Marshal(notify)
-	return l.svcCtx.KafkaProducer.Publish(l.ctx, mq.TopicMsgPersist, payload)
+	// 必须发事件广播 topic:TopicMsgPersist 的消费者会把 payload 反序列化成
+	// Messages 插库,发错 topic 会产生全零垃圾行;key=conv_id 保同会话通知有序
+	return l.svcCtx.KafkaProducer.PublishWithKey(l.ctx, mq.TopicEventNotify, msg.Convid, payload)
 }
 
 // extractMentions 从 Extra 中提取 @ 列表

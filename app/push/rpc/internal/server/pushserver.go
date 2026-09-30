@@ -15,7 +15,6 @@ import (
 type PushServer struct {
 	svcCtx *svc.ServiceContext
 	push.UnimplementedPushServer
-	
 }
 
 func NewPushServer(svcCtx *svc.ServiceContext) *PushServer {
@@ -27,7 +26,13 @@ func NewPushServer(svcCtx *svc.ServiceContext) *PushServer {
 // 在线实时推送 + 离线存储 + 未读计数：按 Redis 在线状态决定走 Gateway.PushToConn 还是写 im:offline
 func (s *PushServer) Deliver(ctx context.Context, in *push.DeliverReq) (*push.DeliverResp, error) {
 	l := logic.NewDeliverLogic(ctx, s.svcCtx)
-	return l.Deliver(in)
+	return l.Deliver(ctx,in)
+}
+
+// 批量投递:内部按受限并发逐个走 Deliver 语义(在线推送/离线兜底/未读计数)
+func (s *PushServer) BatchDeliver(ctx context.Context, in *push.BatchDeliverReq) (*push.BatchDeliverResp, error) {
+	l := logic.NewBatchDeliverLogic(ctx, s.svcCtx)
+	return l.BatchDeliver(in)
 }
 
 // 清零 im:unread:{user_id} 中对应会话的计数

@@ -2,7 +2,7 @@
 // goctl 1.10.1
 // Source: gateway.proto
 
-package gatewayclient
+package gatewayClient
 
 import (
 	"context"
@@ -14,11 +14,15 @@ import (
 )
 
 type (
-	PushToConnReq  = gateway.PushToConnReq
-	PushToConnResp = gateway.PushToConnResp
+	BatchPushToConnReq  = gateway.BatchPushToConnReq
+	BatchPushToConnResp = gateway.BatchPushToConnResp
+	PushToConnReq       = gateway.PushToConnReq
+	PushToConnResp      = gateway.PushToConnResp
 
 	Gateway interface {
 		PushToConn(ctx context.Context, in *PushToConnReq, opts ...grpc.CallOption) (*PushToConnResp, error)
+		// 批量推送:一次 RPC 推多个用户(群聊写扩散用,避免 O(N) 次 Deliver)
+		BatchPushToConn(ctx context.Context, in *BatchPushToConnReq, opts ...grpc.CallOption) (*BatchPushToConnResp, error)
 	}
 
 	defaultGateway struct {
@@ -35,4 +39,10 @@ func NewGateway(cli zrpc.Client) Gateway {
 func (m *defaultGateway) PushToConn(ctx context.Context, in *PushToConnReq, opts ...grpc.CallOption) (*PushToConnResp, error) {
 	client := gateway.NewGatewayClient(m.cli.Conn())
 	return client.PushToConn(ctx, in, opts...)
+}
+
+// 批量推送:一次 RPC 推多个用户(群聊写扩散用,避免 O(N) 次 Deliver)
+func (m *defaultGateway) BatchPushToConn(ctx context.Context, in *BatchPushToConnReq, opts ...grpc.CallOption) (*BatchPushToConnResp, error) {
+	client := gateway.NewGatewayClient(m.cli.Conn())
+	return client.BatchPushToConn(ctx, in, opts...)
 }

@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"fmt"
 	"im-platform/app/gateway/api/conn"
 	"im-platform/app/gateway/api/internal/logic"
@@ -9,7 +8,6 @@ import (
 	"im-platform/common/middleware"
 	"net/http"
 	"net/url"
-	"strconv"
 
 	"github.com/gorilla/websocket"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -54,8 +52,10 @@ func WsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		c := conn.NewConn(userId, deviceType, connect, func(c *conn.Conn) {
 			onConnClosed(svcCtx, c)
 		},func() {
-			onlineKey := fmt.Sprintf("im:online:%d", userId)
-			svcCtx.Redis.Expire(onlineKey,90)
+			// 心跳只续期本设备的活性 key;不能 Expire 整个在线 Hash,
+			// 否则 A 设备崩溃后其 field 残留,B 的心跳一直给死地址续命
+			liveKey := fmt.Sprintf("im:online:%d:%d", userId, deviceType)
+			svcCtx.Redis.Expire(liveKey,90)
 		})
 		l := logic.NewWsConnectLogic(r.Context(), svcCtx)
 		l.Register(c)
@@ -69,31 +69,30 @@ func WsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 // onConnClosed：连接断开后的清理
 func onConnClosed(svcCtx *svc.ServiceContext, c *conn.Conn) {
-	// 1. 从本地连接管理器移除
+	// 1. 从本地连接管理器移除(只做内存操作,Redis 调用放锁外,
+	//    避免 Redis 抖动时 bucket 写锁被拖住、同桶全部连接的操作被冻结)
 	bucket := svcCtx.ConnManager.BucketOf(c.UserId())
-	bucket.Mu.Lock()
-	defer bucket.Mu.Unlock()
 	k := conn.ConnKey(c.UserId(),c.DeviceType())
+	bucket.Mu.Lock()
 	// 注意：只有当前连接还在 map 里才删（防止新连接把旧连接覆盖了，旧连接的 onClose 误删新连接）
-	if cur, ok := bucket.Conns[k]; ok && cur == c { // 只有自己还在 map 里才删
+	cur, ok := bucket.Conns[k]
+	self := ok && cur == c
+	if self {
 		delete(bucket.Conns, k)
 	}
-	// 2. 清 Redis 在线状态
-	key := fmt.Sprintf("im:online:%d", c.UserId())
-	if _, err := svcCtx.Redis.Hdel(key, fmt.Sprintf("%d", c.DeviceType())); err != nil {
-		logx.Errorf("redis hdel failed | user=%d device=%d err=%v", c.UserId(), c.DeviceType(), err)
+	bucket.Mu.Unlock()
+	// 2. 清 Redis 在线状态(锁外网络调用):
+	//    只有被清理的是"自己"才清——被新连接顶替时,在线态归新连接所有,不能误删
+	if self {
+		key := fmt.Sprintf("im:online:%d", c.UserId())
+		if _, err := svcCtx.Redis.Hdel(key, fmt.Sprintf("%d", c.DeviceType())); err != nil {
+			logx.Errorf("redis hdel failed | user=%d device=%d err=%v", c.UserId(), c.DeviceType(), err)
+		}
+		liveKey := fmt.Sprintf("im:online:%d:%d", c.UserId(), c.DeviceType())
+		if _, err := svcCtx.Redis.Del(liveKey); err != nil {
+			logx.Errorf("redis del live key failed | key=%s err=%v", liveKey, err)
+		}
+		// 原 im:offline:{uid} 的写入已删除:全仓库无读者,纯死数据
 	}
-	//
-	offlineKey := fmt.Sprintf("im:offline:%d", c.UserId())
-	err := svcCtx.Redis.HsetCtx(context.Background(), offlineKey, strconv.FormatInt(int64(c.DeviceType()), 10), svcCtx.Config.Gateway.GrpcAddr)
-	if err != nil {
-		logx.Errorf("set offline failed")
-	}
-	svcCtx.Redis.ExpireCtx(context.Background(),offlineKey,900)
-	// 3. 如果该用户所有设备都下线了，删除整个 key
-	// if n, _ := g.redis.Hlen(key); n == 0 {
-	// 	g.redis.Del(key)
-	// }
-
-	logx.Infof("conn closed & online cleared | user=%d device=%d", c.UserId(), c.DeviceType())
+	logx.Infof("conn closed & online cleared | user=%d device=%d self=%v", c.UserId(), c.DeviceType(), self)
 }

@@ -142,6 +142,110 @@ func (x *PushToConnResp) GetErrorMsg() string {
 	return ""
 }
 
+type BatchPushToConnReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserIds       []int64                `protobuf:"varint,1,rep,packed,name=user_ids,json=userIds,proto3" json:"user_ids,omitempty"` // 目标用户列表(其在本网关的全部在线设备都会收到)
+	Payload       []byte                 `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`                        // 业务消息体,Gateway 统一封装为 FramePush(0x10) 帧下发
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BatchPushToConnReq) Reset() {
+	*x = BatchPushToConnReq{}
+	mi := &file_gateway_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchPushToConnReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchPushToConnReq) ProtoMessage() {}
+
+func (x *BatchPushToConnReq) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchPushToConnReq.ProtoReflect.Descriptor instead.
+func (*BatchPushToConnReq) Descriptor() ([]byte, []int) {
+	return file_gateway_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *BatchPushToConnReq) GetUserIds() []int64 {
+	if x != nil {
+		return x.UserIds
+	}
+	return nil
+}
+
+func (x *BatchPushToConnReq) GetPayload() []byte {
+	if x != nil {
+		return x.Payload
+	}
+	return nil
+}
+
+type BatchPushToConnResp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SuccessCount  int32                  `protobuf:"varint,1,opt,name=success_count,json=successCount,proto3" json:"success_count,omitempty"`             // 成功收到推送的连接数
+	FailedUserIds []int64                `protobuf:"varint,2,rep,packed,name=failed_user_ids,json=failedUserIds,proto3" json:"failed_user_ids,omitempty"` // 本网关上无在线设备/全部设备投递失败的用户
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BatchPushToConnResp) Reset() {
+	*x = BatchPushToConnResp{}
+	mi := &file_gateway_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchPushToConnResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchPushToConnResp) ProtoMessage() {}
+
+func (x *BatchPushToConnResp) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchPushToConnResp.ProtoReflect.Descriptor instead.
+func (*BatchPushToConnResp) Descriptor() ([]byte, []int) {
+	return file_gateway_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *BatchPushToConnResp) GetSuccessCount() int32 {
+	if x != nil {
+		return x.SuccessCount
+	}
+	return 0
+}
+
+func (x *BatchPushToConnResp) GetFailedUserIds() []int64 {
+	if x != nil {
+		return x.FailedUserIds
+	}
+	return nil
+}
+
 var File_gateway_proto protoreflect.FileDescriptor
 
 const file_gateway_proto_rawDesc = "" +
@@ -155,10 +259,17 @@ const file_gateway_proto_rawDesc = "" +
 	"\bpriority\x18\x04 \x01(\x05R\bpriority\"G\n" +
 	"\x0ePushToConnResp\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x1b\n" +
-	"\terror_msg\x18\x02 \x01(\tR\berrorMsg2H\n" +
+	"\terror_msg\x18\x02 \x01(\tR\berrorMsg\"I\n" +
+	"\x12BatchPushToConnReq\x12\x19\n" +
+	"\buser_ids\x18\x01 \x03(\x03R\auserIds\x12\x18\n" +
+	"\apayload\x18\x02 \x01(\fR\apayload\"b\n" +
+	"\x13BatchPushToConnResp\x12#\n" +
+	"\rsuccess_count\x18\x01 \x01(\x05R\fsuccessCount\x12&\n" +
+	"\x0ffailed_user_ids\x18\x02 \x03(\x03R\rfailedUserIds2\x96\x01\n" +
 	"\aGateway\x12=\n" +
 	"\n" +
-	"PushToConn\x12\x16.gateway.PushToConnReq\x1a\x17.gateway.PushToConnRespB\vZ\t./gatewayb\x06proto3"
+	"PushToConn\x12\x16.gateway.PushToConnReq\x1a\x17.gateway.PushToConnResp\x12L\n" +
+	"\x0fBatchPushToConn\x12\x1b.gateway.BatchPushToConnReq\x1a\x1c.gateway.BatchPushToConnRespB\vZ\t./gatewayb\x06proto3"
 
 var (
 	file_gateway_proto_rawDescOnce sync.Once
@@ -172,16 +283,20 @@ func file_gateway_proto_rawDescGZIP() []byte {
 	return file_gateway_proto_rawDescData
 }
 
-var file_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_gateway_proto_goTypes = []any{
-	(*PushToConnReq)(nil),  // 0: gateway.PushToConnReq
-	(*PushToConnResp)(nil), // 1: gateway.PushToConnResp
+	(*PushToConnReq)(nil),       // 0: gateway.PushToConnReq
+	(*PushToConnResp)(nil),      // 1: gateway.PushToConnResp
+	(*BatchPushToConnReq)(nil),  // 2: gateway.BatchPushToConnReq
+	(*BatchPushToConnResp)(nil), // 3: gateway.BatchPushToConnResp
 }
 var file_gateway_proto_depIdxs = []int32{
 	0, // 0: gateway.Gateway.PushToConn:input_type -> gateway.PushToConnReq
-	1, // 1: gateway.Gateway.PushToConn:output_type -> gateway.PushToConnResp
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	2, // 1: gateway.Gateway.BatchPushToConn:input_type -> gateway.BatchPushToConnReq
+	1, // 2: gateway.Gateway.PushToConn:output_type -> gateway.PushToConnResp
+	3, // 3: gateway.Gateway.BatchPushToConn:output_type -> gateway.BatchPushToConnResp
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -198,7 +313,7 @@ func file_gateway_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gateway_proto_rawDesc), len(file_gateway_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

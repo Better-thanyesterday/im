@@ -19,6 +19,9 @@ type (
 		IsBlocked(ctx context.Context, userId, targetId int64) (bool, error)
 		UpdateRelationStatus(ctx context.Context, userId, friendId int64, status int64) error
 		DeleteRelation(ctx context.Context, userId, friendId int64) error
+		InsertRelation(ctx context.Context, userId, friendId int64, remark string) error
+		FindFriendsByUserId(ctx context.Context, userId int64, keyword string, page, pageSize int32) ([]friendInfoRow, error)
+		CountFriends(ctx context.Context, userId int64, keyword string) (int64, error)
 	}
 
 	customFriendsModel struct {
@@ -83,4 +86,59 @@ func (m *customFriendsModel) DeleteRelation(ctx context.Context, userId, friendI
 		return ErrNotFound
 	}
 	return nil
+}
+
+// InsertRelation 写入双向好友关系(status=1),remark 是接受方对申请方的备注
+func (m *customFriendsModel) InsertRelation(ctx context.Context, userId, friendId int64, remark string) error {
+	query := fmt.Sprintf(`insert into %s (user_id, friend_id, status, friend_group_id, remark)
+		values ($1, $2, 1, null, $3), ($2, $1, 1, null, '')`, m.table)
+	_, err := m.conn.ExecCtx(ctx, query, userId, friendId, remark)
+	return err
+}
+
+// FindFriendsByUserId 分页查询好友列表(从 _gen.go 迁入并修复:
+// 原实现 FROM friends_$suffix 字面量未替换、LIMIT/OFFSET 未绑定参数、
+// Sprintf 内 % 未转义触发 go vet 报错)
+func (m *customFriendsModel) FindFriendsByUserId(ctx context.Context, userId int64, keyword string, page, pageSize int32) ([]friendInfoRow, error) {
+	if page <= 0 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+	offset := (page - 1) * pageSize
+	query := fmt.Sprintf(`SELECT
+		f.friend_id AS user_id,
+		COALESCE(u.nickname, '') AS nickname,
+		COALESCE(u.avatar, '') AS avatar,
+		COALESCE(f.remark, '') AS remark,
+		COALESCE(f.friend_group_id, 0) AS friend_group_id,
+		EXTRACT(epoch FROM f.created_at) * 1000 AS created_at
+	FROM %s f
+	LEFT JOIN users u ON f.friend_id = u.id
+	WHERE f.user_id = $1
+	  AND f.status = 1
+	  AND ($2 = '' OR u.nickname ILIKE '%%' || $2 || '%%' OR f.remark ILIKE '%%' || $2 || '%%')
+	ORDER BY f.created_at DESC
+	LIMIT $3 OFFSET $4`, m.table)
+	var resp []friendInfoRow
+	err := m.conn.QueryRowsCtx(ctx, &resp, query, userId, keyword, pageSize, offset)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// CountFriends 好友总数(与 FindFriendsByUserId 同过滤条件),
+// 供分页 Total 使用;原实现直接返回当前页行数,前端永远翻不到页
+func (m *customFriendsModel) CountFriends(ctx context.Context, userId int64, keyword string) (int64, error) {
+	query := fmt.Sprintf(`select count(*)
+	FROM %s f
+	LEFT JOIN users u ON f.friend_id = u.id
+	WHERE f.user_id = $1
+	  AND f.status = 1
+	  AND ($2 = '' OR u.nickname ILIKE '%%' || $2 || '%%' OR f.remark ILIKE '%%' || $2 || '%%')`, m.table)
+	var n int64
+	err := m.conn.QueryRowCtx(ctx, &n, query, userId, keyword)
+	return n, err
 }

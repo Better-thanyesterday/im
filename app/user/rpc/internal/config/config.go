@@ -12,7 +12,7 @@ type Config struct {
 		DataSource string
 	}
 	Cache cache.CacheConf
-	SnokFlake struct{
+	Snowflake struct{
 		WorkNode int64
 	}
 	RedisCache redis.RedisConf

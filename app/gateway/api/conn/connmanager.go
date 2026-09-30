@@ -30,13 +30,18 @@ func (m *ConnManager) BucketOf(userId int64) *bucket {
 
 func (m *ConnManager) Add(c *Conn) {
 	b := m.BucketOf(c.userId)
-	defer b.Mu.Unlock()
 	b.Mu.Lock()
 	key := c.Key()
-	if old := b.Conns[key]; old != nil && old != c {
-		old.Close()
+	var old *Conn
+	if cur := b.Conns[key]; cur != nil && cur != c {
+		old = cur
 	}
 	b.Conns[key] = c
+	b.Mu.Unlock()
+	// 锁外关闭:Close 会触发 onClose 回调,回调里会再拿同桶的锁,锁内调用是死锁地雷
+	if old != nil {
+		old.Close()
+	}
 }
 
 func (m *ConnManager) Get(userId int64, deviceType int32) (*Conn, bool) {

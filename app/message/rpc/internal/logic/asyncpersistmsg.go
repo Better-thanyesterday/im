@@ -74,8 +74,8 @@ func (l *AsyncPersistMsg) persistMsg(ctx context.Context, msg *models.Messages) 
 		return fmt.Errorf("marshal msg failed: %w", err)
 	}
 
-	// 尝试发 Kafka
-	if err := l.svcCtx.KafkaProducer.Publish(ctx, mq.TopicMsgPersist, payload); err != nil {
+	// 尝试发 Kafka(key=conv_id,保证同会话消息同分区有序)
+	if err := l.svcCtx.KafkaProducer.PublishWithKey(ctx, mq.TopicMsgPersist, msg.Convid, payload); err != nil {
 		logx.WithContext(ctx).Errorf("kafka publish msg failed, fallback to pg: %v", err)
 
 		// Fallback：同步写 PG。依赖 messages 表的 client_msg_id 唯一索引幂等
@@ -97,7 +97,7 @@ func (l *AsyncPersistMsg) persistSeq(ctx context.Context, seq *models.Seqs) erro
 		return fmt.Errorf("marshal seq failed: %w", err)
 	}
 
-	if err := l.svcCtx.KafkaProducer.Publish(ctx, mq.TopicSeqPersist, payload); err != nil {
+	if err := l.svcCtx.KafkaProducer.PublishWithKey(ctx, mq.TopicSeqPersist, seq.ConvId, payload); err != nil {
 		logx.WithContext(ctx).Errorf("kafka publish seq failed, fallback to pg: %v", err)
 
 		// Fallback：Upsert（INSERT ... ON CONFLICT UPDATE）
@@ -118,7 +118,7 @@ func (l *AsyncPersistMsg) persistInboxes(ctx context.Context, inboxes []*models.
 		return fmt.Errorf("marshal inboxes failed: %w", err)
 	}
 
-	if err := l.svcCtx.KafkaProducer.Publish(ctx, mq.TopicMsgInbox, payload); err != nil {
+	if err := l.svcCtx.KafkaProducer.PublishWithKey(ctx, mq.TopicMsgInbox, inboxes[0].Convid, payload); err != nil {
 		logx.WithContext(ctx).Errorf("kafka publish inboxes failed, fallback to pg: %v", err)
 
 		// Fallback：批量插入。依赖 (user_id, msg_id) 或 (user_id, conv_id, seq_id) 唯一索引幂等

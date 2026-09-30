@@ -124,9 +124,10 @@ func (c *Conn) WritePump() {
 			if err := c.ws.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
-			// 只要绑定了函数，就异步调用
+			// 同步调用:每次 ping 只做一次 Redis Expire,Redis 客户端自带超时兜底;
+			// 原 go onRenew() 每 30s 无界起 goroutine,Redis 抖动时会堆积
 			if c.onRenew != nil {
-				go c.onRenew()
+				c.onRenew()
 			}
 		}
 

@@ -374,6 +374,111 @@ func (*ClearUnreadResp) Descriptor() ([]byte, []int) {
 	return file_push_proto_rawDescGZIP(), []int{4}
 }
 
+// 批量投递指令:群聊写扩散用,一次 RPC 投多个用户,避免 O(N) 次跨服务调用
+type BatchDeliverReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserIds       []int64                `protobuf:"varint,1,rep,packed,name=user_ids,json=userIds,proto3" json:"user_ids,omitempty"`                // 目标用户列表(不含发送方)
+	PushType      PushType               `protobuf:"varint,2,opt,name=push_type,json=pushType,proto3,enum=push.PushType" json:"push_type,omitempty"` // 推送方式
+	Message       *PushMessage           `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`                                       // 消息体
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BatchDeliverReq) Reset() {
+	*x = BatchDeliverReq{}
+	mi := &file_push_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchDeliverReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchDeliverReq) ProtoMessage() {}
+
+func (x *BatchDeliverReq) ProtoReflect() protoreflect.Message {
+	mi := &file_push_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchDeliverReq.ProtoReflect.Descriptor instead.
+func (*BatchDeliverReq) Descriptor() ([]byte, []int) {
+	return file_push_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *BatchDeliverReq) GetUserIds() []int64 {
+	if x != nil {
+		return x.UserIds
+	}
+	return nil
+}
+
+func (x *BatchDeliverReq) GetPushType() PushType {
+	if x != nil {
+		return x.PushType
+	}
+	return PushType_PushTypeUnspecified
+}
+
+func (x *BatchDeliverReq) GetMessage() *PushMessage {
+	if x != nil {
+		return x.Message
+	}
+	return nil
+}
+
+type BatchDeliverResp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SuccessCount  int32                  `protobuf:"varint,1,opt,name=success_count,json=successCount,proto3" json:"success_count,omitempty"` // 至少一个设备实时投递成功的用户数
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BatchDeliverResp) Reset() {
+	*x = BatchDeliverResp{}
+	mi := &file_push_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchDeliverResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchDeliverResp) ProtoMessage() {}
+
+func (x *BatchDeliverResp) ProtoReflect() protoreflect.Message {
+	mi := &file_push_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchDeliverResp.ProtoReflect.Descriptor instead.
+func (*BatchDeliverResp) Descriptor() ([]byte, []int) {
+	return file_push_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *BatchDeliverResp) GetSuccessCount() int32 {
+	if x != nil {
+		return x.SuccessCount
+	}
+	return 0
+}
+
 var File_push_proto protoreflect.FileDescriptor
 
 const file_push_proto_rawDesc = "" +
@@ -400,13 +505,20 @@ const file_push_proto_rawDesc = "" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x17\n" +
 	"\aconv_id\x18\x02 \x01(\tR\x06convId\x12\x15\n" +
 	"\x06seq_id\x18\x03 \x01(\x03R\x05seqId\"\x11\n" +
-	"\x0fClearUnreadResp*I\n" +
+	"\x0fClearUnreadResp\"\x86\x01\n" +
+	"\x0fBatchDeliverReq\x12\x19\n" +
+	"\buser_ids\x18\x01 \x03(\x03R\auserIds\x12+\n" +
+	"\tpush_type\x18\x02 \x01(\x0e2\x0e.push.PushTypeR\bpushType\x12+\n" +
+	"\amessage\x18\x03 \x01(\v2\x11.push.PushMessageR\amessage\"7\n" +
+	"\x10BatchDeliverResp\x12#\n" +
+	"\rsuccess_count\x18\x01 \x01(\x05R\fsuccessCount*I\n" +
 	"\bPushType\x12\x17\n" +
 	"\x13PushTypeUnspecified\x10\x00\x12\x10\n" +
 	"\fPushTypeFull\x10\x01\x12\x12\n" +
-	"\x0ePushTypeNotify\x10\x022r\n" +
+	"\x0ePushTypeNotify\x10\x022\xb1\x01\n" +
 	"\x04Push\x12.\n" +
-	"\aDeliver\x12\x10.push.DeliverReq\x1a\x11.push.DeliverResp\x12:\n" +
+	"\aDeliver\x12\x10.push.DeliverReq\x1a\x11.push.DeliverResp\x12=\n" +
+	"\fBatchDeliver\x12\x15.push.BatchDeliverReq\x1a\x16.push.BatchDeliverResp\x12:\n" +
 	"\vClearUnread\x12\x14.push.ClearUnreadReq\x1a\x15.push.ClearUnreadRespB\bZ\x06./pushb\x06proto3"
 
 var (
@@ -422,27 +534,33 @@ func file_push_proto_rawDescGZIP() []byte {
 }
 
 var file_push_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_push_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_push_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_push_proto_goTypes = []any{
-	(PushType)(0),           // 0: push.PushType
-	(*PushMessage)(nil),     // 1: push.PushMessage
-	(*DeliverReq)(nil),      // 2: push.DeliverReq
-	(*DeliverResp)(nil),     // 3: push.DeliverResp
-	(*ClearUnreadReq)(nil),  // 4: push.ClearUnreadReq
-	(*ClearUnreadResp)(nil), // 5: push.ClearUnreadResp
+	(PushType)(0),            // 0: push.PushType
+	(*PushMessage)(nil),      // 1: push.PushMessage
+	(*DeliverReq)(nil),       // 2: push.DeliverReq
+	(*DeliverResp)(nil),      // 3: push.DeliverResp
+	(*ClearUnreadReq)(nil),   // 4: push.ClearUnreadReq
+	(*ClearUnreadResp)(nil),  // 5: push.ClearUnreadResp
+	(*BatchDeliverReq)(nil),  // 6: push.BatchDeliverReq
+	(*BatchDeliverResp)(nil), // 7: push.BatchDeliverResp
 }
 var file_push_proto_depIdxs = []int32{
 	0, // 0: push.DeliverReq.push_type:type_name -> push.PushType
 	1, // 1: push.DeliverReq.message:type_name -> push.PushMessage
-	2, // 2: push.Push.Deliver:input_type -> push.DeliverReq
-	4, // 3: push.Push.ClearUnread:input_type -> push.ClearUnreadReq
-	3, // 4: push.Push.Deliver:output_type -> push.DeliverResp
-	5, // 5: push.Push.ClearUnread:output_type -> push.ClearUnreadResp
-	4, // [4:6] is the sub-list for method output_type
-	2, // [2:4] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	0, // 2: push.BatchDeliverReq.push_type:type_name -> push.PushType
+	1, // 3: push.BatchDeliverReq.message:type_name -> push.PushMessage
+	2, // 4: push.Push.Deliver:input_type -> push.DeliverReq
+	6, // 5: push.Push.BatchDeliver:input_type -> push.BatchDeliverReq
+	4, // 6: push.Push.ClearUnread:input_type -> push.ClearUnreadReq
+	3, // 7: push.Push.Deliver:output_type -> push.DeliverResp
+	7, // 8: push.Push.BatchDeliver:output_type -> push.BatchDeliverResp
+	5, // 9: push.Push.ClearUnread:output_type -> push.ClearUnreadResp
+	7, // [7:10] is the sub-list for method output_type
+	4, // [4:7] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_push_proto_init() }
@@ -456,7 +574,7 @@ func file_push_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_push_proto_rawDesc), len(file_push_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   5,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

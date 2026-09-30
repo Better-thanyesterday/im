@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Gateway_PushToConn_FullMethodName = "/gateway.Gateway/PushToConn"
+	Gateway_PushToConn_FullMethodName      = "/gateway.Gateway/PushToConn"
+	Gateway_BatchPushToConn_FullMethodName = "/gateway.Gateway/BatchPushToConn"
 )
 
 // GatewayClient is the client API for Gateway service.
@@ -27,6 +28,8 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GatewayClient interface {
 	PushToConn(ctx context.Context, in *PushToConnReq, opts ...grpc.CallOption) (*PushToConnResp, error)
+	// 批量推送:一次 RPC 推多个用户(群聊写扩散用,避免 O(N) 次 Deliver)
+	BatchPushToConn(ctx context.Context, in *BatchPushToConnReq, opts ...grpc.CallOption) (*BatchPushToConnResp, error)
 }
 
 type gatewayClient struct {
@@ -47,11 +50,23 @@ func (c *gatewayClient) PushToConn(ctx context.Context, in *PushToConnReq, opts 
 	return out, nil
 }
 
+func (c *gatewayClient) BatchPushToConn(ctx context.Context, in *BatchPushToConnReq, opts ...grpc.CallOption) (*BatchPushToConnResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchPushToConnResp)
+	err := c.cc.Invoke(ctx, Gateway_BatchPushToConn_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GatewayServer is the server API for Gateway service.
 // All implementations must embed UnimplementedGatewayServer
 // for forward compatibility.
 type GatewayServer interface {
 	PushToConn(context.Context, *PushToConnReq) (*PushToConnResp, error)
+	// 批量推送:一次 RPC 推多个用户(群聊写扩散用,避免 O(N) 次 Deliver)
+	BatchPushToConn(context.Context, *BatchPushToConnReq) (*BatchPushToConnResp, error)
 	mustEmbedUnimplementedGatewayServer()
 }
 
@@ -64,6 +79,9 @@ type UnimplementedGatewayServer struct{}
 
 func (UnimplementedGatewayServer) PushToConn(context.Context, *PushToConnReq) (*PushToConnResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method PushToConn not implemented")
+}
+func (UnimplementedGatewayServer) BatchPushToConn(context.Context, *BatchPushToConnReq) (*BatchPushToConnResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method BatchPushToConn not implemented")
 }
 func (UnimplementedGatewayServer) mustEmbedUnimplementedGatewayServer() {}
 func (UnimplementedGatewayServer) testEmbeddedByValue()                 {}
@@ -104,6 +122,24 @@ func _Gateway_PushToConn_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Gateway_BatchPushToConn_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchPushToConnReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GatewayServer).BatchPushToConn(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Gateway_BatchPushToConn_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GatewayServer).BatchPushToConn(ctx, req.(*BatchPushToConnReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Gateway_ServiceDesc is the grpc.ServiceDesc for Gateway service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -114,6 +150,10 @@ var Gateway_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PushToConn",
 			Handler:    _Gateway_PushToConn_Handler,
+		},
+		{
+			MethodName: "BatchPushToConn",
+			Handler:    _Gateway_BatchPushToConn_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

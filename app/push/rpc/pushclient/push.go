@@ -2,7 +2,7 @@
 // goctl 1.10.1
 // Source: push.proto
 
-package pushclient
+package pushClient
 
 import (
 	"context"
@@ -14,15 +14,19 @@ import (
 )
 
 type (
-	ClearUnreadReq  = push.ClearUnreadReq
-	ClearUnreadResp = push.ClearUnreadResp
-	DeliverReq      = push.DeliverReq
-	DeliverResp     = push.DeliverResp
-	PushMessage     = push.PushMessage
+	BatchDeliverReq  = push.BatchDeliverReq
+	BatchDeliverResp = push.BatchDeliverResp
+	ClearUnreadReq   = push.ClearUnreadReq
+	ClearUnreadResp  = push.ClearUnreadResp
+	DeliverReq       = push.DeliverReq
+	DeliverResp      = push.DeliverResp
+	PushMessage      = push.PushMessage
 
 	Push interface {
 		// 在线实时推送 + 离线存储 + 未读计数：按 Redis 在线状态决定走 Gateway.PushToConn 还是写 im:offline
 		Deliver(ctx context.Context, in *DeliverReq, opts ...grpc.CallOption) (*DeliverResp, error)
+		// 批量投递:内部按受限并发逐个走 Deliver 语义(在线推送/离线兜底/未读计数)
+		BatchDeliver(ctx context.Context, in *BatchDeliverReq, opts ...grpc.CallOption) (*BatchDeliverResp, error)
 		// 清零 im:unread:{user_id} 中对应会话的计数
 		ClearUnread(ctx context.Context, in *ClearUnreadReq, opts ...grpc.CallOption) (*ClearUnreadResp, error)
 	}
@@ -42,6 +46,12 @@ func NewPush(cli zrpc.Client) Push {
 func (m *defaultPush) Deliver(ctx context.Context, in *DeliverReq, opts ...grpc.CallOption) (*DeliverResp, error) {
 	client := push.NewPushClient(m.cli.Conn())
 	return client.Deliver(ctx, in, opts...)
+}
+
+// 批量投递:内部按受限并发逐个走 Deliver 语义(在线推送/离线兜底/未读计数)
+func (m *defaultPush) BatchDeliver(ctx context.Context, in *BatchDeliverReq, opts ...grpc.CallOption) (*BatchDeliverResp, error) {
+	client := push.NewPushClient(m.cli.Conn())
+	return client.BatchDeliver(ctx, in, opts...)
 }
 
 // 清零 im:unread:{user_id} 中对应会话的计数
