@@ -28,7 +28,10 @@ func (m *ConnManager) BucketOf(userID int64) *bucket {
 	return m.buckets[idx]
 }
 
-func (m *ConnManager) Add(c *Conn) {
+// Add 注册连接到分桶;返回同 key 被顶替的旧连接(没有则 nil)。
+// 桶操作只收敛于此一处;旧连接的"踢下线通知 + Close"由调用方在锁外完成——
+// 踢下线帧(FrameKick)必须先于 Close 发出,所以这里不能代关
+func (m *ConnManager) Add(c *Conn) *Conn {
 	b := m.BucketOf(c.userID)
 	b.Mu.Lock()
 	key := c.Key()
@@ -38,10 +41,7 @@ func (m *ConnManager) Add(c *Conn) {
 	}
 	b.Conns[key] = c
 	b.Mu.Unlock()
-	// 锁外关闭:Close 会触发 onClose 回调,回调里会再拿同桶的锁,锁内调用是死锁地雷
-	if old != nil {
-		old.Close()
-	}
+	return old
 }
 
 func (m *ConnManager) Get(userID int64, deviceType int32) (*Conn, bool) {

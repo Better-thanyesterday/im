@@ -62,7 +62,14 @@ func (c *Conn) Close() {
 	})
 }
 
-// Send 非阻塞投递；队列满或连接已关闭返回 false
+// Send 非阻塞投递；队列满返回 SendQueueFull,连接已关闭返回 SendClosed。
+//
+// 语义边界(必须清楚):
+// SendOK ≠ 已送达。"先查 closed 再投 send"与 Close 之间存在天然竞态——
+// 两步之间连接关闭的话,消息进了没人消费的队列,Send 仍返回 SendOK,消息静默丢失。
+// 这在 IM 下行是可接受的(at-least-once,靠离线信箱兜底),
+// 但 push 侧绝不能把 SendOK 当作"客户端已收到"的依据;
+// PushToConn 返回 Success 只代表"消息进入了存活连接的发送队列"。
 func (c *Conn) Send(data []byte) SendResult {
 	select {
 	case <-c.closed:
@@ -141,7 +148,10 @@ func (c *Conn) WritePump() {
 	}
 }
 
-// 默认4
+// OnMessage 起固定数量 worker 消费 accept 队列,调用 onMessage 处理每帧。
+// 关闭语义:closed 触发后生产者(ReadPump)已停止投递,worker 先非阻塞
+// drain 完在途帧再退出——Close 不丢已入队的数据;
+// drain 与生产者最后一条入队存在微小竞态窗口,属 at-least-once 语义可接受范围
 func (c *Conn) OnMessage(onMessage func(data []byte)) {
 	var wg sync.WaitGroup
 	for i := 0; i < 4; i++ {
@@ -151,7 +161,15 @@ func (c *Conn) OnMessage(onMessage func(data []byte)) {
 			for {
 				select {
 				case <-c.closed:
-					return
+					// drain:消费完剩余在途帧再退出
+					for {
+						select {
+						case d := <-c.accept:
+							onMessage(d)
+						default:
+							return
+						}
+					}
 				case d, ok := <-c.accept:
 					if !ok {
 						return

@@ -28,7 +28,6 @@ func NewSendMessageLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SendM
 
 // 消息统一入口
 func (l *SendMessageLogic) SendMessage(in *message.SendMessageReq) (*message.SendMessageResp, error) {
-	// todo: add your logic here and delete this line
 	//参数校验
 	if err := l.validate(in); err != nil {
 		return nil, err

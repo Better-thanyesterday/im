@@ -30,13 +30,10 @@ func NewWsConnectLogic(ctx context.Context, svcCtx *svc.ServiceContext) *WsConne
 func (l *WsConnectLogic) Register(ctx context.Context, c *conn.Conn) error {
 	userID := c.UserId()
 	deviceType := c.DeviceType()
-	bucket := l.svcCtx.ConnManager.BucketOf(userID)
-	bucket.Mu.Lock()
-	oldConn := bucket.Conns[c.Key()]
-	// 3. 注册新连接
-	bucket.Conns[c.Key()] = c
-	bucket.Mu.Unlock() // 先解锁，Close 里的回调要重新拿锁
-	if oldConn != nil && oldConn != c {
+	// 注册 + 踢旧收敛到 manager.Add 一处,避免两套桶操作漂移;
+	// 旧连接由这里在锁外"先通知(FrameKick)后 Close"
+	oldConn := l.svcCtx.ConnManager.Add(c)
+	if oldConn != nil {
 		logx.Infof("检测到重连,踢出旧连接 | user=%d device=%d", userID, deviceType)
 		// 踢之前先推 FrameKick(0x11):旧设备据此区分"被顶号"和"网络断",
 		// 否则客户端看到的只是 1006 异常断开

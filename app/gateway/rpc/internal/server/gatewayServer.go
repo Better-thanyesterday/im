@@ -26,6 +26,10 @@ func NewGatewayServer(svcCtx *svc.ServiceContext) *GatewayServer {
 	}
 }
 
+// PushToConn 实时推送单用户单设备。
+// 返回值语义:Success=true 仅表示"消息已进入存活连接的发送队列",
+// 不保证客户端收到——Send 与 Close 之间的竞态窗口内入队的消息会随连接死亡而丢失。
+// push 侧依赖本返回值决定是否转离线信箱(at-least-once 兜底),失败必须转,成功不回执。
 func (s *GatewayServer) PushToConn(ctx context.Context, in *gateway.PushToConnReq) (*gateway.PushToConnResp, error) {
 	c, _ := s.svcCtx.ConnManager.Get(in.UserId, in.DeviceType)
 	if c == nil {
