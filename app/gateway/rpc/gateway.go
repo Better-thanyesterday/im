@@ -25,15 +25,19 @@ func main() {
 	conf.MustLoad(*configFile, &c)
 	ctx := svc.NewServiceContext(c)
 
-	s := zrpc.MustNewServer(c.RpcServerConf, func(grpcServer *grpc.Server) {
+	s := zrpc.MustNewServer(c.GatewayRpc, func(grpcServer *grpc.Server) {
 		gateway.RegisterGatewayServer(grpcServer, server.NewGatewayServer(ctx))
 
-		if c.Mode == service.DevMode || c.Mode == service.TestMode {
+		if c.GatewayRpc.Mode == service.DevMode || c.GatewayRpc.Mode == service.TestMode {
 			reflection.Register(grpcServer)
 		}
 	})
 	defer s.Stop()
+	go func ()  {
+		fmt.Printf("Starting rpc server at %s...\n", c.GatewayRpc.ListenOn)
+		s.Start()
+	}()
 
-	fmt.Printf("Starting rpc server at %s...\n", c.ListenOn)
+	fmt.Printf("Starting rpc server at %s...\n", c.GatewayRpc.ListenOn)
 	s.Start()
 }

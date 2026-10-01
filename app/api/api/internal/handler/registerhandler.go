@@ -6,22 +6,22 @@ package handler
 import (
 	"net/http"
 
-	"im-platform/app/gateway/api/internal/logic"
-	"im-platform/app/gateway/api/internal/svc"
-	"im-platform/app/gateway/api/internal/types"
+	"im-platform/app/api/api/internal/logic"
+	"im-platform/app/api/api/internal/svc"
+	"im-platform/app/api/api/internal/types"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
-func LoginHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
+func RegisterHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.LoginReq
+		var req types.RegisterReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
 
-		l := logic.NewLoginLogic(r.Context(), svcCtx)
-		resp, err := l.Login(&req)
+		l := logic.NewRegisterLogic(r.Context(), svcCtx)
+		resp, err := l.Register(&req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {

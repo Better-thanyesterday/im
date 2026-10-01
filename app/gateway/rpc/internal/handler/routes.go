@@ -13,38 +13,6 @@ import (
 )
 
 func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
-	server.AddRoutes(
-		[]rest.Route{
-			{
-				Method:  http.MethodGet,
-				Path:    "/login",
-				Handler: LoginHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodGet,
-				Path:    "/register",
-				Handler: RegisterHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodGet,
-				Path:    "/creategroup",
-				Handler: CreateGroupHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodGet,
-				Path:    "/invitemember",
-				Handler: InviteMemberHandler(serverCtx),
-			},
-			{
-				Method: http.MethodGet,
-				Path:   "/health",
-				Handler: func(w http.ResponseWriter, r *http.Request) {
-					w.WriteHeader(http.StatusOK)
-					w.Write([]byte(`{"status":"ok"}`))
-				},
-			},
-		},
-	)
 	routes := []rest.Route{
 		{
 			Method:  http.MethodGet,

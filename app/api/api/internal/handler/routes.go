@@ -5,10 +5,7 @@ package handler
 
 import (
 	"net/http"
-
-	"im-platform/app/gateway/api/internal/svc"
-	"im-platform/common/middleware"
-
+	"im-platform/app/api/api/internal/svc"
 	"github.com/zeromicro/go-zero/rest"
 )
 
@@ -44,16 +41,5 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				},
 			},
 		},
-	)
-	routes := []rest.Route{
-		{
-			Method:  http.MethodGet,
-			Path:    "/ws",
-			Handler: WsHandler(serverCtx),
-		},
-	}
-	server.AddRoutes(
-		rest.WithMiddleware(middleware.AuthMiddleware(serverCtx.TokenManager),
-			routes...),
 	)
 }

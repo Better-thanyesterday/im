@@ -3,9 +3,9 @@ package logic
 import (
 	"context"
 	"encoding/json"
-	"im-platform/app/gateway/api/conn"
+	"im-platform/app/gateway/rpc/internal/conn"
 	"im-platform/app/gateway/rpc/internal/svc"
-	"im-platform/app/gateway/api/protocol"
+	"im-platform/app/gateway/rpc/internal/protocol"
 	"im-platform/app/message/rpc/messageclient"
 	"strconv"
 	"time"

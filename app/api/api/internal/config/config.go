@@ -17,8 +17,5 @@ type Config struct {
 	PushRpc  zrpc.RpcClientConf
 	GroupRpc zrpc.RpcClientConf
 	GatewayRpc zrpc.RpcServerConf
-	Gateway struct{
-		GrpcAddr  string
-		BucketNum int  // 连接分桶数,0=默认 16
-	}
+	
 }

@@ -6,8 +6,8 @@ package logic
 import (
 	"context"
 	"errors"
-	"im-platform/app/gateway/api/internal/svc"
-	"im-platform/app/gateway/api/internal/types"
+	"im-platform/app/api/api/internal/svc"
+	"im-platform/app/api/api/internal/types"
 	"im-platform/app/user/rpc/user"
 	"im-platform/common/utils"
 	"time"

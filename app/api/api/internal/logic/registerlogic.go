@@ -6,8 +6,8 @@ package logic
 import (
 	"context"
 
-	"im-platform/app/gateway/api/internal/svc"
-	"im-platform/app/gateway/api/internal/types"
+	"im-platform/app/api/api/internal/svc"
+	"im-platform/app/api/api/internal/types"
 	"im-platform/app/user/rpc/user"
 
 	"github.com/zeromicro/go-zero/core/logx"

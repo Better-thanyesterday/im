@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"im-platform/app/gateway/api/conn"
-	"im-platform/app/gateway/api/internal/svc"
+	"im-platform/app/gateway/rpc/internal/conn"
+	"im-platform/app/gateway/rpc/internal/svc"
 	"im-platform/app/message/rpc/messageclient"
 	"time"
 
