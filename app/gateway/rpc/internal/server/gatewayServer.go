@@ -29,7 +29,7 @@ func NewGatewayServer(svcCtx *svc.ServiceContext) *GatewayServer {
 func (s *GatewayServer) PushToConn(ctx context.Context, in *gateway.PushToConnReq) (*gateway.PushToConnResp, error) {
 	c, _ := s.svcCtx.ConnManager.Get(in.UserId, in.DeviceType)
 	if c == nil {
-		logx.Infof("PushToConn conn not found | user=%d device=%d", in.UserId, in.DeviceType)
+		logx.Infof("推送失败,连接不存在 | rpc=PushToConn user=%d device=%d", in.UserId, in.DeviceType)
 		return &gateway.PushToConnResp{
 			Success:  false,
 			ErrorMsg: "conn not found",
@@ -44,13 +44,13 @@ func (s *GatewayServer) PushToConn(ctx context.Context, in *gateway.PushToConnRe
 	case conn.SendClosed:
 		// 连接已关闭:必须返回失败,让 push 服务把消息转入离线箱;
 		// 原实现漏了 return,落到 Success:true,消息永久丢失
-		logx.Infof("PushToConn conn closed | user=%d device=%d", in.UserId, in.DeviceType)
+		logx.Infof("推送失败,连接已关闭 | rpc=PushToConn user=%d device=%d", in.UserId, in.DeviceType)
 		return &gateway.PushToConnResp{
 			Success:  false,
 			ErrorMsg: "conn closed",
 		}, nil
 	case conn.SendQueueFull:
-		logx.Infof("PushToConn queue full | user=%d device=%d", in.UserId, in.DeviceType)
+		logx.Infof("推送失败,发送队列已满 | rpc=PushToConn user=%d device=%d", in.UserId, in.DeviceType)
 		return &gateway.PushToConnResp{
 			Success:  false,
 			ErrorMsg: "queue full",

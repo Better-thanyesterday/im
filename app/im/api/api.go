@@ -12,9 +12,9 @@ import (
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/rest"
-	"im-platform/app/api/api/internal/config"
-	"im-platform/app/api/api/internal/handler"
-	"im-platform/app/api/api/internal/svc"
+	"im-platform/app/im/api/internal/config"
+	"im-platform/app/im/api/internal/handler"
+	"im-platform/app/im/api/internal/svc"
 )
 
 var configFile = flag.String("f", "etc/gateway-api.yaml", "the config file")

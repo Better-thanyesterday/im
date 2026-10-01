@@ -25,6 +25,16 @@ service Group {
  rpc GetMembers(GetMembersReq) returns (GetMembersResp);
  rpc CheckMember(CheckMemberReq) returns (CheckMemberResp);
  rpc GetMemberVersion(GetMemberVersionReq) returns (GetMemberVersionResp);
+ // 用户所在的群 ID 列表(断线重连补拉时组装会话列表用)
+ rpc GetUserGroups(GetUserGroupsReq) returns (GetUserGroupsResp);
+}
+
+message GetUserGroupsReq {
+ int64 user_id = 1;
+}
+
+message GetUserGroupsResp {
+ repeated int64 group_ids = 1;
 }
 
 // ==================== 基础类型 ====================

@@ -6,22 +6,22 @@ package handler
 import (
 	"net/http"
 
+	"im-platform/app/im/api/internal/logic"
+	"im-platform/app/im/api/internal/svc"
+	"im-platform/app/im/api/internal/types"
 	"github.com/zeromicro/go-zero/rest/httpx"
-	"im-platform/app/api/api/internal/logic"
-	"im-platform/app/api/api/internal/svc"
-	"im-platform/app/api/api/internal/types"
 )
 
-func CreateGroupHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
+func LoginHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req types.CreateGroupReq
+		var req types.LoginReq
 		if err := httpx.Parse(r, &req); err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
 
-		l := logic.NewCreateGroupLogic(r.Context(), svcCtx)
-		resp, err := l.CreateGroup(&req)
+		l := logic.NewLoginLogic(r.Context(), svcCtx)
+		resp, err := l.Login(&req)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {

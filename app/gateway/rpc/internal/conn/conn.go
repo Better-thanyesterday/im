@@ -85,7 +85,7 @@ func (c *Conn) ReadPump(onReconnect func(c *Conn)) {
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {
-					logx.Errorf("onReconnect panic | user=%d err=%v", c.userID, r)
+					logx.Errorf("重连恢复 panic | user=%d err=%v", c.userID, r)
 				}
 			}()
 			onReconnect(c)
@@ -100,7 +100,7 @@ func (c *Conn) ReadPump(onReconnect func(c *Conn)) {
 	for {
 		_, data, err := c.ws.ReadMessage()
 		if err != nil {
-			logx.Errorf("read pump exit | user=%d err=%v", c.userID, err)
+			logx.Errorf("读泵退出 | user=%d err=%v", c.userID, err)
 			return
 		}
 		select {
@@ -122,11 +122,13 @@ func (c *Conn) WritePump() {
 		case data := <-c.send:
 			c.ws.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			if err := c.ws.WriteMessage(websocket.BinaryMessage, data); err != nil {
+				c.Close()
 				return
 			}
 		case <-ticker.C:
 			c.ws.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			if err := c.ws.WriteMessage(websocket.PingMessage, nil); err != nil {
+				c.Close()
 				return
 			}
 			// 同步调用:每次 ping 只做一次 Redis Expire,Redis 客户端自带超时兜底;

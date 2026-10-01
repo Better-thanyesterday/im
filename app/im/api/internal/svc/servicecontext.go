@@ -5,7 +5,7 @@ package svc
 
 import (
 	"github.com/zeromicro/go-zero/core/stores/redis"
-	"im-platform/app/api/api/internal/config"
+	"im-platform/app/im/api/internal/config"
 
 	"github.com/zeromicro/go-zero/zrpc"
 	"im-platform/app/group/rpc/groupclient"

@@ -10,6 +10,7 @@ import (
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/redis"
+	"github.com/zeromicro/go-zero/zrpc"
 )
 
 type ServiceContext struct {
@@ -28,6 +29,8 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		TokenManager: utils.NewTokenManager(rds, 7*24*time.Hour),
 		ConnManager:  conn.NewManager(c.Gateway.BucketNum),
 		Redis:        rds,
+		// 嵌入接口必须显式初始化,否则 nil 接口编译期无提示、第一帧上行就 panic
+		Message: messageclient.NewMessage(zrpc.MustNewClient(c.MsgRpc)),
 	}
 }
 
@@ -35,18 +38,18 @@ func NewServiceContext(c config.Config) *ServiceContext {
 func normalizeAdvertiseAddr(addr string) string {
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
-		logx.Errorf("invalid gateway grpc addr %q: %v", addr, err)
+		logx.Errorf("gateway gRPC 地址非法 | addr=%q err=%v", addr, err)
 		return addr
 	}
 	switch host {
 	case "", "0.0.0.0", "127.0.0.1", "::1", "localhost":
 		ip := utils.AdvertiseHost()
 		if ip == "" {
-			logx.Errorf("grpc addr %q is loopback and no external ip detected, push 直连将不可达", addr)
+			logx.Errorf("gRPC 地址为回环且未探测到对外 IP,push 直连将不可达 | addr=%q", addr)
 			return addr
 		}
 		normalized := net.JoinHostPort(ip, port)
-		logx.Infof("advertise gateway grpc addr: %s -> %s", addr, normalized)
+		logx.Infof("对外宣告 gRPC 地址 | from=%s to=%s", addr, normalized)
 		return normalized
 	}
 	return addr

@@ -7,7 +7,9 @@ import (
 
 	"im-platform/app/message/rpc/internal/svc"
 	"im-platform/app/message/rpc/message"
+	"im-platform/app/group/rpc/groupclient"
 	"im-platform/app/message/rpc/models"
+	userclient "im-platform/app/user/rpc/userclient"
 	"im-platform/common/constants"
 	"strconv"
 
@@ -43,8 +45,17 @@ func (l *SyncMessageLogic) SyncMessage(in *message.SyncMessageReq) (*message.Syn
 	resp := &message.SyncMessageResp{
 		ConvSyncs: make([]*message.SyncMessageResp_ConvSync, 0, len(in.ConvList)),
 	}
+	// ConvList 为空 = 断线重连全量补拉:服务端组装该用户的会话列表,
+	// 水位取 inbox 已投递到的最大 seq(inboxes 里收发双方都有行)
+	convList := in.ConvList
+	if len(convList) == 0 {
+		var err error
+		if convList, err = l.buildUserConvList(userId); err != nil {
+			return nil, err
+		}
+	}
 	//遍历req包含拉取多个Conversation未读信息
-	for _, conv := range in.ConvList {
+	for _, conv := range convList {
 		if conv.ConvId == "" {
 			continue
 		}
@@ -106,6 +117,45 @@ func (l *SyncMessageLogic) SyncSingleConv(userId int64, conv *message.SyncMessag
 // 值含未分配的 padding(会话只有 1 条消息时计数器已是 100,diff 虚高反复空拉)
 func (l *SyncMessageLogic) getServerSeq(convId string) (int64, error) {
 	return l.svcCtx.MessagesModel.MaxSeq(l.ctx, convId)
+}
+
+// buildUserConvList 组装用户的全部会话(单聊=好友列表,群聊=所在群),
+// 每个会话的 last_seq 取 inbox 已投递水位,重连补拉不重发也不漏
+func (l *SyncMessageLogic) buildUserConvList(userId int64) ([]*message.SyncMessageReq_ConSeq, error) {
+	convIds := make([]string, 0, 32)
+	// 单聊:好友列表
+	friendResp, err := l.svcCtx.User.GetFriends(l.ctx, &userclient.GetFriendsReq{
+		UserId:   userId,
+		Page:     1,
+		PageSize: 500,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("get friends for sync failed: %w", err)
+	}
+	for _, f := range friendResp.Friends {
+		convIds = append(convIds, constants.BuildSingleConvID(userId, f.UserId))
+	}
+	// 群聊:所在群
+	groupResp, err := l.svcCtx.Group.GetUserGroups(l.ctx, &groupclient.GetUserGroupsReq{UserId: userId})
+	if err != nil {
+		return nil, fmt.Errorf("get user groups for sync failed: %w", err)
+	}
+	for _, gid := range groupResp.GroupIds {
+		convIds = append(convIds, constants.BuildGroupConvID(gid))
+	}
+	convs := make([]*message.SyncMessageReq_ConSeq, 0, len(convIds))
+	for _, convId := range convIds {
+		lastSeq, err := l.svcCtx.InboxesModel.DeliveredMaxSeq(l.ctx, userId, convId)
+		if err != nil {
+			logx.Errorf("获取已投递水位失败 | user=%d conv=%s err=%v", userId, convId, err)
+			lastSeq = 0
+		}
+		convs = append(convs, &message.SyncMessageReq_ConSeq{
+			ConvId:  convId,
+			LastSeq: lastSeq,
+		})
+	}
+	return convs, nil
 }
 
 // syncFromOffline 从 Redis 离线信箱拉取

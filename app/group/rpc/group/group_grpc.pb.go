@@ -35,6 +35,7 @@ const (
 	Group_GetMembers_FullMethodName       = "/group.Group/GetMembers"
 	Group_CheckMember_FullMethodName      = "/group.Group/CheckMember"
 	Group_GetMemberVersion_FullMethodName = "/group.Group/GetMemberVersion"
+	Group_GetUserGroups_FullMethodName    = "/group.Group/GetUserGroups"
 )
 
 // GroupClient is the client API for Group service.
@@ -60,6 +61,8 @@ type GroupClient interface {
 	GetMembers(ctx context.Context, in *GetMembersReq, opts ...grpc.CallOption) (*GetMembersResp, error)
 	CheckMember(ctx context.Context, in *CheckMemberReq, opts ...grpc.CallOption) (*CheckMemberResp, error)
 	GetMemberVersion(ctx context.Context, in *GetMemberVersionReq, opts ...grpc.CallOption) (*GetMemberVersionResp, error)
+	// 用户所在的群 ID 列表(断线重连补拉时组装会话列表用)
+	GetUserGroups(ctx context.Context, in *GetUserGroupsReq, opts ...grpc.CallOption) (*GetUserGroupsResp, error)
 }
 
 type groupClient struct {
@@ -210,6 +213,16 @@ func (c *groupClient) GetMemberVersion(ctx context.Context, in *GetMemberVersion
 	return out, nil
 }
 
+func (c *groupClient) GetUserGroups(ctx context.Context, in *GetUserGroupsReq, opts ...grpc.CallOption) (*GetUserGroupsResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUserGroupsResp)
+	err := c.cc.Invoke(ctx, Group_GetUserGroups_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GroupServer is the server API for Group service.
 // All implementations must embed UnimplementedGroupServer
 // for forward compatibility.
@@ -233,6 +246,8 @@ type GroupServer interface {
 	GetMembers(context.Context, *GetMembersReq) (*GetMembersResp, error)
 	CheckMember(context.Context, *CheckMemberReq) (*CheckMemberResp, error)
 	GetMemberVersion(context.Context, *GetMemberVersionReq) (*GetMemberVersionResp, error)
+	// 用户所在的群 ID 列表(断线重连补拉时组装会话列表用)
+	GetUserGroups(context.Context, *GetUserGroupsReq) (*GetUserGroupsResp, error)
 	mustEmbedUnimplementedGroupServer()
 }
 
@@ -284,6 +299,9 @@ func (UnimplementedGroupServer) CheckMember(context.Context, *CheckMemberReq) (*
 }
 func (UnimplementedGroupServer) GetMemberVersion(context.Context, *GetMemberVersionReq) (*GetMemberVersionResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetMemberVersion not implemented")
+}
+func (UnimplementedGroupServer) GetUserGroups(context.Context, *GetUserGroupsReq) (*GetUserGroupsResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetUserGroups not implemented")
 }
 func (UnimplementedGroupServer) mustEmbedUnimplementedGroupServer() {}
 func (UnimplementedGroupServer) testEmbeddedByValue()               {}
@@ -558,6 +576,24 @@ func _Group_GetMemberVersion_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Group_GetUserGroups_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserGroupsReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GroupServer).GetUserGroups(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Group_GetUserGroups_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GroupServer).GetUserGroups(ctx, req.(*GetUserGroupsReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Group_ServiceDesc is the grpc.ServiceDesc for Group service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -620,6 +656,10 @@ var Group_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetMemberVersion",
 			Handler:    _Group_GetMemberVersion_Handler,
+		},
+		{
+			MethodName: "GetUserGroups",
+			Handler:    _Group_GetUserGroups_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -1,6 +1,29 @@
 Name: gateway.rpc
-ListenOn: 0.0.0.0:8080
+ListenOn: 0.0.0.0:18081
 Etcd:
   Hosts:
   - 127.0.0.1:2379
   Key: gateway.rpc
+
+# WS/HTTP 入口:客户端连 ws://<host>:18890/ws(带 Authorization: Bearer <token>)
+RestConf:
+  Host: 0.0.0.0
+  Port: 18890
+  Timeout: 0
+
+# 上行消息转发到 message rpc
+MsgRpc:
+  Etcd:
+    Hosts:
+    - 127.0.0.1:2379
+    Key: message.rpc
+
+Redis:
+  Host: 127.0.0.1:6379
+  Type: node
+  Pass: ""
+
+# 写入在线表供 push 直连;127.0.0.1 会在启动时自动替换为本机对外 IP
+Gateway:
+  GrpcAddr: "127.0.0.1:18081"
+  BucketNum: 16

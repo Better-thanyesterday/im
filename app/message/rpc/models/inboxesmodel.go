@@ -17,6 +17,7 @@ type (
 		withSession(session sqlx.Session) InboxesModel
 		BatchInsertIgnore(ctx context.Context, rows []*Inboxes) error
 		MarkConvRead(ctx context.Context, userId int64, convId string, uptoSeq int64) error
+		DeliveredMaxSeq(ctx context.Context, userId int64, convId string) (int64, error)
 	}
 
 	customInboxesModel struct {
@@ -59,4 +60,13 @@ func (m *customInboxesModel) MarkConvRead(ctx context.Context, userId int64, con
 	query := fmt.Sprintf("update %s set isread = true, readtime = now() where userid = $1 and convid = $2 and isread = false and seqid <= $3", m.table)
 	_, err := m.conn.ExecCtx(ctx, query, userId, convId, uptoSeq)
 	return err
+}
+
+// DeliveredMaxSeq 该用户在某会话已投递到的最大 seq(收发双方都写 inbox)。
+// 断线重连补拉的水位:从它的下一条开始补,不会重发也不会漏
+func (m *customInboxesModel) DeliveredMaxSeq(ctx context.Context, userId int64, convId string) (int64, error) {
+	query := fmt.Sprintf("select coalesce(max(seqid), 0) from %s where userid = $1 and convid = $2", m.table)
+	var maxSeq int64
+	err := m.conn.QueryRowCtx(ctx, &maxSeq, query, userId, convId)
+	return maxSeq, err
 }

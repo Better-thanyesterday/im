@@ -17,6 +17,7 @@ type (
 		groupmembersModel
 		withSession(session sqlx.Session) GroupmembersModel
 		BatchInsertIgnore(ctx context.Context, rows []*Groupmembers) ([]int64, error)
+		GetUserGroupIds(ctx context.Context, userId int64) ([]int64, error)
 	}
 
 	customGroupmembersModel struct {
@@ -60,6 +61,14 @@ func (m *customGroupmembersModel) BatchInsertIgnore(ctx context.Context, rows []
 		ids = append(ids, r.UserId)
 	}
 	return ids, nil
+}
+
+// GetUserGroupIds 用户所在的全部群 ID
+func (m *customGroupmembersModel) GetUserGroupIds(ctx context.Context, userId int64) ([]int64, error) {
+	query := fmt.Sprintf("select group_id from %s where user_id = $1", m.table)
+	var ids []int64
+	err := m.conn.QueryRowsCtx(ctx, &ids, query, userId)
+	return ids, err
 }
 
 // buildPlaceholders 生成多行 VALUES 占位符 "($1,$2,...),($n,...)"

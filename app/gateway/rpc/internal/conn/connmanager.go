@@ -105,19 +105,26 @@ func (m *ConnManager) RemoveConn(c*Conn) {
 	}
 }
 // Range 遍历所有连接；fn 返回 false 提前终止。
-// 注意：不要在 fn 里调用 manager 的加锁方法，否则死锁
-func (m *ConnManager) Range(fn func(*Conn) bool) {
+// 注意：不要在 fn 里调用 manager 的加锁方法，否则死锁。
+// 锁内只收集,锁外执行回调,避免回调里再做 Redis/网络调用时拖住桶锁
+func (m *ConnManager) Range(fn func(*Conn)) {
 	for _, b := range m.buckets {
+		// 1. 锁内只收集
 		b.Mu.RLock()
+		conns := make([]*Conn, 0, len(b.Conns))
 		for _, c := range b.Conns {
-			if !fn(c) {
-				b.Mu.RUnlock()
-				return
-			}
+			conns = append(conns, c)
 		}
 		b.Mu.RUnlock()
+
+		// 2. 锁外执行回调
+		for _, c := range conns {
+			fn(c)
+		}
 	}
 }
+
+
 
 // CloseAll 关闭全部连接（服务优雅退出时调用）
 func (m *ConnManager) CloseAll() {

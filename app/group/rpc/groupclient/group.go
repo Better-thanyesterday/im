@@ -28,6 +28,8 @@ type (
 	GetMemberVersionResp = group.GetMemberVersionResp
 	GetMembersReq        = group.GetMembersReq
 	GetMembersResp       = group.GetMembersResp
+	GetUserGroupsReq     = group.GetUserGroupsReq
+	GetUserGroupsResp    = group.GetUserGroupsResp
 	GroupInfo            = group.GroupInfo
 	InviteMemberReq      = group.InviteMemberReq
 	InviteMemberResp     = group.InviteMemberResp
@@ -63,6 +65,8 @@ type (
 		GetMembers(ctx context.Context, in *GetMembersReq, opts ...grpc.CallOption) (*GetMembersResp, error)
 		CheckMember(ctx context.Context, in *CheckMemberReq, opts ...grpc.CallOption) (*CheckMemberResp, error)
 		GetMemberVersion(ctx context.Context, in *GetMemberVersionReq, opts ...grpc.CallOption) (*GetMemberVersionResp, error)
+		// 用户所在的群 ID 列表(断线重连补拉时组装会话列表用)
+		GetUserGroups(ctx context.Context, in *GetUserGroupsReq, opts ...grpc.CallOption) (*GetUserGroupsResp, error)
 	}
 
 	defaultGroup struct {
@@ -147,4 +151,10 @@ func (m *defaultGroup) CheckMember(ctx context.Context, in *CheckMemberReq, opts
 func (m *defaultGroup) GetMemberVersion(ctx context.Context, in *GetMemberVersionReq, opts ...grpc.CallOption) (*GetMemberVersionResp, error) {
 	client := group.NewGroupClient(m.cli.Conn())
 	return client.GetMemberVersion(ctx, in, opts...)
+}
+
+// 用户所在的群 ID 列表(断线重连补拉时组装会话列表用)
+func (m *defaultGroup) GetUserGroups(ctx context.Context, in *GetUserGroupsReq, opts ...grpc.CallOption) (*GetUserGroupsResp, error) {
+	client := group.NewGroupClient(m.cli.Conn())
+	return client.GetUserGroups(ctx, in, opts...)
 }

@@ -95,3 +95,9 @@ func (s *GroupServer) GetMemberVersion(ctx context.Context, in *group.GetMemberV
 	l := logic.NewGetMemberVersionLogic(ctx, s.svcCtx)
 	return l.GetMemberVersion(in)
 }
+
+// 用户所在的群 ID 列表(断线重连补拉时组装会话列表用)
+func (s *GroupServer) GetUserGroups(ctx context.Context, in *group.GetUserGroupsReq) (*group.GetUserGroupsResp, error) {
+	l := logic.NewGetUserGroupsLogic(ctx, s.svcCtx)
+	return l.GetUserGroups(in)
+}
