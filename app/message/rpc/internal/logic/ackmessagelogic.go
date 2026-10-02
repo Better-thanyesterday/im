@@ -92,6 +92,7 @@ func (l *AckMessageLogic) handleRead(in *message.AckMessageReq, readerId int64) 
 	if readSeq <= 0 {
 		readSeq = msg.Seqid
 	}
+	
 	// 1. Redis 已读水位:每 (conv, reader) 一个 key 存已读最大 seq,
 	//    替代原来每条消息一个 im:read:{conv}:{msg} key 的爆炸式设计
 	if err := l.markReadWatermark(in.ConvId, readerId, readSeq); err != nil {
