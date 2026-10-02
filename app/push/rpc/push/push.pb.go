@@ -73,15 +73,19 @@ func (PushType) EnumDescriptor() ([]byte, []int) {
 
 // 跨服务传递的消息体（精简版，对应 common/types 的 PushPayload）
 type PushMessage struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	MsgId         int64                  `protobuf:"varint,1,opt,name=msg_id,json=msgId,proto3" json:"msg_id,omitempty"`          // 消息全局 ID（雪花算法）
-	ConvId        string                 `protobuf:"bytes,2,opt,name=conv_id,json=convId,proto3" json:"conv_id,omitempty"`        // 会话 ID（单聊 min_uid:max_uid / 群聊 group_{group_id}）
-	SeqId         int64                  `protobuf:"varint,3,opt,name=seq_id,json=seqId,proto3" json:"seq_id,omitempty"`          // 会话内单调递增序列号
-	SenderId      int64                  `protobuf:"varint,4,opt,name=sender_id,json=senderId,proto3" json:"sender_id,omitempty"` // 发送者 ID
-	MsgType       int64                  `protobuf:"varint,5,opt,name=msg_type,json=msgType,proto3" json:"msg_type,omitempty"`    // 1-文本 2-图片 3-语音 4-视频 5-文件 6-位置 7-系统
-	Content       string                 `protobuf:"bytes,6,opt,name=content,proto3" json:"content,omitempty"`                    // 消息内容（JSON 序列化）
-	SendTime      int64                  `protobuf:"varint,7,opt,name=send_time,json=sendTime,proto3" json:"send_time,omitempty"` // Unix 毫秒时间戳
-	ConvType      bool                   `protobuf:"varint,8,opt,name=conv_type,json=convType,proto3" json:"conv_type,omitempty"` // 会话类型：0-单聊 1-群聊
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	MsgId  int64                  `protobuf:"varint,1,opt,name=msg_id,json=msgId,proto3" json:"msg_id,omitempty"`   // 消息全局 ID（雪花算法）
+	ConvId string                 `protobuf:"bytes,2,opt,name=conv_id,json=convId,proto3" json:"conv_id,omitempty"` // 会话 ID（单聊 min_uid:max_uid / 群聊 group_{group_id}）
+	SeqId  int64                  `protobuf:"varint,3,opt,name=seq_id,json=seqId,proto3" json:"seq_id,omitempty"`   // 会话内单调递增序列号。
+	// 【客户端契约】投递不保证跨消息到达顺序:BatchDeliver 多 goroutine 并发、
+	// 实时/离线信箱两条路径、网络抖动都可能乱序;服务端只保证 seq_id 单调分配与
+	// 落库有序(单 topic key=conv_id 同分区)。客户端必须按 seq_id 在会话内重排去重,
+	// 检测到空洞时调 SyncMessage 补齐,不得假设推送到达序 == seq 序
+	SenderId      int64  `protobuf:"varint,4,opt,name=sender_id,json=senderId,proto3" json:"sender_id,omitempty"` // 发送者 ID
+	MsgType       int64  `protobuf:"varint,5,opt,name=msg_type,json=msgType,proto3" json:"msg_type,omitempty"`    // 1-文本 2-图片 3-语音 4-视频 5-文件 6-位置 7-系统
+	Content       string `protobuf:"bytes,6,opt,name=content,proto3" json:"content,omitempty"`                    // 消息内容（JSON 序列化）
+	SendTime      int64  `protobuf:"varint,7,opt,name=send_time,json=sendTime,proto3" json:"send_time,omitempty"` // Unix 毫秒时间戳
+	ConvType      bool   `protobuf:"varint,8,opt,name=conv_type,json=convType,proto3" json:"conv_type,omitempty"` // 会话类型：0-单聊 1-群聊
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -374,7 +378,9 @@ func (*ClearUnreadResp) Descriptor() ([]byte, []int) {
 	return file_push_proto_rawDescGZIP(), []int{4}
 }
 
-// 批量投递指令:群聊写扩散用,一次 RPC 投多个用户,避免 O(N) 次跨服务调用
+// 批量投递指令:群聊写扩散用,一次 RPC 投多个用户,避免 O(N) 次跨服务调用。
+// 内部按受限并发(8)逐用户投递,同一用户跨消息不保证到达顺序——
+// 顺序契约见 PushMessage.seq_id(客户端按 seq 重排,不做服务端按 uid 串行化)
 type BatchDeliverReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserIds       []int64                `protobuf:"varint,1,rep,packed,name=user_ids,json=userIds,proto3" json:"user_ids,omitempty"`                // 目标用户列表(不含发送方)
@@ -437,7 +443,8 @@ func (x *BatchDeliverReq) GetMessage() *PushMessage {
 
 type BatchDeliverResp struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	SuccessCount  int32                  `protobuf:"varint,1,opt,name=success_count,json=successCount,proto3" json:"success_count,omitempty"` // 至少一个设备实时投递成功的用户数
+	SuccessCount  int32                  `protobuf:"varint,1,opt,name=success_count,json=successCount,proto3" json:"success_count,omitempty"`             // 至少一个设备实时投递成功的用户数
+	FailedUserIds []int64                `protobuf:"varint,2,rep,packed,name=failed_user_ids,json=failedUserIds,proto3" json:"failed_user_ids,omitempty"` // 实时投递未达的用户(投递 err 或已转离线信箱),排障用
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -479,6 +486,13 @@ func (x *BatchDeliverResp) GetSuccessCount() int32 {
 	return 0
 }
 
+func (x *BatchDeliverResp) GetFailedUserIds() []int64 {
+	if x != nil {
+		return x.FailedUserIds
+	}
+	return nil
+}
+
 var File_push_proto protoreflect.FileDescriptor
 
 const file_push_proto_rawDesc = "" +
@@ -509,9 +523,10 @@ const file_push_proto_rawDesc = "" +
 	"\x0fBatchDeliverReq\x12\x19\n" +
 	"\buser_ids\x18\x01 \x03(\x03R\auserIds\x12+\n" +
 	"\tpush_type\x18\x02 \x01(\x0e2\x0e.push.PushTypeR\bpushType\x12+\n" +
-	"\amessage\x18\x03 \x01(\v2\x11.push.PushMessageR\amessage\"7\n" +
+	"\amessage\x18\x03 \x01(\v2\x11.push.PushMessageR\amessage\"_\n" +
 	"\x10BatchDeliverResp\x12#\n" +
-	"\rsuccess_count\x18\x01 \x01(\x05R\fsuccessCount*I\n" +
+	"\rsuccess_count\x18\x01 \x01(\x05R\fsuccessCount\x12&\n" +
+	"\x0ffailed_user_ids\x18\x02 \x03(\x03R\rfailedUserIds*I\n" +
 	"\bPushType\x12\x17\n" +
 	"\x13PushTypeUnspecified\x10\x00\x12\x10\n" +
 	"\fPushTypeFull\x10\x01\x12\x12\n" +

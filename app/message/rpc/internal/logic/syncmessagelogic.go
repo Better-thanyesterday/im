@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"im-platform/app/group/rpc/groupclient"
 	"im-platform/app/message/rpc/internal/svc"
 	"im-platform/app/message/rpc/message"
-	"im-platform/app/group/rpc/groupclient"
 	"im-platform/app/message/rpc/models"
 	userclient "im-platform/app/user/rpc/userclient"
 	"im-platform/common/constants"
@@ -32,7 +32,6 @@ func NewSyncMessageLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SyncM
 
 // SyncMessages 断线补发 + 消息漫游入口
 func (l *SyncMessageLogic) SyncMessage(in *message.SyncMessageReq) (*message.SyncMessageResp, error) {
-	// todo: add your logic here and delete this line
 	// 身份以 gateway 注入的 metadata 为准,请求字段仅作内部调用回退,防止拉取他人离线消息
 	userId := userIDFromCtx(l.ctx)
 	if userId <= 0 {
@@ -159,9 +158,11 @@ func (l *SyncMessageLogic) buildUserConvList(userId int64) ([]*message.SyncMessa
 }
 
 // syncFromOffline 从 Redis 离线信箱拉取
-// 离线信箱: ZSet key=im:offline:{user_id}, member=msg_id, score=seq_id
+// 离线信箱: 每会话独立 ZSet key=im:offlineinbox:{uid}:{convId}, member=msg_id, score=seq_id
+// 按会话拆 key 后,本函数的 score 区间拉取与清理都只作用于本会话,不会误删/混入其他会话的条目
+// (key 由 push 侧 storeOffline 写入,两端约定必须一致)
 func (l *SyncMessageLogic) syncFromOffline(userId int64, convId string, startSeq, endSeq, limit int64) ([]*message.MessageBody, bool, error) {
-	offlineKey := fmt.Sprintf("im:offlineinbox:%d", userId)
+	offlineKey := fmt.Sprintf("im:offlineinbox:%d:%s", userId, convId)
 	// 带 LIMIT:大区间(如长离线)一次性拉取会打爆内存,超出的部分标记 has_more 走下轮
 	members, err := l.svcCtx.Redis.ZrevrangebyscoreWithScoresAndLimitCtx(l.ctx, offlineKey, startSeq, endSeq, 0, int(limit))
 	if err != nil {
@@ -182,8 +183,7 @@ func (l *SyncMessageLogic) syncFromOffline(userId int64, convId string, startSeq
 			maxFetched = m.Score
 		}
 	}
-	// 批量反查 PG 获取完整消息（过滤非本会话的）
-	// 注意：离线信箱是用户维度，可能混有多个会话的消息
+	// 批量反查 PG 获取完整消息(信箱 key 已按会话隔离,Convid 过滤仅作防御)
 	dbMsgs, err := l.svcCtx.MessagesModel.BatchGetByIds(l.ctx, convId, msgIds)
 	if err != nil {
 		return nil, false, err
@@ -227,7 +227,11 @@ func (l *SyncMessageLogic) syncFromDB(convId string, startSeq, endSeq, limit int
 	}
 	result := make([]*message.MessageBody, 0, len(msgs))
 	for _, m := range msgs {
-		result = append(result, l.toMessage(m))
+		msg := l.toMessage(m)
+		if msg == nil {
+			continue
+		}
+		result = append(result, msg)
 	}
 	return result, hasMore, nil
 }

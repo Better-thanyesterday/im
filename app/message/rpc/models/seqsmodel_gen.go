@@ -29,7 +29,7 @@ type (
 		FindOne(ctx context.Context, convId string) (*Seqs, error)
 		Update(ctx context.Context, data *Seqs) error
 		Delete(ctx context.Context, convId string) error
-		CustomQueryRowCtx(ctx context.Context, convId string) (int64,error)
+		IncrSeq(ctx context.Context, convId string) (int64, error)
 	}
 
 	defaultSeqsModel struct {
@@ -87,8 +87,10 @@ func (m *defaultSeqsModel) tableName() string {
 	return m.table
 }
 
-
-func (m *defaultSeqsModel) CustomQueryRowCtx(ctx context.Context, convId string)(int64,error){
+// IncrSeq "+1 分配器":行锁递增 seqs.max_seq 并返回新值。
+// 仅限 Redis 故障时的 PG 兜底分配(allocateFromPG)使用,持久化路径一律走 UpsertMaxSeq;
+// 原名 CustomQueryRowCtx 完全名不副实,曾导致消费端误用使 PG 与 Redis 永久脱节,已更名
+func (m *defaultSeqsModel) IncrSeq(ctx context.Context, convId string) (int64, error) {
 	var res int64
 	query := `
 	INSERT INTO seqs (conv_id, max_seq, updated_at)
@@ -98,9 +100,9 @@ func (m *defaultSeqsModel) CustomQueryRowCtx(ctx context.Context, convId string)
 		    updated_at = NOW()
 		RETURNING max_seq
 		`
-	err:= m.conn.QueryRowCtx(ctx,&res,query,convId)
+	err := m.conn.QueryRowCtx(ctx, &res, query, convId)
 	if err != nil {
-		return 0,err
+		return 0, err
 	}
-	return  res,nil
+	return res, nil
 }

@@ -38,25 +38,9 @@ func (l *SendMessageLogic) SendMessage(in *message.SendMessageReq) (*message.Sen
 	// 	return nil, constants.NewErrCode(constants.ErrMsgRateLimit) // 300001
 	// }
 
-	// 4. 幂等检查（Redis 第一层）
-	//    命中 → 查 PG 返回原消息（保证客户端重试拿到相同结果）
-	isDup, existMsg, err := l.svcCtx.DedupModel.CheckAndGet(l.ctx, in.Body.ConvId, in.ClientMsgId)
-	if err != nil {
-		logx.Errorf("dedup check err: %v", err)
-		// Redis 故障不阻断，降级到下游 PG 唯一索引兜底
-	} else if isDup {
-		l.Infof("dedup hit, client_msg_id=%s", in.ClientMsgId)
-		return &message.SendMessageResp{
-			MsgId:    existMsg.Id,
-			SeqId:    existMsg.Seqid,
-			ConvId:   existMsg.Convid,
-			SendTime: existMsg.Sendtime.UnixMilli(),
-			Isdup: isDup,
-		}, nil
-	}
-
-	// 4.5 统一占坑时序:分发前 SET NX EX,单聊/群聊一致;
-	//     持久化失败时释放占坑,允许客户端重试
+	// 4. 幂等占坑:分发前 SET NX EX,单聊/群聊一致;
+	//    未占到坑(已接收过或在途)统一反查 PG 返回原消息,保证客户端重试拿到相同结果;
+	//    Redis 故障时放行,降级到下游 PG 唯一索引兜底;持久化失败时释放占坑,允许客户端重试
 	acquired, err := l.svcCtx.DedupModel.TryAcquire(l.ctx, in.Body.ConvId, in.ClientMsgId)
 	if err == nil && !acquired {
 		// 占坑失败:上一请求在途或刚完成但 PG 反查未命中(极小窗口),按在途冲突处理
@@ -100,6 +84,7 @@ func (l *SendMessageLogic) SendMessage(in *message.SendMessageReq) (*message.Sen
 				SeqId:    msg.Seqid,
 				ConvId:   msg.Convid,
 				SendTime: msg.Sendtime.UnixMilli(),
+				Isdup:    true,
 			}, nil
 		}
 		// 失败释放占坑,客户端重试不被幂等键挡住
@@ -117,6 +102,7 @@ func (l *SendMessageLogic) validate(in *message.SendMessageReq) error {
 	if len(in.Body.ConvId) <= 0 {
 		return constants.NewMsgError(constants.ErrCodeMsgInValidParam)
 	}
+
 	switch in.Isgroup {
 	case false:
 		if !isGroupConv(in.Body.ConvId) {
@@ -134,6 +120,9 @@ func (l *SendMessageLogic) validate(in *message.SendMessageReq) error {
 		if isGroupConv(in.Body.ConvId) {
 			groupId, err := strconv.ParseInt(strings.TrimPrefix(in.Body.ConvId, "group_"), 10, 64)
 			if err != nil || groupId <= 0 {
+				return constants.NewMsgError(constants.ErrCodeMsgInValidParam)
+			}
+			if in.Body.ConvId != constants.BuildGroupConvID(in.ToUid) {
 				return constants.NewMsgError(constants.ErrCodeMsgInValidParam)
 			}
 		} else {

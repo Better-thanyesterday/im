@@ -10,12 +10,11 @@ import (
 )
 
 type DedupModel struct {
-	redis    *redis.Redis
-	MsgModel MessagesModel // 用于命中后反查 PG
+	redis *redis.Redis
 }
 
-func NewDedupModel(r *redis.Redis, m MessagesModel) *DedupModel {
-	return &DedupModel{redis: r, MsgModel: m}
+func NewDedupModel(r *redis.Redis) *DedupModel {
+	return &DedupModel{redis: r}
 }
 
 func (m *DedupModel) dedupKey(convId, clientMsgId string) string {
@@ -43,18 +42,4 @@ func (m *DedupModel) Release(ctx context.Context, convId, clientMsgId string) {
 	if _, err := m.redis.DelCtx(ctx, m.dedupKey(convId, clientMsgId)); err != nil {
 		logx.WithContext(ctx).Errorf("dedup release failed: conv=%s cmid=%s err=%v", convId, clientMsgId, err)
 	}
-}
-
-// CheckAndGet 重复时反查 PG 返回完整消息体
-func (m *DedupModel) CheckAndGet(ctx context.Context, convId, clientMsgId string) (bool, *Messages, error) {
-	exists, err := m.redis.ExistsCtx(ctx, m.dedupKey(convId, clientMsgId))
-	if err != nil || !exists {
-		return false, nil, err
-	}
-	// Redis 命中，反查 PG 返回完整消息体
-	msg, err := m.MsgModel.FindOneByClientmsgid(ctx, clientMsgId)
-	if err != nil {
-		return true, nil, err
-	}
-	return true, msg, nil
 }

@@ -15,7 +15,11 @@ enum PushType {
 message PushMessage {
   int64  msg_id    = 1; // 消息全局 ID（雪花算法）
   string conv_id   = 2; // 会话 ID（单聊 min_uid:max_uid / 群聊 group_{group_id}）
-  int64  seq_id    = 3; // 会话内单调递增序列号
+  int64  seq_id    = 3; // 会话内单调递增序列号。
+                        // 【客户端契约】投递不保证跨消息到达顺序:BatchDeliver 多 goroutine 并发、
+                        // 实时/离线信箱两条路径、网络抖动都可能乱序;服务端只保证 seq_id 单调分配与
+                        // 落库有序(单 topic key=conv_id 同分区)。客户端必须按 seq_id 在会话内重排去重,
+                        // 检测到空洞时调 SyncMessage 补齐,不得假设推送到达序 == seq 序
   int64  sender_id = 4; // 发送者 ID
   int64  msg_type  = 5; // 1-文本 2-图片 3-语音 4-视频 5-文件 6-位置 7-系统
   string content   = 6; // 消息内容（JSON 序列化）
@@ -43,7 +47,9 @@ message ClearUnreadReq {
 
 message ClearUnreadResp {}
 
-// 批量投递指令:群聊写扩散用,一次 RPC 投多个用户,避免 O(N) 次跨服务调用
+// 批量投递指令:群聊写扩散用,一次 RPC 投多个用户,避免 O(N) 次跨服务调用。
+// 内部按受限并发(8)逐用户投递,同一用户跨消息不保证到达顺序——
+// 顺序契约见 PushMessage.seq_id(客户端按 seq 重排,不做服务端按 uid 串行化)
 message BatchDeliverReq {
   repeated int64 user_ids = 1; // 目标用户列表(不含发送方)
   PushType    push_type = 2;   // 推送方式
@@ -52,13 +58,14 @@ message BatchDeliverReq {
 
 message BatchDeliverResp {
   int32 success_count = 1; // 至少一个设备实时投递成功的用户数
+  repeated int64 failed_user_ids = 2; // 实时投递未达的用户(投递 err 或已转离线信箱),排障用
 }
 
 service Push {
-  // 在线实时推送 + 离线存储 + 未读计数：按 Redis 在线状态决定走 Gateway.PushToConn 还是写 im:offline
+  // 单用户投递,语义见 internal/logic/deliverlogic.go(在线推 Gateway;离线/全设备失败转离线信箱+未读计数)
   rpc Deliver(DeliverReq) returns (DeliverResp);
-  // 批量投递:内部按受限并发逐个走 Deliver 语义(在线推送/离线兜底/未读计数)
+  // 多用户批量投递,语义见 internal/logic/batchDeliverLogic.go(受限并发,顺序契约见 PushMessage.seq_id)
   rpc BatchDeliver(BatchDeliverReq) returns (BatchDeliverResp);
-  // 清零 im:unread:{user_id} 中对应会话的计数
+  // 清未读计数,语义见 internal/logic/clearunreadlogic.go
   rpc ClearUnread(ClearUnreadReq) returns (ClearUnreadResp);
 }

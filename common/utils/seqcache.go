@@ -46,18 +46,21 @@ func (c *SeqIdCache) Get(convId string) (int64, bool) {
 	}
 }
 
-// Put 放入新预取的段
+// Put 放入新预取的段。
+// 正常路径:start=段底-1、max=段顶,Get 从 start+1 连续发号到 max;
+// max=0(或 max<=start)是"一次性段":仅记录 current、无可发区间,Get 恒 miss——
+// 供 PG 兜底路径使用,单号分配没有可缓存的区间,防止把未经 PG 批准的号发出去
 func (c *SeqIdCache) Put(convId string, start, max int64) {
 	c.mu.Lock()
-	if max != 0 &&max>start{
+	if max != 0 && max > start {
 		c.segments[convId] = &seqSegment{
 			current: start,
 			max:     max,
 		}
-	}else{
-        c.segments[convId] = &seqSegment{
+	} else {
+		c.segments[convId] = &seqSegment{
 			current: start,
 		}
-    }
+	}
 	c.mu.Unlock()
 }

@@ -168,15 +168,29 @@ func (l *GroupChatLogic) writeDiffusion(msg *models.Messages, in *message.SendMe
 		// 每 500 条刷一次 inbox Kafka
 		if len(inboxBatch) >= 500 {
 			if err := NewAsyncPersistMsg(l.ctx, l.svcCtx).persistInboxes(l.ctx, inboxBatch); err != nil {
-				logx.Errorf("batch send inbox failed: %v", err)
+				logx.Errorf("batch send inbox failed, submit compensation: %v", err)
+				// 必须拷贝:下方 [:0] 复用底层数组,直接提交会被后续 append 改写
+				submitBundleCompensation(&WriteDiffBundle{Inboxes: append([]*models.Inboxes(nil), inboxBatch...)})
 			}
 			inboxBatch = inboxBatch[:0]
 		}
 	}
+	// 发送方也写一行 inbox(isread=true,不计未读),与单聊对齐:
+	// 发送方的其他设备靠这行做会话水位同步,缺了会让 buildUserConvList 对本群的水位偏低,重连重复补拉
+	inboxBatch = append(inboxBatch, &models.Inboxes{
+		Userid:    in.SenderId,
+		Msgid:     msg.Id,
+		Convid:    msg.Convid,
+		Isread:    true,
+		Status:    constants.InboxStatusNormal,
+		CreatedAt: now,
+		Seqid:     msg.Seqid,
+	})
 	// 刷入剩余 inbox
 	if len(inboxBatch) > 0 {
 		if err := NewAsyncPersistMsg(l.ctx, l.svcCtx).persistInboxes(l.ctx, inboxBatch); err != nil {
-			logx.Errorf("batch send inbox failed: %v", err)
+			logx.Errorf("batch send inbox failed, submit compensation: %v", err)
+			submitBundleCompensation(&WriteDiffBundle{Inboxes: inboxBatch})
 		}
 	}
 	// 单次批量投递:实时推送失败/离线的用户由 push 内部走离线兜底
@@ -283,5 +297,3 @@ func (l *GroupChatLogic) extractMentions(extra *message.MessageExtra) []int64 {
 	}
 	return extra.Mentions
 }
-
-

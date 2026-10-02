@@ -35,7 +35,7 @@ func (m *customSeqsModel) withSession(session sqlx.Session) SeqsModel {
 }
 
 // UpsertMaxSeq 消费端持久化 seq 事件:只推进不回退(GREATEST),可安全重放。
-// 生成版 CustomQueryRowCtx 是"+1 分配器",消费端误用它会让 PG 与 Redis 永久脱节
+// 生成版 IncrSeq(原名 CustomQueryRowCtx)是"+1 分配器",持久化路径误用它会让 PG 与 Redis 永久脱节
 func (m *customSeqsModel) UpsertMaxSeq(ctx context.Context, convId string, maxSeq int64) error {
 	query := fmt.Sprintf(`INSERT INTO %s (conv_id, max_seq, updated_at)
 		VALUES ($1, $2, NOW())

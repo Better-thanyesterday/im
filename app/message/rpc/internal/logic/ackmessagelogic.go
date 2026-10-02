@@ -8,7 +8,6 @@ import (
 	"im-platform/app/push/rpc/push"
 	"im-platform/common/constants"
 	"strconv"
-	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -29,7 +28,6 @@ func NewAckMessageLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AckMes
 
 // AckMessage 统一 ACK 入口：已送达 / 已读
 func (l *AckMessageLogic) AckMessage(in *message.AckMessageReq) (*message.AckMessageResp, error) {
-	// todo: add your logic here and delete this line
 	// 身份以 gateway 注入的 metadata 为准,请求字段仅作内部调用回退,防止伪造他人已读回执
 	readerId := userIDFromCtx(l.ctx)
 	if readerId <= 0 {
@@ -68,9 +66,8 @@ func (l *AckMessageLogic) handleDelivered(in *message.AckMessageReq, readerId in
 		return &message.AckMessageResp{}, nil
 	}
 
-	// 推送给发送方：你的消息对方已收到
-	// 这里复用 Push.Deliver，payload 带状态标识
-	_ = l.notifySender(msg.Senderid, msg.Convid, in.MsgId)
+	// 推送给发送方：你的消息对方已收到(PushType_Notify 轻量帧,只带 conv_id + seq_id)
+	_ = l.notifySender(msg.Senderid, msg.Convid, msg.Seqid)
 
 	return &message.AckMessageResp{}, nil
 }
@@ -112,14 +109,16 @@ func (l *AckMessageLogic) handleRead(in *message.AckMessageReq, readerId int64) 
 	}); err != nil {
 		logx.Errorf("clear unread failed: conv=%s reader=%d err=%v", in.ConvId, readerId, err)
 	}
-	_ = l.notifySender(msg.Senderid, msg.Convid, in.MsgId)
+	_ = l.notifySender(msg.Senderid, msg.Convid, readSeq)
 	return &message.AckMessageResp{}, nil
 }
-func (l *AckMessageLogic) notifySender(senderId int64, convId string, msgId int64) error {	msg := push.PushMessage{
-		SenderId: senderId,
+
+// notifySender 已读/送达回执推送:PushType_Notify,下行只有 {conv_id, seq_id} 轻量帧,
+// 客户端据此更新本会话的已读/送达水位,不携带任何消息内容
+func (l *AckMessageLogic) notifySender(senderId int64, convId string, seqId int64) error {
+	msg := push.PushMessage{
 		ConvId: convId,
-		MsgId: msgId,
-		SendTime: time.Now().UnixMilli(),
+		SeqId:  seqId,
 	}
 	_, err := l.svcCtx.Push.Deliver(l.ctx, &push.DeliverReq{
 		UserId:   senderId,

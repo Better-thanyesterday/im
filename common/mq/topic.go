@@ -5,15 +5,14 @@ package mq
 // ============================================================================
 const (
 	// TopicMsgPersist 消息异步落库（分区 32 | 副本 3）
-	// 生产者：消息服务发送管道   消费者：消息服务 msg-persist-group
+	// 载荷为 WriteDiffBundle 单载荷(msg/seq/inbox 合并,消费端按序落库),
+	// key=conv_id 保证同会话消息同分区有序;inbox-only bundle(写扩散)也发本 topic
+	// 生产者：消息服务发送管道   消费者：消息服务 msg-persist-group(单消费组)
 	TopicMsgPersist = "im.msg.persist"
-
-	TopicSeqPersist = "im.seq.persist"
 
 	// TopicMsgOffline 离线消息写入 Redis（分区 16 | 副本 3）
 	// 生产者：消息/推送服务      消费者：推送服务 offline-group
 	TopicMsgOffline = "im.msg.offline"
-	TopicMsgInbox = "im.msg.inboxes"
 	// TopicFileAudit 文件内容审核（分区 8 | 副本 3）
 	// 生产者：媒体服务           消费者：内容安全服务 security-group
 	TopicFileAudit = "im.file.audit"

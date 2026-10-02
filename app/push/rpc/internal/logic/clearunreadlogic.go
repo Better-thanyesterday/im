@@ -27,13 +27,12 @@ func NewClearUnreadLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Clear
 // ClearUnread 清零 im:unread:{user_id} 的未读计数:
 // conv_id 为空清全会话,否则只清指定会话(与 DeliverLogic.incrUnread 的写入对应)
 func (l *ClearUnreadLogic) ClearUnread(in *push.ClearUnreadReq) (*push.ClearUnreadResp, error) {
-	// todo: add your logic here and delete this line
 	if in.UserId <= 0 {
 		return nil, fmt.Errorf("invalid clear unread req: user=%d", in.UserId)
 	}
 	key := fmt.Sprintf("im:unread:%d", in.UserId)
 	if in.ConvId == "" {
-		if _, err := l.svcCtx.Redis.Del(key); err != nil {
+		if _, err := l.svcCtx.Redis.DelCtx(l.ctx, key); err != nil {
 			logx.Errorf("clear unread del failed: key=%s err=%v", key, err)
 			return nil, err
 		}

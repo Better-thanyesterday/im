@@ -15,10 +15,9 @@ Kafka:
     Compression: none
     MaxMessageBytes: 1048576
   Consumer:
-    GroupID: 
-     - msg-persist-group
-     - seq-persist-group
-     - inbox-persist-group
+    # msg/seq/inbox 合并为单 topic(im.msg.persist) 单消费组,bundle 单载荷按序落库
+    GroupID:
+      - msg-persist-group
     OffsetInitial: oldest
     SessionTimeout: 10s
     HeartbeatInterval: 3s

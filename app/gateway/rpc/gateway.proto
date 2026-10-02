@@ -9,7 +9,9 @@ message PushToConnReq {
   int64 user_id = 1;       // 目标用户 ID
   int32 device_type = 2;   // 目标设备：1-iOS 2-Android 3-Web 4-PC 5-小程序
   bytes payload = 3;       // 业务消息体（JSON/Protobuf 序列化后的裸字节）
-                           // Gateway 会将其封装为 FramePush(0x10) 的 WebSocket 帧下发
+                           // Gateway 会将其封装为 FramePush(0x10) 的 WebSocket 帧下发。
+                           // 到达顺序契约:同会话跨消息不保证有序,客户端按 payload 内的
+                           // seq_id 重排(push.proto PushMessage.seq_id),Gateway 只做透明转发
   int32 priority = 4;      // 0-普通 1-高优（如 @ 消息），Gateway 可做发送队列调度
 }
 

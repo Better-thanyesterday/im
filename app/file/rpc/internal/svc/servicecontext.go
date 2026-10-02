@@ -7,10 +7,10 @@ import (
 	"im-platform/app/file/rpc/models"
 	"im-platform/common/utils"
 
-	_ "github.com/lib/pq"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	_ "github.com/lib/pq"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
 
@@ -25,7 +25,7 @@ type ServiceContext struct {
 
 func NewServiceContext(c config.Config) *ServiceContext {
 	sqlconn := sqlx.NewSqlConn("postgres", c.Postgres.DataSource)
-	snokflake, err := utils.NewSnowflakeOrAuto(c.Snowflake.WorkNode)
+	snowflake, err := utils.NewSnowflakeOrAuto(c.Snowflake.WorkNode)
 	if err != nil {
 		panic(err)
 	}
@@ -52,7 +52,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	return &ServiceContext{
 		Config:     c,
 		FilesModel: models.NewFilesModel(sqlconn),
-		Snowflake:  snokflake,
+		Snowflake:  snowflake,
 		S3:         s3Client,
 		Presign:    s3.NewPresignClient(s3Client),
 		Bucket:     c.Minio.Bucket,

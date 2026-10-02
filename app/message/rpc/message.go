@@ -27,6 +27,7 @@ func main() {
 	var c config.Config
 	conf.MustLoad(*configFile, &c)
 	ctx := svc.NewServiceContext(c)
+	// 1. rpc server
 	s := zrpc.MustNewServer(c.RpcServerConf, func(grpcServer *grpc.Server) {
 		message.RegisterMessageServer(grpcServer, server.NewMessageServer(ctx))
 
@@ -35,30 +36,21 @@ func main() {
 		}
 	})
 
-	// 2. Kafka 消费者：订阅 im.msg.persist 做消息落库
+	// 2. Kafka 消费者：订阅 im.msg.persist 消费 WriteDiffBundle 单载荷。
+	//    msg/seq/inbox 合并为单 topic 单消费组,消费端按 msg→seq→inbox 顺序落库;
+	//    原来三 topic 三消费组并行,inbox 可能先于 msg 落库导致重连水位跳号丢消息
 	consumer := &kafka.KafkaConsumerService{
-		Consumer: *ctx.KafkaConsumer[0],
+		Consumer: *ctx.KafkaConsumer,
 		Topics:   []string{mq.TopicMsgPersist},
-		Handler:  logic.NewConsumerHandlerLogic(ctx).PersistMsg,
+		Handler:  logic.NewConsumerHandlerLogic(ctx).PersistBundle,
 	}
-	// 2. Kafka 消费者：订阅 im.seq.persist 做消息落库
-	seqconsumer := &kafka.KafkaConsumerService{
-		Consumer: *ctx.KafkaConsumer[1],
-		Topics:   []string{mq.TopicSeqPersist},
-		Handler:  logic.NewConsumerHandlerLogic(ctx).PersistSeq,
-	}
-
-	inboxconsumer := &kafka.KafkaConsumerService{
-		Consumer: *ctx.KafkaConsumer[2],
-		Topics:   []string{mq.TopicMsgInbox},
-		Handler:  logic.NewConsumerHandlerLogic(ctx).PersistToInbox,
-	}
-	// 3. servicegroup：Ctrl+C 时先停消费者再停 rpc
+	// 3. 持久化失败批次的后台补偿(写扩散 inbox 批 Kafka+PG 兜底都失败时整批转入退避重试)
+	compensator := logic.InitBundleCompensator(ctx)
+	// 4. servicegroup：Ctrl+C 时先停消费者再停 rpc
 	sg := service.NewServiceGroup()
 	sg.Add(s)
 	sg.Add(consumer)
-	sg.Add(seqconsumer)
-	sg.Add(inboxconsumer)
+	sg.Add(compensator)
 	defer sg.Stop()
 
 	fmt.Printf("Starting rpc server at %s...\n", c.ListenOn)
