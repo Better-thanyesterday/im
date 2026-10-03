@@ -6,10 +6,10 @@ package handler
 import (
 	"net/http"
 
+	"github.com/zeromicro/go-zero/rest/httpx"
 	"im-platform/app/im/api/internal/logic"
 	"im-platform/app/im/api/internal/svc"
 	"im-platform/app/im/api/internal/types"
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
 func LoginHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {

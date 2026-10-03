@@ -18,7 +18,9 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	// 非浏览器客户端(原生 App)不携带 Origin,放行;
-	// 带 Origin 的请求必须是同源,防止浏览器侧跨站 WS 劫持
+	// 带 Origin 的请求必须是同源,防止浏览器侧跨站 WS 劫持;
+	// 例外:跨源但带 query token 的请求放行——桌面 WebView(Wails 等)的 Origin 是
+	// 固定伪域名,与 WS 服务必然不同源;鉴权靠显式 token(无 cookie 环境凭证),劫持无可乘面
 	CheckOrigin: func(r *http.Request) bool {
 		origin := r.Header.Get("Origin")
 		if origin == "" {
@@ -28,7 +30,10 @@ var upgrader = websocket.Upgrader{
 		if err != nil {
 			return false
 		}
-		return u.Host == r.Host
+		if u.Host == r.Host {
+			return true
+		}
+		return r.URL.Query().Get("token") != ""
 	},
 }
 

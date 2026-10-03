@@ -28,6 +28,7 @@ const (
 	Group_GetGroupInfo_FullMethodName     = "/group.Group/GetGroupInfo"
 	Group_InviteMember_FullMethodName     = "/group.Group/InviteMember"
 	Group_ApplyJoinGroup_FullMethodName   = "/group.Group/ApplyJoinGroup"
+	Group_HandleApply_FullMethodName      = "/group.Group/HandleApply"
 	Group_KickMember_FullMethodName       = "/group.Group/KickMember"
 	Group_QuitGroup_FullMethodName        = "/group.Group/QuitGroup"
 	Group_MuteMember_FullMethodName       = "/group.Group/MuteMember"
@@ -53,6 +54,7 @@ type GroupClient interface {
 	// ==================== 成员管理 ====================
 	InviteMember(ctx context.Context, in *InviteMemberReq, opts ...grpc.CallOption) (*InviteMemberResp, error)
 	ApplyJoinGroup(ctx context.Context, in *ApplyJoinGroupReq, opts ...grpc.CallOption) (*ApplyJoinGroupResp, error)
+	HandleApply(ctx context.Context, in *HandleApplyReq, opts ...grpc.CallOption) (*HandleApplyResp, error)
 	KickMember(ctx context.Context, in *KickMemberReq, opts ...grpc.CallOption) (*KickMemberResp, error)
 	QuitGroup(ctx context.Context, in *QuitGroupReq, opts ...grpc.CallOption) (*QuitGroupResp, error)
 	MuteMember(ctx context.Context, in *MuteMemberReq, opts ...grpc.CallOption) (*MuteMemberResp, error)
@@ -137,6 +139,16 @@ func (c *groupClient) ApplyJoinGroup(ctx context.Context, in *ApplyJoinGroupReq,
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ApplyJoinGroupResp)
 	err := c.cc.Invoke(ctx, Group_ApplyJoinGroup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *groupClient) HandleApply(ctx context.Context, in *HandleApplyReq, opts ...grpc.CallOption) (*HandleApplyResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(HandleApplyResp)
+	err := c.cc.Invoke(ctx, Group_HandleApply_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -238,6 +250,7 @@ type GroupServer interface {
 	// ==================== 成员管理 ====================
 	InviteMember(context.Context, *InviteMemberReq) (*InviteMemberResp, error)
 	ApplyJoinGroup(context.Context, *ApplyJoinGroupReq) (*ApplyJoinGroupResp, error)
+	HandleApply(context.Context, *HandleApplyReq) (*HandleApplyResp, error)
 	KickMember(context.Context, *KickMemberReq) (*KickMemberResp, error)
 	QuitGroup(context.Context, *QuitGroupReq) (*QuitGroupResp, error)
 	MuteMember(context.Context, *MuteMemberReq) (*MuteMemberResp, error)
@@ -278,6 +291,9 @@ func (UnimplementedGroupServer) InviteMember(context.Context, *InviteMemberReq) 
 }
 func (UnimplementedGroupServer) ApplyJoinGroup(context.Context, *ApplyJoinGroupReq) (*ApplyJoinGroupResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method ApplyJoinGroup not implemented")
+}
+func (UnimplementedGroupServer) HandleApply(context.Context, *HandleApplyReq) (*HandleApplyResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method HandleApply not implemented")
 }
 func (UnimplementedGroupServer) KickMember(context.Context, *KickMemberReq) (*KickMemberResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method KickMember not implemented")
@@ -446,6 +462,24 @@ func _Group_ApplyJoinGroup_Handler(srv interface{}, ctx context.Context, dec fun
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(GroupServer).ApplyJoinGroup(ctx, req.(*ApplyJoinGroupReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Group_HandleApply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HandleApplyReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GroupServer).HandleApply(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Group_HandleApply_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GroupServer).HandleApply(ctx, req.(*HandleApplyReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -628,6 +662,10 @@ var Group_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ApplyJoinGroup",
 			Handler:    _Group_ApplyJoinGroup_Handler,
+		},
+		{
+			MethodName: "HandleApply",
+			Handler:    _Group_HandleApply_Handler,
 		},
 		{
 			MethodName: "KickMember",

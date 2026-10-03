@@ -41,6 +41,11 @@ func AuthMiddleware(tm *utils.TokenManager) func(next http.HandlerFunc) http.Han
 			if parts := strings.SplitN(tokenStr, " ", 2); len(parts) == 2 && strings.EqualFold(parts[0], "Bearer") {
 				tokenStr = strings.TrimSpace(parts[1])
 			}
+			// WebSocket 握手(浏览器/WebView)无法携带 Authorization 头,仅 /ws 路径允许 query token 回退:
+			// token 是显式凭证、无 cookie 这类环境载体,不会被第三方页面自动附带,CSWSH 风险不成立
+			if tokenStr == "" && r.URL.Path == "/ws" {
+				tokenStr = r.URL.Query().Get("token")
+			}
 			if tokenStr =="" {
 				httpx.Error(w, &AuthError{Code: 100002, Msg: "Token缺失"})
 				return

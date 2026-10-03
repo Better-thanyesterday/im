@@ -26,7 +26,7 @@ func NewBlockUserLogic(ctx context.Context, svcCtx *svc.ServiceContext) *BlockUs
 func (l *BlockUserLogic) BlockUser(in *user.BlockUserReq) (*user.BlockUserResp, error) {
 	// todo: add your logic here and delete this line
 	// 定向更新 status,避免生成版 Update(单列 where + 全列覆盖)误伤其他关系行
-	err:=l.svcCtx.FriendsModel.UpdateRelationStatus(l.ctx, in.UserId, in.TargetUserId, 2)
+	err := l.svcCtx.FriendsModel.UpdateRelationStatus(l.ctx, in.UserId, in.TargetUserId, 2)
 	if err != nil {
 		return nil, err
 	}

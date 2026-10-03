@@ -27,13 +27,13 @@ func NewUpdateProfileLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Upd
 
 func (l *UpdateProfileLogic) UpdateProfile(in *user.UpdateProfileReq) (*user.UpdateProfileResp, error) {
 	// todo: add your logic here and delete this line
-	gender:=strconv.FormatInt(int64(in.Gender),10)
+	gender := strconv.FormatInt(int64(in.Gender), 10)
 	// 定向更新资料列 + 显式 user_id,避免 where id=0 静默 no-op 假成功
-	err:=l.svcCtx.UsersModel.UpdateProfileFields(l.ctx, in.UserId,
+	err := l.svcCtx.UsersModel.UpdateProfileFields(l.ctx, in.UserId,
 		in.Nickname, in.Avatar, in.Signature, gender, in.Region,
 		time.Unix(in.Birthday, 0),
 	)
-	if err!=nil {
+	if err != nil {
 		logx.Errorf("update Profile fail: user=%d err=%v", in.UserId, err)
 		return &user.UpdateProfileResp{
 			Success: false,

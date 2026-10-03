@@ -2,10 +2,13 @@ package logic
 
 import (
 	"context"
+	"errors"
 
-	"github.com/zeromicro/go-zero/core/logx"
 	"im-platform/app/group/rpc/group"
 	"im-platform/app/group/rpc/internal/svc"
+	"im-platform/common/constants"
+
+	"github.com/zeromicro/go-zero/core/logx"
 )
 
 type DissolveGroupLogic struct {
@@ -22,8 +25,20 @@ func NewDissolveGroupLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Dis
 	}
 }
 
+// DissolveGroup 解散群:仅群主可操作;软删(status=2 + dissolved_at),成员行保留作历史
 func (l *DissolveGroupLogic) DissolveGroup(in *group.DissolveGroupReq) (*group.DissolveGroupResp, error) {
-	// todo: add your logic here and delete this line
-
+	if in.GroupId <= 0 || in.OperatorId <= 0 {
+		return nil, constants.NewMsgError(constants.ErrCodeMsgInValidParam)
+	}
+	g, err := fetchGroup(l.ctx, l.svcCtx, in.GroupId)
+	if err != nil {
+		return nil, err
+	}
+	if g.OwnerId != in.OperatorId {
+		return nil, errors.New("只有群主可以解散群")
+	}
+	if err := l.svcCtx.GroupsModel.MarkDissolved(l.ctx, in.GroupId); err != nil {
+		return nil, err
+	}
 	return &group.DissolveGroupResp{}, nil
 }

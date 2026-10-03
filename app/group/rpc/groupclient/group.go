@@ -31,6 +31,8 @@ type (
 	GetUserGroupsReq     = group.GetUserGroupsReq
 	GetUserGroupsResp    = group.GetUserGroupsResp
 	GroupInfo            = group.GroupInfo
+	HandleApplyReq       = group.HandleApplyReq
+	HandleApplyResp      = group.HandleApplyResp
 	InviteMemberReq      = group.InviteMemberReq
 	InviteMemberResp     = group.InviteMemberResp
 	KickMemberReq        = group.KickMemberReq
@@ -57,6 +59,7 @@ type (
 		// ==================== 成员管理 ====================
 		InviteMember(ctx context.Context, in *InviteMemberReq, opts ...grpc.CallOption) (*InviteMemberResp, error)
 		ApplyJoinGroup(ctx context.Context, in *ApplyJoinGroupReq, opts ...grpc.CallOption) (*ApplyJoinGroupResp, error)
+		HandleApply(ctx context.Context, in *HandleApplyReq, opts ...grpc.CallOption) (*HandleApplyResp, error)
 		KickMember(ctx context.Context, in *KickMemberReq, opts ...grpc.CallOption) (*KickMemberResp, error)
 		QuitGroup(ctx context.Context, in *QuitGroupReq, opts ...grpc.CallOption) (*QuitGroupResp, error)
 		MuteMember(ctx context.Context, in *MuteMemberReq, opts ...grpc.CallOption) (*MuteMemberResp, error)
@@ -115,6 +118,11 @@ func (m *defaultGroup) InviteMember(ctx context.Context, in *InviteMemberReq, op
 func (m *defaultGroup) ApplyJoinGroup(ctx context.Context, in *ApplyJoinGroupReq, opts ...grpc.CallOption) (*ApplyJoinGroupResp, error) {
 	client := group.NewGroupClient(m.cli.Conn())
 	return client.ApplyJoinGroup(ctx, in, opts...)
+}
+
+func (m *defaultGroup) HandleApply(ctx context.Context, in *HandleApplyReq, opts ...grpc.CallOption) (*HandleApplyResp, error) {
+	client := group.NewGroupClient(m.cli.Conn())
+	return client.HandleApply(ctx, in, opts...)
 }
 
 func (m *defaultGroup) KickMember(ctx context.Context, in *KickMemberReq, opts ...grpc.CallOption) (*KickMemberResp, error) {

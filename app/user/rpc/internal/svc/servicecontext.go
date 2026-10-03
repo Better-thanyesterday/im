@@ -10,34 +10,35 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 )
+
 type ServiceContext struct {
-	Config config.Config
-	UsersModel models.UsersModel
-	DevicesModel models.DevicesModel
-	FriendsModel models.FriendsModel
+	Config             config.Config
+	UsersModel         models.UsersModel
+	DevicesModel       models.DevicesModel
+	FriendsModel       models.FriendsModel
 	FriendAppliesModel models.FriendappliesModel
-	FriendGroupsModel models.FriendgroupsModel
-	Snowflake *utils.Snowflake
-	Redis  *redis.Redis
-	TokenManager *utils.TokenManager
+	FriendGroupsModel  models.FriendgroupsModel
+	Snowflake          *utils.Snowflake
+	Redis              *redis.Redis
+	TokenManager       *utils.TokenManager
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
-	sqlconn:=sqlx.NewSqlConn("postgres",c.Postgres.DataSource)
-	Snowflake,err:= utils.NewSnowflakeOrAuto(c.Snowflake.WorkNode)
-	if err!=nil{
+	sqlconn := sqlx.NewSqlConn("postgres", c.Postgres.DataSource)
+	Snowflake, err := utils.NewSnowflakeOrAuto(c.Snowflake.WorkNode)
+	if err != nil {
 		panic(err)
 	}
-	rds :=redis.MustNewRedis(c.RedisCache)
+	rds := redis.MustNewRedis(c.RedisCache)
 	return &ServiceContext{
-		Config: c,
-		UsersModel: models.NewUsersModel(sqlconn),
-		Snowflake: Snowflake,
-		DevicesModel: models.NewDevicesModel(sqlconn),
-		Redis: rds,
-		FriendsModel: models.NewFriendsModel(sqlconn),
-		FriendGroupsModel: models.NewFriendgroupsModel(sqlconn),
+		Config:             c,
+		UsersModel:         models.NewUsersModel(sqlconn),
+		Snowflake:          Snowflake,
+		DevicesModel:       models.NewDevicesModel(sqlconn),
+		Redis:              rds,
+		FriendsModel:       models.NewFriendsModel(sqlconn),
+		FriendGroupsModel:  models.NewFriendgroupsModel(sqlconn),
 		FriendAppliesModel: models.NewFriendappliesModel(sqlconn),
-		TokenManager: utils.NewTokenManager(rds, 7*24*time.Hour),
+		TokenManager:       utils.NewTokenManager(rds, 7*24*time.Hour),
 	}
 }

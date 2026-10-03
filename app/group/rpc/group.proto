@@ -16,6 +16,7 @@ service Group {
  // ==================== 成员管理 ====================
  rpc InviteMember(InviteMemberReq) returns (InviteMemberResp);
  rpc ApplyJoinGroup(ApplyJoinGroupReq) returns (ApplyJoinGroupResp);
+ rpc HandleApply(HandleApplyReq) returns (HandleApplyResp);
  rpc KickMember(KickMemberReq) returns (KickMemberResp);
  rpc QuitGroup(QuitGroupReq) returns (QuitGroupResp);
  rpc MuteMember(MuteMemberReq) returns (MuteMemberResp);
@@ -162,6 +163,17 @@ message ApplyJoinGroupReq {
 message ApplyJoinGroupResp {
  int64 apply_id = 1;
  int32 status = 2;         // 1-待处理（需审批） 2-已加入（无需审批）
+}
+
+message HandleApplyReq {
+ int64 group_id = 1;
+ int64 operator_id = 2;    // 审批人(群主/管理员)
+ int64 apply_id = 3;
+ bool approve = 4;         // true-接受入群 false-拒绝
+}
+
+message HandleApplyResp {
+ int64 member_version = 1; // 接受且成功入群时返回新版本号
 }
 
 message KickMemberReq {

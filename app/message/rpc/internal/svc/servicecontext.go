@@ -1,6 +1,7 @@
 package svc
 
 import (
+	"im-platform/app/file/rpc/fileclient"
 	"im-platform/app/group/rpc/groupclient"
 	"im-platform/app/message/rpc/internal/config"
 	"im-platform/app/message/rpc/models"
@@ -30,6 +31,7 @@ type ServiceContext struct {
 	pushclient.Push
 	groupclient.Group
 	userclient.User
+	fileclient.File
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -76,6 +78,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Push:          pushclient.NewPush(zrpc.MustNewClient(c.PushRpc)),
 		Group:         groupclient.NewGroup(zrpc.MustNewClient(c.GroupRpc)),
 		User:          userclient.NewUser(zrpc.MustNewClient(c.UserRpc)),
+		File:          fileclient.NewFile(zrpc.MustNewClient(c.FileRpc)),
 		SeqIdCache:    utils.NewSeqIdCache(),
 	}
 }

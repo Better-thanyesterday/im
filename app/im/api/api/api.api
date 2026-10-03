@@ -1,42 +1,173 @@
 syntax = "v1"
 
 info (
-	title:       "Gateway API"
+	title:       "IM API"
 	version:     "1.0.0"
-	description: "This is the API documentation for the Gateway service, which provides endpoints for managing and interacting with the gateway functionalities."
+	description: "IM 平台统一 HTTP API 层:聚合 user/group/file 三个 rpc 服务。身份类字段一律不进请求体,由鉴权中间件从 token 注入;除 /login /register /health 外全部需要 Authorization: Bearer <token>"
 )
 
+// ==================== 认证 ====================
+
 type LoginReq {
-	Phone      string `json:"phone" validate:"omitempty"`
-	Email      string `json:"email" validate:"omitempty"`
-	Account    string `json:"account" validate:"omitempty"`
-	DeviceType int32  `json:"devicetype" validate:"omitempty"`
-	DeviceId   string `json:"deviceid" validate:"omitempty"`
+	Phone      string `json:"phone,optional"`
+	Email      string `json:"email,optional"`
+	Account    string `json:"account,optional"`
+	DeviceType int32  `json:"devicetype,optional"`
+	DeviceId   string `json:"deviceid,optional"`
 	Password   string `json:"password"`
 }
 
 type LoginResp {
-	token string `json:"token"`
+	Token string `json:"token"`
 }
 
 type RegisterReq {
-	Phone    string `json:"phone" validate:"omitempty"`
-	Email    string `json:"email" validate:"omitempty"`
+	Phone    string `json:"phone,optional"`
+	Email    string `json:"email,optional"`
 	Password string `json:"password"`
 }
 
 type RegisterResp {
-	Account  int64  `json:"account" validate:"omitempty"`
-	Password string `json:"password"`
+	Account int64 `json:"account"` // 注册成功返回的账号 ID
 }
 
+type ResetPasswordReq {
+	Phone       string `json:"phone,optional"`
+	Email       string `json:"email,optional"`
+	OldPassword string `json:"old_password,optional"`
+	NewPassword string `json:"new_password"`
+	VerifyCode  string `json:"verify_code,optional"`
+}
+
+type SuccessResp {
+	Success bool `json:"success"`
+}
+
+// ==================== 用户资料/设备 ====================
+
+type ProfileReq {
+	UserId int64 `json:"user_id,optional"` // 0=查本人
+}
+
+type ProfileResp {
+	UserId    int64  `json:"user_id"`
+	Phone     string `json:"phone,optional"` // 仅本人可见
+	Email     string `json:"email,optional"` // 仅本人可见
+	Nickname  string `json:"nickname,optional"`
+	Avatar    string `json:"avatar,optional"`
+	Signature string `json:"signature,optional"`
+	Gender    int32  `json:"gender"`
+	Region    string `json:"region,optional"`
+	Birthday  int64  `json:"birthday"`
+	Status    int32  `json:"status"`
+	CreatedAt int64  `json:"created_at"`
+	UpdatedAt int64  `json:"updated_at"`
+}
+
+type UpdateProfileReq {
+	Nickname  string `json:"nickname,optional"`
+	Avatar    string `json:"avatar,optional"`
+	Signature string `json:"signature,optional"`
+	Gender    int32  `json:"gender,optional"`
+	Region    string `json:"region,optional"`
+	Birthday  int64  `json:"birthday,optional"`
+}
+
+type Device {
+	Id           int64  `json:"id"`
+	DeviceType   int32  `json:"device_type"`
+	DeviceName   string `json:"device_name,optional"`
+	DeviceId     string `json:"device_id,optional"`
+	Location     string `json:"location,optional"`
+	LoginAt      int64  `json:"login_at"`
+	LastActiveAt int64  `json:"last_active_at"`
+	Status       int32  `json:"status"`
+}
+
+type DevicesResp {
+	Devices []Device `json:"devices"`
+}
+
+type KickDeviceReq {
+	DeviceId int64 `json:"device_id"`
+}
+
+// ==================== 好友 ====================
+
+type GetFriendsReq {
+	FriendGroupId int64  `json:"friend_group_id,optional"`
+	Keyword       string `json:"keyword,optional"`
+	Page          int32  `json:"page,optional"`
+	PageSize      int32  `json:"page_size,optional"`
+}
+
+type Friend {
+	UserId        int64  `json:"user_id"`
+	Nickname      string `json:"nickname,optional"`
+	Avatar        string `json:"avatar,optional"`
+	Remark        string `json:"remark,optional"`
+	FriendGroupId int64  `json:"friend_group_id"`
+	CreatedAt     int64  `json:"created_at"`
+}
+
+type GetFriendsResp {
+	Total   int32    `json:"total"`
+	Friends []Friend `json:"friends"`
+}
+
+type GetFriendAppliesReq {
+	Status   int32 `json:"status,optional"`
+	Page     int32 `json:"page,optional"`
+	PageSize int32 `json:"page_size,optional"`
+}
+
+type FriendApply {
+	Id                int64  `json:"id"`
+	ApplicantId       int64  `json:"applicant_id"`
+	ApplicantNickname string `json:"applicant_nickname,optional"`
+	ApplicantAvatar   string `json:"applicant_avatar,optional"`
+	TargetId          int64  `json:"target_id"`
+	ApplyReason       string `json:"apply_reason,optional"`
+	Status            int32  `json:"status"`
+	CreatedAt         int64  `json:"created_at"`
+	HandledAt         int64  `json:"handled_at"`
+}
+
+type GetFriendAppliesResp {
+	Total   int32         `json:"total"`
+	Applies []FriendApply `json:"applies"`
+}
+
+type AddFriendReq {
+	TargetUserId int64  `json:"target_user_id"`
+	ApplyReason  string `json:"apply_reason,optional"`
+}
+
+type AddFriendResp {
+	ApplyId int64 `json:"apply_id"`
+}
+
+type AcceptFriendReq {
+	ApplyId int64  `json:"apply_id"`
+	Remark  string `json:"remark,optional"`
+}
+
+type DeleteFriendReq {
+	FriendUserId int64 `json:"friend_user_id"`
+}
+
+type BlockUserReq {
+	TargetUserId int64 `json:"target_user_id"`
+}
+
+// ==================== 群组 ====================
+
 type CreateGroupReq {
-	CreatorId        int64   `json:"creator_id"` // 创建者（自动成为群主）
-	Name             string  `json:"name"` // 群名称
-	Avatar           string  `json:"avatar,optional"` // 群头像（可选）
-	InitialMembers   []int64 `json:"initial_members,optional"` // 初始成员列表（不含创建者）
-	MaxMember        int32   `json:"max_member,optional,default=500"` // 默认500
-	GroupType        int32   `json:"group_type,optional,default=1"` // 1-普通群 2-企业群
+	Name             string  `json:"name"`
+	Avatar           string  `json:"avatar,optional"`
+	InitialMembers   []int64 `json:"initial_members,optional"`
+	MaxMember        int32   `json:"max_member,optional,default=500"`
+	GroupType        int32   `json:"group_type,optional,default=1"`
 	InvitePermission int32   `json:"invite_permission,optional,default=1"`
 	JoinApproval     int32   `json:"join_approval,optional,default=1"`
 }
@@ -47,43 +178,362 @@ type CreateGroupResp {
 }
 
 type InviteMemberReq {
-	GroupId   int64   `json:"group_id"` // 群ID
-	InviterId int64   `json:"inviter_id"` // 邀请人
-	UserIds   []int64 `json:"user_ids"` // 被邀请人列表
+	GroupId int64   `json:"group_id"`
+	UserIds []int64 `json:"user_ids"`
 }
 
-// 响应体
 type InviteMemberResp {
-	FailedUserIds []int64 `json:"failed_user_ids"` // 邀请失败的用户ID列表
-	MemberVersion int64   `json:"member_version"` // 变更后的成员版本号
+	FailedUserIds []int64 `json:"failed_user_ids"`
+	MemberVersion int64   `json:"member_version"`
+}
+
+type GetGroupInfoReq {
+	GroupId int64 `json:"group_id"`
+}
+
+type GroupInfo {
+	Id               int64  `json:"id"`
+	Name             string `json:"name"`
+	Avatar           string `json:"avatar,optional"`
+	OwnerId          int64  `json:"owner_id"`
+	Notice           string `json:"notice,optional"`
+	MemberCount      int32  `json:"member_count"`
+	MaxMember        int32  `json:"max_member"`
+	MemberVersion    int64  `json:"member_version"`
+	GroupType        int32  `json:"group_type"`
+	Status           int32  `json:"status"`
+	InvitePermission int32  `json:"invite_permission"`
+	JoinApproval     int32  `json:"join_approval"`
+	CreatedAt        int64  `json:"created_at"`
+	UpdatedAt        int64  `json:"updated_at"`
+}
+
+type GetGroupInfoResp {
+	Info GroupInfo `json:"info"`
+}
+
+type GetMembersReq {
+	GroupId  int64 `json:"group_id"`
+	LastId   int64 `json:"last_id,optional"`
+	PageSize int32 `json:"page_size,optional"`
+}
+
+type Member {
+	UserId        int64  `json:"user_id"`
+	Role          int32  `json:"role"`
+	GroupNickname string `json:"group_nickname,optional"`
+}
+
+type GetMembersResp {
+	Members       []Member `json:"members"`
+	HasMore       bool     `json:"has_more"`
+	MemberVersion int64    `json:"member_version"`
+	LastId        int64    `json:"last_id"`
+}
+
+type GetUserGroupsResp {
+	GroupIds []int64 `json:"group_ids"`
+}
+
+// ---- 群管理(操作者身份全部取自 token) ----
+
+type QuitGroupReq {
+	GroupId int64 `json:"group_id"`
+}
+
+type KickMemberReq {
+	GroupId  int64 `json:"group_id"`
+	TargetId int64 `json:"target_id"`
+}
+
+type MuteMemberReq {
+	GroupId   int64 `json:"group_id"`
+	TargetId  int64 `json:"target_id"`
+	MuteUntil int64 `json:"mute_until,optional"` // 毫秒时间戳,0=解除禁言
+}
+
+type SetAdminReq {
+	GroupId  int64 `json:"group_id"`
+	TargetId int64 `json:"target_id"`
+	IsAdmin  bool  `json:"is_admin"`
+}
+
+type TransferOwnerReq {
+	GroupId    int64 `json:"group_id"`
+	NewOwnerId int64 `json:"new_owner_id"`
+}
+
+type UpdateGroupInfoReq {
+	GroupId          int64  `json:"group_id"`
+	Name             string `json:"name,optional"`  // 空=不修改
+	Avatar           string `json:"avatar,optional"`
+	Notice           string `json:"notice,optional"`
+	InvitePermission int32  `json:"invite_permission,optional"` // 0=不修改
+	JoinApproval     int32  `json:"join_approval,optional"`
+	MaxMember        int32  `json:"max_member,optional"`
+}
+
+type ApplyJoinGroupReq {
+	GroupId     int64  `json:"group_id"`
+	ApplyReason string `json:"apply_reason,optional"`
+}
+
+type ApplyJoinGroupResp {
+	ApplyId int64 `json:"apply_id"`
+	Status  int32 `json:"status"` // 1-待审批 2-已加入(免审批群)
+}
+
+type GetMemberVersionReq {
+	GroupId int64 `json:"group_id"`
+}
+
+type GetMemberVersionResp {
+	MemberVersion int64 `json:"member_version"`
+	MemberCount   int32 `json:"member_count"`
+}
+
+type GroupOpResp {
+	MemberVersion int64 `json:"member_version"` // 变更后的成员版本号
+}
+
+type RejectFriendReq {
+	ApplyId int64 `json:"apply_id"`
+}
+
+type HandleApplyReq {
+	ApplyId int64 `json:"apply_id"`
+	Approve bool  `json:"approve"` // true-接受入群 false-拒绝
+}
+
+type RecallMessageReq {
+	MsgId  int64  `json:"msg_id"`
+	ConvId string `json:"conv_id"`
+}
+
+// ==================== 文件 ====================
+
+type CreateUploadTaskReq {
+	FileName    string `json:"file_name"`
+	FileSize    int64  `json:"file_size"`
+	MimeType    string `json:"mime_type"`
+	TotalChunks int32  `json:"total_chunks"`
+	ChunkSize   int64  `json:"chunk_size,optional"`
+	FileType    int32  `json:"file_type"` // 1-图片 2-语音 3-视频 4-文件
+}
+
+type ChunkUpload {
+	ChunkIndex   int32  `json:"chunk_index"`
+	PresignedUrl string `json:"presigned_url"`
+}
+
+type CreateUploadTaskResp {
+	FileId   string        `json:"file_id"`
+	UploadId string        `json:"upload_id"`
+	Chunks   []ChunkUpload `json:"chunks"`
+}
+
+type CompleteUploadReq {
+	FileId   string   `json:"file_id"`
+	UploadId string   `json:"upload_id"`
+	Etags    []string `json:"etags"`
+}
+
+type CompleteUploadResp {
+	FileId string `json:"file_id"`
+	Url    string `json:"url"`
+	Status int32  `json:"status"`
+}
+
+type GetFileMetaReq {
+	FileId string `json:"file_id"`
+}
+
+type FileMeta {
+	FileId     string            `json:"file_id"`
+	FileName   string            `json:"file_name"`
+	FileSize   int64             `json:"file_size"`
+	MimeType   string            `json:"mime_type"`
+	FileType   int32             `json:"file_type"`
+	UploaderId int64             `json:"uploader_id"`
+	UploadTime int64             `json:"upload_time"`
+	Status     int32             `json:"status"`
+	Thumbnails map[string]string `json:"thumbnails,optional"`
+}
+
+type GeneratePresignedUrlReq {
+	FileId string `json:"file_id"`
+	Expiry int32  `json:"expiry,optional"` // 秒,默认 900
+}
+
+type GeneratePresignedUrlResp {
+	FileId       string `json:"file_id"`
+	PresignedUrl string `json:"presigned_url"`
+	ExpiresAt    int64  `json:"expires_at"`
+}
+
+type DeleteFileReq {
+	FileId string `json:"file_id"`
 }
 
 // ==================== Service 定义 ====================
-service gateway-api {
-	// WebSocket 协议升级入口
-	// 实际处理：校验 Token → 升级 WS → 注册到 ConnManager → 进入帧处理循环
-	// @handler wsConnectHandler
-	// get /im/ws (WSConnectReq)
-	// // 健康检查（负载均衡 / K8s 探针用）
-	// @handler healthHandler
-	// get /health (HealthReq) returns (HealthResp)
-	// // 连接统计（内部监控 / 管理后台用）
-	// @handler connStatsHandler
-	// get /conn/stats (ConnStatsReq) returns (ConnStatsResp)
-	//登录
+service im-api {
+	// 登录:校验通过签发 token(公开接口)
 	@handler LoginHandler
-	get /login (LoginReq) returns (LoginResp)
+	post /login (LoginReq) returns (LoginResp)
 
-	//注册
+	// 注册:返回账号 ID,不回显密码(公开接口)
 	@handler RegisterHandler
-	get /register (RegisterReq) returns (RegisterResp)
+	post /register (RegisterReq) returns (RegisterResp)
 
-	//建群
+	// 健康检查(公开接口)
+	// @handler healthHandler
+	// get /health
+
+	// ---- 以下全部需要 Authorization: Bearer <token> ----
+
+	// 注销当前 token
+	@handler LogoutHandler
+	post /user/logout returns (SuccessResp)
+
+	// 查资料(user_id=0 查本人;phone/email 仅本人可见)
+	@handler ProfileHandler
+	get /user/profile (ProfileReq) returns (ProfileResp)
+
+	// 改本人资料
+	@handler UpdateProfileHandler
+	post /user/profile (UpdateProfileReq) returns (SuccessResp)
+
+	// 本人登录设备列表
+	@handler DevicesHandler
+	get /user/devices returns (DevicesResp)
+
+	// 踢下线本人设备
+	@handler KickDeviceHandler
+	post /user/device/kick (KickDeviceReq) returns (SuccessResp)
+
+	// 重置密码(旧密码或验证码校验在 user rpc)
+	@handler ResetPasswordHandler
+	post /user/password/reset (ResetPasswordReq) returns (SuccessResp)
+
+	// 好友列表(支持分组过滤/昵称备注搜索)
+	@handler FriendsHandler
+	get /user/friends (GetFriendsReq) returns (GetFriendsResp)
+
+	// 好友申请列表
+	@handler FriendAppliesHandler
+	get /user/friend/applies (GetFriendAppliesReq) returns (GetFriendAppliesResp)
+
+	// 发好友申请
+	@handler AddFriendHandler
+	post /user/friend/add (AddFriendReq) returns (AddFriendResp)
+
+	// 接受好友申请
+	@handler AcceptFriendHandler
+	post /user/friend/accept (AcceptFriendReq) returns (SuccessResp)
+
+	// 删除好友
+	@handler DeleteFriendHandler
+	post /user/friend/delete (DeleteFriendReq) returns (SuccessResp)
+
+	// 拉黑用户
+	@handler BlockUserHandler
+	post /user/friend/block (BlockUserReq) returns (SuccessResp)
+
+	// 取消拉黑
+	@handler UnblockUserHandler
+	post /user/friend/unblock (BlockUserReq) returns (SuccessResp)
+
+	// 拒绝好友申请(仅被申请人)
+	@handler RejectFriendHandler
+	post /user/friend/reject (RejectFriendReq) returns (SuccessResp)
+
+	// 建群(creator 取自 token,自动成为群主)
 	@handler CreateGroupHandler
 	post /creategroup (CreateGroupReq) returns (CreateGroupResp)
 
-	//邀请
+	// 邀请入群(inviter 取自 token)
 	@handler InviteMemberHandler
 	post /invitemember (InviteMemberReq) returns (InviteMemberResp)
+
+	// 群资料
+	@handler GetGroupInfoHandler
+	get /group/info (GetGroupInfoReq) returns (GetGroupInfoResp)
+
+	// 群成员(游标分页,首页 last_id=0;配合 member_version 缓存校验)
+	@handler GetMembersHandler
+	get /group/members (GetMembersReq) returns (GetMembersResp)
+
+	// 本人所在群 ID 列表
+	@handler GetUserGroupsHandler
+	get /user/groups returns (GetUserGroupsResp)
+
+	// 退群(群主需先转让或解散)
+	@handler QuitGroupHandler
+	post /group/quit (QuitGroupReq) returns (GroupOpResp)
+
+	// 踢人(群主/管理员;不能踢群主)
+	@handler KickMemberHandler
+	post /group/kick (KickMemberReq) returns (GroupOpResp)
+
+	// 禁言/解除(mute_until=0 解除)
+	@handler MuteMemberHandler
+	post /group/mute (MuteMemberReq) returns (SuccessResp)
+
+	// 设/撤管理员(仅群主)
+	@handler SetAdminHandler
+	post /group/setadmin (SetAdminReq) returns (GroupOpResp)
+
+	// 转让群主(仅群主;原群主降为普通成员)
+	@handler TransferOwnerHandler
+	post /group/transfer (TransferOwnerReq) returns (GroupOpResp)
+
+	// 修改群资料(空串/0 表示不修改)
+	@handler UpdateGroupInfoHandler
+	post /group/update (UpdateGroupInfoReq) returns (SuccessResp)
+
+	// 解散群(仅群主,软删)
+	@handler DissolveGroupHandler
+	post /group/dissolve (QuitGroupReq) returns (SuccessResp)
+
+	// 入群申请(免审批群直接入群,返回 status=2)
+	@handler ApplyJoinGroupHandler
+	post /group/apply (ApplyJoinGroupReq) returns (ApplyJoinGroupResp)
+
+	// 审批入群申请(群主/管理员;approve=true 接受入群)
+	@handler HandleApplyHandler
+	post /group/apply/handle (HandleApplyReq) returns (GroupOpResp)
+
+	// 成员版本号(客户端成员缓存失效校验)
+	@handler GetMemberVersionHandler
+	get /group/member-version (GetMemberVersionReq) returns (GetMemberVersionResp)
+
+	// 撤回消息(仅发送者本人;对方经 Sync 拿到 status=2 感知)
+	@handler RecallMessageHandler
+	post /message/recall (RecallMessageReq) returns (SuccessResp)
 }
 
+	// 初始化分片上传任务(返回 upload_id + 各分片预签名 URL;uploader 取自 token)
+	@handler CreateUploadTaskHandler
+	post /file/upload/task (CreateUploadTaskReq) returns (CreateUploadTaskResp)
+
+	// 完成上传:合并分片(带各分片 ETag)
+	@handler CompleteUploadHandler
+	post /file/upload/complete (CompleteUploadReq) returns (CompleteUploadResp)
+
+	// 文件元数据(含审核状态/缩略图)
+	@handler GetFileMetaHandler
+	get /file/meta (GetFileMetaReq) returns (FileMeta)
+
+	// 重签下载 URL(过期刷新,默认 900s)
+	@handler GeneratePresignedUrlHandler
+	get /file/url (GeneratePresignedUrlReq) returns (GeneratePresignedUrlResp)
+
+	// 删除文件(仅上传者)
+	@handler DeleteFileHandler
+	post /file/delete (DeleteFileReq) returns (SuccessResp)
+}
+
+// ==================== 暂不暴露(后端 rpc 空壳,假成功会误导联调) ====================
+// group: ApplyJoinGroup / DissolveGroup / TransferOwner / UpdateGroupInfo /
+//        KickMember / QuitGroup / MuteMember / SetAdmin / GetMemberVersion
+// 实现补齐后再加路由

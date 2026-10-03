@@ -77,6 +77,11 @@ func (s *UserServer) AcceptFriend(ctx context.Context, in *user.AcceptFriendReq)
 	return l.AcceptFriend(in)
 }
 
+func (s *UserServer) RejectFriend(ctx context.Context, in *user.RejectFriendReq) (*user.RejectFriendResp, error) {
+	l := logic.NewRejectFriendLogic(ctx, s.svcCtx)
+	return l.RejectFriend(in)
+}
+
 func (s *UserServer) GetFriends(ctx context.Context, in *user.GetFriendsReq) (*user.GetFriendsResp, error) {
 	l := logic.NewGetFriendsLogic(ctx, s.svcCtx)
 	return l.GetFriends(in)

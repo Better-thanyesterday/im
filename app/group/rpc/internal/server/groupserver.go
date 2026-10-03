@@ -60,6 +60,11 @@ func (s *GroupServer) ApplyJoinGroup(ctx context.Context, in *group.ApplyJoinGro
 	return l.ApplyJoinGroup(in)
 }
 
+func (s *GroupServer) HandleApply(ctx context.Context, in *group.HandleApplyReq) (*group.HandleApplyResp, error) {
+	l := logic.NewHandleApplyLogic(ctx, s.svcCtx)
+	return l.HandleApply(in)
+}
+
 func (s *GroupServer) KickMember(ctx context.Context, in *group.KickMemberReq) (*group.KickMemberResp, error) {
 	l := logic.NewKickMemberLogic(ctx, s.svcCtx)
 	return l.KickMember(in)

@@ -2,11 +2,11 @@ package logic
 
 import (
 	"context"
-	"im-platform/app/user/rpc/models"
+	"github.com/zeromicro/go-zero/core/logx"
 	"im-platform/app/user/rpc/internal/svc"
+	"im-platform/app/user/rpc/models"
 	"im-platform/app/user/rpc/user"
 	"im-platform/common/utils"
-	"github.com/zeromicro/go-zero/core/logx"
 )
 
 type RegisterLogic struct {
@@ -25,13 +25,13 @@ func NewRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Register
 
 func (l *RegisterLogic) Register(in *user.RegisterRequest) (*user.RegisterResponse, error) {
 	// todo: add your logic here and delete this line
-	Id:= l.svcCtx.Snowflake.NextID()
-	PasswordHash,_:= utils.HashPassword(in.Password)
-	acc,err := l.svcCtx.UsersModel.InsertWithoutAccount(l.ctx,&models.Users{
-		Phone: in.Phone,
+	Id := l.svcCtx.Snowflake.NextID()
+	PasswordHash, _ := utils.HashPassword(in.Password)
+	acc, err := l.svcCtx.UsersModel.InsertWithoutAccount(l.ctx, &models.Users{
+		Phone:        in.Phone,
 		PasswordHash: PasswordHash,
-		Email: in.Email,
-		Id:Id,
+		Email:        in.Email,
+		Id:           Id,
 	})
 	if err != nil {
 		return nil, err
@@ -39,5 +39,5 @@ func (l *RegisterLogic) Register(in *user.RegisterRequest) (*user.RegisterRespon
 	return &user.RegisterResponse{
 		Account: acc,
 	}, nil
-	
+
 }

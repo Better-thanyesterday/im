@@ -5,10 +5,12 @@ package logic
 
 import (
 	"context"
+	"fmt"
 
+	"im-platform/app/group/rpc/group"
 	"im-platform/app/im/api/internal/svc"
 	"im-platform/app/im/api/internal/types"
-	"im-platform/app/group/rpc/group"
+	"im-platform/common/middleware"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -27,17 +29,22 @@ func NewInviteMemberLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Invi
 	}
 }
 
-func (l *InviteMemberLogic) InviteMember(req *types.InviteMemberReq) (resp *types.InviteMemberResp, err error) {
+func (l *InviteMemberLogic) InviteMember(req *types.InviteMemberReq) (*types.InviteMemberResp, error) {
+	// 邀请人身份以 token 为准,不信任请求体(防把任意人拉进任意群)
+	inviterId, ok := middleware.GetUserID(l.ctx)
+	if !ok || inviterId <= 0 {
+		return nil, fmt.Errorf("unauthorized")
+	}
 	res, err := l.svcCtx.Group.InviteMember(l.ctx, &group.InviteMemberReq{
-		GroupId: req.GroupId,
-		InviterId: req.InviterId,
-		UserIds: req.UserIds,
+		GroupId:   req.GroupId,
+		InviterId: inviterId,
+		UserIds:   req.UserIds,
 	})
 	if err != nil {
 		return nil, err
 	}
 	return &types.InviteMemberResp{
-		FailedUserIds:       res.FailedUserIds,
+		FailedUserIds: res.FailedUserIds,
 		MemberVersion: res.MemberVersion,
 	}, nil
 }

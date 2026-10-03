@@ -46,9 +46,9 @@ func (l *CreateGroupLogic) CreateGroup(in *group.CreateGroupReq) (*group.CreateG
 		}
 		seen[uid] = true
 		members = append(members, &models.Groupmembers{
-			Id:      l.svcCtx.Snowflake.NextID(),
-			Role:    3,
-			UserId:  uid,
+			Id:       l.svcCtx.Snowflake.NextID(),
+			Role:     3,
+			UserId:   uid,
 			JoinTime: time.Now(),
 			GroupNickname: sql.NullString{
 				String: in.Name,

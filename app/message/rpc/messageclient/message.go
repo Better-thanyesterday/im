@@ -19,6 +19,8 @@ type (
 	MessageBody              = message.MessageBody
 	MessageContent           = message.MessageContent
 	MessageExtra             = message.MessageExtra
+	RecallMessageReq         = message.RecallMessageReq
+	RecallMessageResp        = message.RecallMessageResp
 	ReplyRef                 = message.ReplyRef
 	SendMessageReq           = message.SendMessageReq
 	SendMessageResp          = message.SendMessageResp
@@ -31,6 +33,7 @@ type (
 		SendMessage(ctx context.Context, in *SendMessageReq, opts ...grpc.CallOption) (*SendMessageResp, error)
 		AckMessage(ctx context.Context, in *AckMessageReq, opts ...grpc.CallOption) (*AckMessageResp, error)
 		SyncMessage(ctx context.Context, in *SyncMessageReq, opts ...grpc.CallOption) (*SyncMessageResp, error)
+		RecallMessage(ctx context.Context, in *RecallMessageReq, opts ...grpc.CallOption) (*RecallMessageResp, error)
 	}
 
 	defaultMessage struct {
@@ -57,4 +60,9 @@ func (m *defaultMessage) AckMessage(ctx context.Context, in *AckMessageReq, opts
 func (m *defaultMessage) SyncMessage(ctx context.Context, in *SyncMessageReq, opts ...grpc.CallOption) (*SyncMessageResp, error) {
 	client := message.NewMessageClient(m.cli.Conn())
 	return client.SyncMessage(ctx, in, opts...)
+}
+
+func (m *defaultMessage) RecallMessage(ctx context.Context, in *RecallMessageReq, opts ...grpc.CallOption) (*RecallMessageResp, error) {
+	client := message.NewMessageClient(m.cli.Conn())
+	return client.RecallMessage(ctx, in, opts...)
 }

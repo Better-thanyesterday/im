@@ -37,3 +37,8 @@ func (s *MessageServer) SyncMessage(ctx context.Context, in *message.SyncMessage
 	l := logic.NewSyncMessageLogic(ctx, s.svcCtx)
 	return l.SyncMessage(in)
 }
+
+func (s *MessageServer) RecallMessage(ctx context.Context, in *message.RecallMessageReq) (*message.RecallMessageResp, error) {
+	l := logic.NewRecallMessageLogic(ctx, s.svcCtx)
+	return l.RecallMessage(in)
+}

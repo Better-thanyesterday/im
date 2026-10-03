@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/zeromicro/go-zero/core/logx"
 	"im-platform/app/user/rpc/internal/svc"
 	"im-platform/app/user/rpc/models"
 	"im-platform/app/user/rpc/user"
-	"github.com/zeromicro/go-zero/core/logx"
 )
 
 type AddFriendLogic struct {
@@ -34,10 +34,10 @@ func (l *AddFriendLogic) AddFriend(in *user.AddFriendReq) (*user.AddFriendResp, 
 	// ApplicantId 必须是申请人 uid(原实现存的是新雪花 ID,接受时无法还原申请人)
 	applyId, err := l.svcCtx.FriendAppliesModel.InsertApply(l.ctx, &models.Friendapplies{
 		ApplicantId: in.UserId,
-		TargetId: in.TargetUserId,
+		TargetId:    in.TargetUserId,
 		ApplyReason: sql.NullString{
 			String: in.ApplyReason,
-			Valid: true,
+			Valid:  true,
 		},
 		Status: 1,
 	})

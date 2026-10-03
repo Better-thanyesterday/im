@@ -30,7 +30,7 @@ type (
 		FindOneByApplicantIdTargetId(ctx context.Context, applicantId int64, targetId int64) (*Friendapplies, error)
 		Update(ctx context.Context, data *Friendapplies) error
 		Delete(ctx context.Context, id int64) error
-		FindByTargetWithUserInfo(ctx context.Context,targetId int64,status int32 ,page, pageSize int32,) ([]friendApplyRow, error) 
+		FindByTargetWithUserInfo(ctx context.Context, targetId int64, status int32, page, pageSize int32) ([]friendApplyRow, error)
 	}
 
 	defaultFriendappliesModel struct {
@@ -114,7 +114,7 @@ func (m *defaultFriendappliesModel) Update(ctx context.Context, newData *Frienda
 	return err
 }
 
-func (m *defaultFriendappliesModel) FindByTargetWithUserInfo(ctx context.Context,targetId int64,status int32 ,page, pageSize int32,) ([]friendApplyRow, error) {
+func (m *defaultFriendappliesModel) FindByTargetWithUserInfo(ctx context.Context, targetId int64, status int32, page, pageSize int32) ([]friendApplyRow, error) {
 	offset := (page - 1) * pageSize
 	query := fmt.Sprintf(`
         SELECT 

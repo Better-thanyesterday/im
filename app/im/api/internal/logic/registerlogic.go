@@ -27,18 +27,17 @@ func NewRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Register
 	}
 }
 
-func (l *RegisterLogic) Register(req *types.RegisterReq) (resp *types.RegisterResp, err error) {
-	// todo: add your logic here and delete this line
-	registerResp,err:=l.svcCtx.User.Register(l.ctx,&user.RegisterRequest{
-		Phone: req.Phone,
-		Email: req.Email,
+func (l *RegisterLogic) Register(req *types.RegisterReq) (*types.RegisterResp, error) {
+	registerResp, err := l.svcCtx.User.Register(l.ctx, &user.RegisterRequest{
+		Phone:    req.Phone,
+		Email:    req.Email,
 		Password: req.Password,
 	})
 	if err != nil {
 		return nil, err
 	}
+	// 只回账号,绝不回显明文密码(会进日志/抓包/前端 state)
 	return &types.RegisterResp{
 		Account: registerResp.Account,
-		Password: req.Password,
-	},nil
+	}, nil
 }

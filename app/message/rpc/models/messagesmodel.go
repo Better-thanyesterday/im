@@ -16,6 +16,7 @@ type (
 		messagesModel
 		InsertIgnore(ctx context.Context, data *Messages) error
 		MaxSeq(ctx context.Context, convId string) (int64, error)
+		RecallMessage(ctx context.Context, msgId, operatorId int64) error
 	}
 
 	customMessagesModel struct {
@@ -28,6 +29,20 @@ func NewMessagesModel(conn sqlx.SqlConn) MessagesModel {
 	return &customMessagesModel{
 		defaultMessagesModel: newMessagesModel(conn),
 	}
+}
+
+// RecallMessage 撤回:定向更新 status=2 + recalledby/recalled_at,
+// 带 status=1 前置条件(已撤回/已删除的消息不能再撤);0 行受影响 = 状态不允许
+func (m *customMessagesModel) RecallMessage(ctx context.Context, msgId, operatorId int64) error {
+	query := fmt.Sprintf("update %s set status = 2, recalledby = $1, recalled_at = now() where id = $2 and status = 1", m.table)
+	res, err := m.conn.ExecCtx(ctx, query, operatorId, msgId)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 // InsertIgnore 幂等插入:命中任意唯一键((convid,seqid)/(client_msg_id)/id)时静默跳过。

@@ -2,7 +2,7 @@
 // goctl 1.10.1
 // Source: user.proto
 
-package userClient
+package userclient
 
 import (
 	"context"
@@ -46,6 +46,8 @@ type (
 	Profile              = user.Profile
 	RegisterRequest      = user.RegisterRequest
 	RegisterResponse     = user.RegisterResponse
+	RejectFriendReq      = user.RejectFriendReq
+	RejectFriendResp     = user.RejectFriendResp
 	ResetPasswordReq     = user.ResetPasswordReq
 	ResetPasswordResp    = user.ResetPasswordResp
 	UnblockUserReq       = user.UnblockUserReq
@@ -68,6 +70,7 @@ type (
 		// 好友管理
 		AddFriend(ctx context.Context, in *AddFriendReq, opts ...grpc.CallOption) (*AddFriendResp, error)
 		AcceptFriend(ctx context.Context, in *AcceptFriendReq, opts ...grpc.CallOption) (*AcceptFriendResp, error)
+		RejectFriend(ctx context.Context, in *RejectFriendReq, opts ...grpc.CallOption) (*RejectFriendResp, error)
 		GetFriends(ctx context.Context, in *GetFriendsReq, opts ...grpc.CallOption) (*GetFriendsResp, error)
 		DeleteFriend(ctx context.Context, in *DeleteFriendReq, opts ...grpc.CallOption) (*DeleteFriendResp, error)
 		BlockUser(ctx context.Context, in *BlockUserReq, opts ...grpc.CallOption) (*BlockUserResp, error)
@@ -141,6 +144,11 @@ func (m *defaultUser) AddFriend(ctx context.Context, in *AddFriendReq, opts ...g
 func (m *defaultUser) AcceptFriend(ctx context.Context, in *AcceptFriendReq, opts ...grpc.CallOption) (*AcceptFriendResp, error) {
 	client := user.NewUserClient(m.cli.Conn())
 	return client.AcceptFriend(ctx, in, opts...)
+}
+
+func (m *defaultUser) RejectFriend(ctx context.Context, in *RejectFriendReq, opts ...grpc.CallOption) (*RejectFriendResp, error) {
+	client := user.NewUserClient(m.cli.Conn())
+	return client.RejectFriend(ctx, in, opts...)
 }
 
 func (m *defaultUser) GetFriends(ctx context.Context, in *GetFriendsReq, opts ...grpc.CallOption) (*GetFriendsResp, error) {

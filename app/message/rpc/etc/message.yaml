@@ -52,6 +52,12 @@ GroupRpc:
       - 127.0.0.1:2379
     Key: group.rpc
 
+FileRpc:
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: file.rpc
+
 Telemetry:
   Name: message.rpc
   Endpoint: 127.0.0.1:4317   # ← 去掉 http://

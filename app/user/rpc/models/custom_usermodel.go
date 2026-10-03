@@ -13,18 +13,18 @@ func (m *defaultUsersModel) InsertWithoutAccount(ctx context.Context, data *User
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW()) 
 		RETURNING account`
 	err := m.conn.QueryRowCtx(ctx, &account, query,
-				data.Id,
-				data.Email,
-				data.Birthday,
-				data.Region,
-				data.Gender,
-				data.Signature,
-				data.Avatar,
-				data.Nickname,
-				data.PasswordHash,
-				data.Phone,
-				data.Status,
-			)
+		data.Id,
+		data.Email,
+		data.Birthday,
+		data.Region,
+		data.Gender,
+		data.Signature,
+		data.Avatar,
+		data.Nickname,
+		data.PasswordHash,
+		data.Phone,
+		data.Status,
+	)
 	if err != nil {
 		return 0, err
 	}

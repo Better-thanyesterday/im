@@ -7,7 +7,6 @@ import (
 	"im-platform/app/gateway/rpc/internal/conn"
 	"im-platform/app/gateway/rpc/internal/protocol"
 	"im-platform/app/gateway/rpc/internal/svc"
-	"im-platform/app/message/rpc/messageclient"
 	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -74,33 +73,12 @@ func (l *WsConnectLogic) Register(ctx context.Context, c *conn.Conn) error {
 		logx.Infof("收到上行帧 | user=%d device=%d len=%d", userID, deviceType, len(data))
 		HandleFrame(l.svcCtx, c, data)
 	})
-	// 仅顶号/重连(同 key 旧连接被顶替)才做离线补拉;
-	// 首次连接由客户端主动发 FrameSyncRequest 拉取
-	var onReconnect func(*conn.Conn)
-	if oldConn != nil {
-		onReconnect = func(c *conn.Conn) { l.OnReconnect(c) }
-	}
-	c.ReadPump(onReconnect)
+	// 离线补拉一律由客户端驱动:建连(首连/重连/顶号)成功后客户端主动发
+	// FrameSyncRequest(带各会话本地 last_seq),由 forward.go 承接转发 message rpc。
+	// 服务端不做建连自动补拉,原因:
+	// 1) inbox 投递水位是用户级,多设备下服务端猜不准客户端本地进度,补拉范围必然失真;
+	// 2) 重连落在另一台 gateway 实例时旧连接不在本进程,oldConn==nil,自动补拉会静默漏掉;
+	// 3) 弱网重连瞬间打大同步请求易再次超时,退避时机应由客户端掌握
+	c.ReadPump(nil)
 	return nil
-}
-
-func (l *WsConnectLogic) OnReconnect(c *conn.Conn) {
-	// 断线重连补拉:ConvList 传空,由 message 服务组装该用户的全部会话
-	// (单聊=好友列表,群聊=所在群)并按 inbox 投递水位逐个补
-	userID := c.UserId()
-	in := &messageclient.SyncMessageReq{UserId: userID}
-	// parent 是 Background,本就不受连接生命周期影响;
-	// 不能再 WithoutCancel——它会把 WithTimeout 的 deadline 一并丢掉,变成无超时调用
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	resp, err := l.svcCtx.SyncMessage(ctx, in)
-	if err != nil {
-		logx.Errorf("离线同步失败 | user=%d err=%v", userID, err)
-		return
-	}
-	// 把离线消息推给客户端(FrameSyncRequest 帧型下行,与上行同步请求对称)
-	for _, msg := range resp.ConvSyncs {
-		payload, _ := json.Marshal(msg)
-		c.Send(protocol.EncodeFrame(protocol.FrameSyncRequest, payload))
-	}
 }

@@ -3,8 +3,11 @@ package logic
 import (
 	"context"
 	"errors"
+	"fmt"
+
 	"github.com/lib/pq"
 	"github.com/zeromicro/go-zero/core/logx"
+	"im-platform/app/file/rpc/file"
 	"im-platform/app/message/rpc/internal/svc"
 	"im-platform/app/message/rpc/message"
 	"im-platform/common/constants"
@@ -38,7 +41,13 @@ func (l *SendMessageLogic) SendMessage(in *message.SendMessageReq) (*message.Sen
 	// 	return nil, constants.NewErrCode(constants.ErrMsgRateLimit) // 300001
 	// }
 
-	// 4. 幂等占坑:分发前 SET NX EX,单聊/群聊一致;
+	// 4. 媒体消息(图片/语音/视频/文件)发送前校验引用的文件 —— file 与 message 模块的拼接点:
+	//    消息 content 只带 file_id 引用,文件本体在 MinIO,收方按 file_id 换预签名下载 URL
+	if err := l.validateMediaFile(in); err != nil {
+		return nil, err
+	}
+
+	// 5. 幂等占坑:分发前 SET NX EX,单聊/群聊一致;
 	//    未占到坑(已接收过或在途)统一反查 PG 返回原消息,保证客户端重试拿到相同结果;
 	//    Redis 故障时放行,降级到下游 PG 唯一索引兜底;持久化失败时释放占坑,允许客户端重试
 	acquired, err := l.svcCtx.DedupModel.TryAcquire(l.ctx, in.Body.ConvId, in.ClientMsgId)
@@ -136,6 +145,35 @@ func (l *SendMessageLogic) validate(in *message.SendMessageReq) error {
 
 func isGroupConv(convId string) bool {
 	return strings.HasPrefix(convId, "group_")
+}
+
+// validateMediaFile 媒体类消息发送前校验 content.file_id 引用的文件:
+// 必须存在、状态正常(1)、归属发送者 —— 防止引用别人的/未完成上传的/已删除的文件
+func (l *SendMessageLogic) validateMediaFile(in *message.SendMessageReq) error {
+	if in.Body == nil || in.Body.Content == nil {
+		return nil
+	}
+	isMedia := in.MsgType == message.MsgType_MsgTypeImage ||
+		in.MsgType == message.MsgType_MsgTypeVoice ||
+		in.MsgType == message.MsgType_MsgTypeVideo ||
+		in.MsgType == message.MsgType_MsgTypeFile
+	if !isMedia {
+		return nil
+	}
+	if in.Body.Content.FileId == "" {
+		return fmt.Errorf("媒体消息缺少 file_id,请先通过文件服务上传")
+	}
+	meta, err := l.svcCtx.File.GetFileMeta(l.ctx, &file.GetFileMetaReq{FileId: in.Body.Content.FileId})
+	if err != nil {
+		return fmt.Errorf("引用的文件不存在或已删除: %w", err)
+	}
+	if meta.Status != 1 { // FileStatusNormal
+		return fmt.Errorf("引用的文件不可用(状态 %d)", meta.Status)
+	}
+	if meta.UploaderId != in.SenderId {
+		return fmt.Errorf("只能引用自己上传的文件")
+	}
+	return nil
 }
 
 // checkRateLimit 基于 Redis 滑动窗口的分布式限流

@@ -33,8 +33,8 @@ func (l *GetFriendsLogic) GetFriends(in *user.GetFriendsReq) (*user.GetFriendsRe
 		in.PageSize,
 	)
 	if err != nil {
-        return nil, err
-    }
+		return nil, err
+	}
 
 	friends := make([]*user.FriendInfo, 0, len(rows))
 	for _, r := range rows {
@@ -44,7 +44,7 @@ func (l *GetFriendsLogic) GetFriends(in *user.GetFriendsReq) (*user.GetFriendsRe
 			Remark:        r.Remark,
 			FriendGroupId: r.FriendGroupId,
 			Nickname:      r.Nickname,
-			CreatedAt: r.CreatedAt,
+			CreatedAt:     r.CreatedAt,
 		})
 	}
 	// Total 用同过滤条件的 count 查询,不再返回当前页行数
@@ -53,7 +53,7 @@ func (l *GetFriendsLogic) GetFriends(in *user.GetFriendsReq) (*user.GetFriendsRe
 		return nil, err
 	}
 	return &user.GetFriendsResp{
-		Total: int32(total),
+		Total:   int32(total),
 		Friends: friends,
 	}, nil
 }

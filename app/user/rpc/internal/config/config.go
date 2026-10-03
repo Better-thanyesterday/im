@@ -11,8 +11,8 @@ type Config struct {
 	Postgres struct {
 		DataSource string
 	}
-	Cache cache.CacheConf
-	Snowflake struct{
+	Cache     cache.CacheConf
+	Snowflake struct {
 		WorkNode int64
 	}
 	RedisCache redis.RedisConf

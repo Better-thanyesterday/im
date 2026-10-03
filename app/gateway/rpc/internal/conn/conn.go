@@ -84,10 +84,11 @@ func (c *Conn) Send(data []byte) SendResult {
 	}
 }
 
+// ReadPump 读泵:onReconnect 是可选的建连后异步钩子(当前无人使用——
+// 离线补拉已收敛为客户端主动发 FrameSyncRequest,见 wsconnectlogic.Register 注释)
 func (c *Conn) ReadPump(onReconnect func(c *Conn)) {
 	defer c.Close()
 	c.ws.SetReadLimit(4096) // 单帧上限，防止内存被打爆
-	// 6. 触发重连恢复：拉离线消息
 	if onReconnect != nil {
 		go func() {
 			defer func() {

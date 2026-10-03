@@ -36,21 +36,21 @@ func (l *GetFriendAppliesLogic) GetFriendApplies(in *user.GetFriendAppliesReq) (
 		return nil, err
 	}
 	applies := make([]*user.FriendApplyInfo, 0, len(rows))
-    for _, row := range rows {
-        applies = append(applies, &user.FriendApplyInfo{
-            Id:                row.Id,
-            ApplicantId:       row.ApplicantId,
-            ApplicantNickname: row.ApplicantNickname,
-            ApplicantAvatar:   row.ApplicantAvatar,
-            TargetId:          row.TargetId,
-            ApplyReason:       row.ApplyReason,
-            Status:            row.Status,
-            CreatedAt:         row.CreatedAt,
-            HandledAt:         row.HandledAt,
-        })
-    }
+	for _, row := range rows {
+		applies = append(applies, &user.FriendApplyInfo{
+			Id:                row.Id,
+			ApplicantId:       row.ApplicantId,
+			ApplicantNickname: row.ApplicantNickname,
+			ApplicantAvatar:   row.ApplicantAvatar,
+			TargetId:          row.TargetId,
+			ApplyReason:       row.ApplyReason,
+			Status:            row.Status,
+			CreatedAt:         row.CreatedAt,
+			HandledAt:         row.HandledAt,
+		})
+	}
 	return &user.GetFriendAppliesResp{
-        Applies: applies,
-		Total: int32(len(rows)),
-    }, nil
+		Applies: applies,
+		Total:   int32(len(rows)),
+	}, nil
 }

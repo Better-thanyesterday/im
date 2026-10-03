@@ -27,23 +27,23 @@ func NewGetProfileLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetPro
 // 用户资料
 func (l *GetProfileLogic) GetProfile(in *user.GetProfileReq) (*user.Profile, error) {
 	// todo: add your logic here and delete this line
-	u,err:=l.svcCtx.UsersModel.FindOne(l.ctx,in.UserId)
-	if err!=nil {
+	u, err := l.svcCtx.UsersModel.FindOne(l.ctx, in.UserId)
+	if err != nil {
 		logx.Errorf("Get Profile fail")
-		return nil,err
+		return nil, err
 	}
-	gender,_:=strconv.ParseInt(u.Gender,10,64)
+	gender, _ := strconv.ParseInt(u.Gender, 10, 64)
 	p := &user.Profile{
-		UserId: u.Id,
-		Avatar: u.Avatar,
-		Email: u.Email,
-		Gender: int32(gender),
-		Region: u.Region,
+		UserId:    u.Id,
+		Avatar:    u.Avatar,
+		Email:     u.Email,
+		Gender:    int32(gender),
+		Region:    u.Region,
 		Signature: u.Signature,
-		Birthday: u.Birthday.Unix(),
-		Phone: u.Phone,
-		Nickname: u.Nickname,
-		Status: int32(u.Status.Int64),
+		Birthday:  u.Birthday.Unix(),
+		Phone:     u.Phone,
+		Nickname:  u.Nickname,
+		Status:    int32(u.Status.Int64),
 	}
 	// 手机号/邮箱是敏感字段,只有本人(或 user_id=0 表示查自己)可见
 	if in.UserId != 0 && in.ViewerId != in.UserId {

@@ -29,6 +29,7 @@ const (
 	User_KickDevice_FullMethodName       = "/user.User/KickDevice"
 	User_AddFriend_FullMethodName        = "/user.User/AddFriend"
 	User_AcceptFriend_FullMethodName     = "/user.User/AcceptFriend"
+	User_RejectFriend_FullMethodName     = "/user.User/RejectFriend"
 	User_GetFriends_FullMethodName       = "/user.User/GetFriends"
 	User_DeleteFriend_FullMethodName     = "/user.User/DeleteFriend"
 	User_BlockUser_FullMethodName        = "/user.User/BlockUser"
@@ -56,6 +57,7 @@ type UserClient interface {
 	// 好友管理
 	AddFriend(ctx context.Context, in *AddFriendReq, opts ...grpc.CallOption) (*AddFriendResp, error)
 	AcceptFriend(ctx context.Context, in *AcceptFriendReq, opts ...grpc.CallOption) (*AcceptFriendResp, error)
+	RejectFriend(ctx context.Context, in *RejectFriendReq, opts ...grpc.CallOption) (*RejectFriendResp, error)
 	GetFriends(ctx context.Context, in *GetFriendsReq, opts ...grpc.CallOption) (*GetFriendsResp, error)
 	DeleteFriend(ctx context.Context, in *DeleteFriendReq, opts ...grpc.CallOption) (*DeleteFriendResp, error)
 	BlockUser(ctx context.Context, in *BlockUserReq, opts ...grpc.CallOption) (*BlockUserResp, error)
@@ -174,6 +176,16 @@ func (c *userClient) AcceptFriend(ctx context.Context, in *AcceptFriendReq, opts
 	return out, nil
 }
 
+func (c *userClient) RejectFriend(ctx context.Context, in *RejectFriendReq, opts ...grpc.CallOption) (*RejectFriendResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RejectFriendResp)
+	err := c.cc.Invoke(ctx, User_RejectFriend_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *userClient) GetFriends(ctx context.Context, in *GetFriendsReq, opts ...grpc.CallOption) (*GetFriendsResp, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetFriendsResp)
@@ -262,6 +274,7 @@ type UserServer interface {
 	// 好友管理
 	AddFriend(context.Context, *AddFriendReq) (*AddFriendResp, error)
 	AcceptFriend(context.Context, *AcceptFriendReq) (*AcceptFriendResp, error)
+	RejectFriend(context.Context, *RejectFriendReq) (*RejectFriendResp, error)
 	GetFriends(context.Context, *GetFriendsReq) (*GetFriendsResp, error)
 	DeleteFriend(context.Context, *DeleteFriendReq) (*DeleteFriendResp, error)
 	BlockUser(context.Context, *BlockUserReq) (*BlockUserResp, error)
@@ -309,6 +322,9 @@ func (UnimplementedUserServer) AddFriend(context.Context, *AddFriendReq) (*AddFr
 }
 func (UnimplementedUserServer) AcceptFriend(context.Context, *AcceptFriendReq) (*AcceptFriendResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method AcceptFriend not implemented")
+}
+func (UnimplementedUserServer) RejectFriend(context.Context, *RejectFriendReq) (*RejectFriendResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method RejectFriend not implemented")
 }
 func (UnimplementedUserServer) GetFriends(context.Context, *GetFriendsReq) (*GetFriendsResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetFriends not implemented")
@@ -532,6 +548,24 @@ func _User_AcceptFriend_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _User_RejectFriend_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RejectFriendReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).RejectFriend(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_RejectFriend_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).RejectFriend(ctx, req.(*RejectFriendReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _User_GetFriends_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetFriendsReq)
 	if err := dec(in); err != nil {
@@ -704,6 +738,10 @@ var User_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AcceptFriend",
 			Handler:    _User_AcceptFriend_Handler,
+		},
+		{
+			MethodName: "RejectFriend",
+			Handler:    _User_RejectFriend_Handler,
 		},
 		{
 			MethodName: "GetFriends",

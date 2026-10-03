@@ -48,8 +48,11 @@ func (l *CreateUploadTaskLogic) CreateUploadTask(in *file.CreateUploadTaskReq) (
 	// 3. 对象键：files/{file_id}/{原始文件名}
 	objectKey := fmt.Sprintf("files/%s/%s", fileId, in.FileName)
 
-	// 4. 落库元数据（status=审核中：合并完成前文件不可见）
-	err := l.svcCtx.FilesModel.Insert(l.ctx, &models.Files{
+	// 4. 落库元数据。
+	// 审核暂未接入:原流程 status=FileStatusAudit(审核中,合并完成前不可见),
+	// 现直接置 Normal 让文件合并后立即可用;
+	// 接入内容审核时改回 FileStatusAudit,由审核服务经 UpdateAudit 流转状态
+	if _, err := l.svcCtx.FilesModel.Insert(l.ctx, &models.Files{
 		Id:         fileId,
 		FileName:   in.FileName,
 		FileSize:   in.FileSize,
@@ -57,11 +60,11 @@ func (l *CreateUploadTaskLogic) CreateUploadTask(in *file.CreateUploadTaskReq) (
 		FileType:   int64(in.FileType),
 		UploaderId: in.UploaderId,
 		UploadTime: time.Now(),
-		Status:     models.FileStatusAudit,
-		ObjectKey:  objectKey,
-		Bucket:     l.svcCtx.Bucket,
-	})
-	if err != nil {
+		// Status: models.FileStatusAudit, // TODO: 内容审核接入后恢复审核中初态
+		Status:    models.FileStatusNormal,
+		ObjectKey: objectKey,
+		Bucket:    l.svcCtx.Bucket,
+	}); err != nil {
 		return nil, fmt.Errorf("insert file meta failed: %w", err)
 	}
 

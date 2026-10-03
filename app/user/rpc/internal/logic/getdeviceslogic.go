@@ -33,15 +33,15 @@ func (l *GetDevicesLogic) GetDevices(in *user.GetDevicesReq) (*user.GetDevicesRe
 	var devices []*user.DeviceInfo
 	for _, m := range res {
 		devices = append(devices, &user.DeviceInfo{
-			Id:         m.Id,
-			DeviceType: int32(m.Devicetype),
-			DeviceName: m.Devicename.String,
-			DeviceId:   m.Deviceid,
-			Location:   m.Location.String,
-			LoginAt:    m.LoginAt.Time.Unix(),
-			LogoutAt:   m.LogoutAt.Time.Unix(),
-			LastActiveAt:m.LastActiveAt.Time.Unix(),
-			Status: int32(m.Status),
+			Id:           m.Id,
+			DeviceType:   int32(m.Devicetype),
+			DeviceName:   m.Devicename.String,
+			DeviceId:     m.Deviceid,
+			Location:     m.Location.String,
+			LoginAt:      m.LoginAt.Time.Unix(),
+			LogoutAt:     m.LogoutAt.Time.Unix(),
+			LastActiveAt: m.LastActiveAt.Time.Unix(),
+			Status:       int32(m.Status),
 		})
 	}
 

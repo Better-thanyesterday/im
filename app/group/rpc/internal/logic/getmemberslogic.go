@@ -21,7 +21,8 @@ func NewGetMembersLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetMem
 		Logger: logx.WithContext(ctx),
 	}
 }
-//成员 ID、角色、群昵称、入群时间等
+
+// 成员 ID、角色、群昵称、入群时间等
 // ==================== 查询接口（供 Message 服务调用） ====================
 func (l *GetMembersLogic) GetMembers(in *group.GetMembersReq) (*group.GetMembersResp, error) {
 	// todo: add your logic here and delete this line
@@ -33,17 +34,17 @@ func (l *GetMembersLogic) GetMembers(in *group.GetMembersReq) (*group.GetMembers
 	if pageSize > 500 {
 		pageSize = 500
 	}
-	memberInfos,cur,err :=l.svcCtx.GroupMembersModel.GetBatchMemberInfo(l.ctx,in.GroupId,in.LastId,pageSize)
-	hasmore:=true
+	memberInfos, cur, err := l.svcCtx.GroupMembersModel.GetBatchMemberInfo(l.ctx, in.GroupId, in.LastId, pageSize)
+	hasmore := true
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
-	if len(memberInfos)<int(pageSize) {
-		hasmore=false
+	if len(memberInfos) < int(pageSize) {
+		hasmore = false
 	}
 	return &group.GetMembersResp{
 		Members: memberInfos,
 		HasMore: hasmore,
-		LastId: cur,
+		LastId:  cur,
 	}, nil
 }

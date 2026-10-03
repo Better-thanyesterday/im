@@ -19,9 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Message_SendMessage_FullMethodName = "/message.Message/SendMessage"
-	Message_AckMessage_FullMethodName  = "/message.Message/AckMessage"
-	Message_SyncMessage_FullMethodName = "/message.Message/SyncMessage"
+	Message_SendMessage_FullMethodName   = "/message.Message/SendMessage"
+	Message_AckMessage_FullMethodName    = "/message.Message/AckMessage"
+	Message_SyncMessage_FullMethodName   = "/message.Message/SyncMessage"
+	Message_RecallMessage_FullMethodName = "/message.Message/RecallMessage"
 )
 
 // MessageClient is the client API for Message service.
@@ -31,6 +32,7 @@ type MessageClient interface {
 	SendMessage(ctx context.Context, in *SendMessageReq, opts ...grpc.CallOption) (*SendMessageResp, error)
 	AckMessage(ctx context.Context, in *AckMessageReq, opts ...grpc.CallOption) (*AckMessageResp, error)
 	SyncMessage(ctx context.Context, in *SyncMessageReq, opts ...grpc.CallOption) (*SyncMessageResp, error)
+	RecallMessage(ctx context.Context, in *RecallMessageReq, opts ...grpc.CallOption) (*RecallMessageResp, error)
 }
 
 type messageClient struct {
@@ -71,6 +73,16 @@ func (c *messageClient) SyncMessage(ctx context.Context, in *SyncMessageReq, opt
 	return out, nil
 }
 
+func (c *messageClient) RecallMessage(ctx context.Context, in *RecallMessageReq, opts ...grpc.CallOption) (*RecallMessageResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RecallMessageResp)
+	err := c.cc.Invoke(ctx, Message_RecallMessage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MessageServer is the server API for Message service.
 // All implementations must embed UnimplementedMessageServer
 // for forward compatibility.
@@ -78,6 +90,7 @@ type MessageServer interface {
 	SendMessage(context.Context, *SendMessageReq) (*SendMessageResp, error)
 	AckMessage(context.Context, *AckMessageReq) (*AckMessageResp, error)
 	SyncMessage(context.Context, *SyncMessageReq) (*SyncMessageResp, error)
+	RecallMessage(context.Context, *RecallMessageReq) (*RecallMessageResp, error)
 	mustEmbedUnimplementedMessageServer()
 }
 
@@ -96,6 +109,9 @@ func (UnimplementedMessageServer) AckMessage(context.Context, *AckMessageReq) (*
 }
 func (UnimplementedMessageServer) SyncMessage(context.Context, *SyncMessageReq) (*SyncMessageResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method SyncMessage not implemented")
+}
+func (UnimplementedMessageServer) RecallMessage(context.Context, *RecallMessageReq) (*RecallMessageResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method RecallMessage not implemented")
 }
 func (UnimplementedMessageServer) mustEmbedUnimplementedMessageServer() {}
 func (UnimplementedMessageServer) testEmbeddedByValue()                 {}
@@ -172,6 +188,24 @@ func _Message_SyncMessage_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Message_RecallMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RecallMessageReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MessageServer).RecallMessage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Message_RecallMessage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MessageServer).RecallMessage(ctx, req.(*RecallMessageReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Message_ServiceDesc is the grpc.ServiceDesc for Message service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -190,6 +224,10 @@ var Message_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SyncMessage",
 			Handler:    _Message_SyncMessage_Handler,
+		},
+		{
+			MethodName: "RecallMessage",
+			Handler:    _Message_RecallMessage_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -17,6 +17,7 @@ type (
 		withSession(session sqlx.Session) FriendappliesModel
 		InsertApply(ctx context.Context, data *Friendapplies) (int64, error)
 		AcceptFriendTx(ctx context.Context, applyId, applicantId, targetId int64, remark string) error
+		RejectFriend(ctx context.Context, applyId, operatorId int64) error
 	}
 
 	customFriendappliesModel struct {
@@ -33,6 +34,20 @@ func NewFriendappliesModel(conn sqlx.SqlConn) FriendappliesModel {
 
 func (m *customFriendappliesModel) withSession(session sqlx.Session) FriendappliesModel {
 	return NewFriendappliesModel(sqlx.NewSqlConnFromSession(session))
+}
+
+// RejectFriend 拒绝好友申请:定向更新(带 status=1 前置条件防重复处理),
+// 不动好友关系表;0 行受影响 = 申请不存在或已处理
+func (m *customFriendappliesModel) RejectFriend(ctx context.Context, applyId, operatorId int64) error {
+	query := fmt.Sprintf("update %s set status = 3, handler_id = $1, handled_at = now() where id = $2 and status = 1", m.table)
+	res, err := m.conn.ExecCtx(ctx, query, operatorId, applyId)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 // InsertApply 插入申请并返回申请行 id(生成版 Insert 只返回 sql.Result,

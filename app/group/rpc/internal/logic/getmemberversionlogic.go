@@ -23,8 +23,14 @@ func NewGetMemberVersionLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 	}
 }
 
+// GetMemberVersion 成员列表版本号:客户端/其他服务用于成员缓存失效校验
 func (l *GetMemberVersionLogic) GetMemberVersion(in *group.GetMemberVersionReq) (*group.GetMemberVersionResp, error) {
-	// todo: add your logic here and delete this line
-
-	return &group.GetMemberVersionResp{}, nil
+	g, err := l.svcCtx.GroupsModel.FindOne(l.ctx, in.GroupId)
+	if err != nil {
+		return nil, err
+	}
+	return &group.GetMemberVersionResp{
+		MemberVersion: g.MemberVersion,
+		MemberCount:   int32(g.MemberCount),
+	}, nil
 }

@@ -203,6 +203,7 @@ type MessageContent struct {
 	Lat           float64                `protobuf:"fixed64,11,opt,name=lat,proto3" json:"lat,omitempty"`                                        // 位置纬度
 	Lng           float64                `protobuf:"fixed64,12,opt,name=lng,proto3" json:"lng,omitempty"`                                        // 位置经度
 	Address       string                 `protobuf:"bytes,13,opt,name=address,proto3" json:"address,omitempty"`                                  // 位置描述
+	FileId        string                 `protobuf:"bytes,14,opt,name=file_id,json=fileId,proto3" json:"file_id,omitempty"`                      // 引用的文件 ID(file 服务上传后返回;图片/语音/视频/文件消息必填,
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -324,6 +325,13 @@ func (x *MessageContent) GetLng() float64 {
 func (x *MessageContent) GetAddress() string {
 	if x != nil {
 		return x.Address
+	}
+	return ""
+}
+
+func (x *MessageContent) GetFileId() string {
+	if x != nil {
+		return x.FileId
 	}
 	return ""
 }
@@ -973,6 +981,102 @@ func (x *SyncMessageResp) GetConvSyncs() []*SyncMessageResp_ConvSync {
 	return nil
 }
 
+type RecallMessageReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	MsgId         int64                  `protobuf:"varint,1,opt,name=msg_id,json=msgId,proto3" json:"msg_id,omitempty"`
+	ConvId        string                 `protobuf:"bytes,2,opt,name=conv_id,json=convId,proto3" json:"conv_id,omitempty"`              // 会话 ID(归属校验)
+	OperatorId    int64                  `protobuf:"varint,3,opt,name=operator_id,json=operatorId,proto3" json:"operator_id,omitempty"` // 撤回者(必须是消息发送者)
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RecallMessageReq) Reset() {
+	*x = RecallMessageReq{}
+	mi := &file_message_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RecallMessageReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RecallMessageReq) ProtoMessage() {}
+
+func (x *RecallMessageReq) ProtoReflect() protoreflect.Message {
+	mi := &file_message_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RecallMessageReq.ProtoReflect.Descriptor instead.
+func (*RecallMessageReq) Descriptor() ([]byte, []int) {
+	return file_message_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *RecallMessageReq) GetMsgId() int64 {
+	if x != nil {
+		return x.MsgId
+	}
+	return 0
+}
+
+func (x *RecallMessageReq) GetConvId() string {
+	if x != nil {
+		return x.ConvId
+	}
+	return ""
+}
+
+func (x *RecallMessageReq) GetOperatorId() int64 {
+	if x != nil {
+		return x.OperatorId
+	}
+	return 0
+}
+
+type RecallMessageResp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RecallMessageResp) Reset() {
+	*x = RecallMessageResp{}
+	mi := &file_message_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RecallMessageResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RecallMessageResp) ProtoMessage() {}
+
+func (x *RecallMessageResp) ProtoReflect() protoreflect.Message {
+	mi := &file_message_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RecallMessageResp.ProtoReflect.Descriptor instead.
+func (*RecallMessageResp) Descriptor() ([]byte, []int) {
+	return file_message_proto_rawDescGZIP(), []int{11}
+}
+
 type SyncMessageReq_ConSeq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ConvId        string                 `protobuf:"bytes,1,opt,name=conv_id,json=convId,proto3" json:"conv_id,omitempty"`
@@ -983,7 +1087,7 @@ type SyncMessageReq_ConSeq struct {
 
 func (x *SyncMessageReq_ConSeq) Reset() {
 	*x = SyncMessageReq_ConSeq{}
-	mi := &file_message_proto_msgTypes[10]
+	mi := &file_message_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -995,7 +1099,7 @@ func (x *SyncMessageReq_ConSeq) String() string {
 func (*SyncMessageReq_ConSeq) ProtoMessage() {}
 
 func (x *SyncMessageReq_ConSeq) ProtoReflect() protoreflect.Message {
-	mi := &file_message_proto_msgTypes[10]
+	mi := &file_message_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1037,7 +1141,7 @@ type SyncMessageResp_ConvSync struct {
 
 func (x *SyncMessageResp_ConvSync) Reset() {
 	*x = SyncMessageResp_ConvSync{}
-	mi := &file_message_proto_msgTypes[11]
+	mi := &file_message_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1049,7 +1153,7 @@ func (x *SyncMessageResp_ConvSync) String() string {
 func (*SyncMessageResp_ConvSync) ProtoMessage() {}
 
 func (x *SyncMessageResp_ConvSync) ProtoReflect() protoreflect.Message {
-	mi := &file_message_proto_msgTypes[11]
+	mi := &file_message_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1097,7 +1201,7 @@ var File_message_proto protoreflect.FileDescriptor
 
 const file_message_proto_rawDesc = "" +
 	"\n" +
-	"\rmessage.proto\x12\amessage\"\xf3\x02\n" +
+	"\rmessage.proto\x12\amessage\"\x8c\x03\n" +
 	"\x0eMessageContent\x12\x12\n" +
 	"\x04text\x18\x01 \x01(\tR\x04text\x12\x1b\n" +
 	"\timage_url\x18\x02 \x01(\tR\bimageUrl\x12\x1b\n" +
@@ -1113,7 +1217,8 @@ const file_message_proto_rawDesc = "" +
 	" \x01(\x03R\bfileSize\x12\x10\n" +
 	"\x03lat\x18\v \x01(\x01R\x03lat\x12\x10\n" +
 	"\x03lng\x18\f \x01(\x01R\x03lng\x12\x18\n" +
-	"\aaddress\x18\r \x01(\tR\aaddress\"X\n" +
+	"\aaddress\x18\r \x01(\tR\aaddress\x12\x17\n" +
+	"\afile_id\x18\x0e \x01(\tR\x06fileId\"X\n" +
 	"\fMessageExtra\x12\x1a\n" +
 	"\bmentions\x18\x01 \x03(\x03R\bmentions\x12,\n" +
 	"\breply_to\x18\x02 \x01(\v2\x11.message.ReplyRefR\areplyTo\"o\n" +
@@ -1177,7 +1282,13 @@ const file_message_proto_rawDesc = "" +
 	"\n" +
 	"server_seq\x18\x02 \x01(\x03R\tserverSeq\x12.\n" +
 	"\amessage\x18\x03 \x03(\v2\x14.message.MessageBodyR\amessage\x12\x19\n" +
-	"\bhas_more\x18\x04 \x01(\bR\ahasMore*\x9d\x01\n" +
+	"\bhas_more\x18\x04 \x01(\bR\ahasMore\"c\n" +
+	"\x10RecallMessageReq\x12\x15\n" +
+	"\x06msg_id\x18\x01 \x01(\x03R\x05msgId\x12\x17\n" +
+	"\aconv_id\x18\x02 \x01(\tR\x06convId\x12\x1f\n" +
+	"\voperator_id\x18\x03 \x01(\x03R\n" +
+	"operatorId\"\x13\n" +
+	"\x11RecallMessageResp*\x9d\x01\n" +
 	"\aMsgType\x12\x12\n" +
 	"\x0eMsgTypeUnknown\x10\x00\x12\x0f\n" +
 	"\vMsgTypeText\x10\x01\x12\x10\n" +
@@ -1195,12 +1306,13 @@ const file_message_proto_rawDesc = "" +
 	"\aAckType\x12\x12\n" +
 	"\x0eAckTypeUnknown\x10\x00\x12\x14\n" +
 	"\x10AckTypeDelivered\x10\x01\x12\x0f\n" +
-	"\vAckTypeRead\x10\x022\xcc\x01\n" +
+	"\vAckTypeRead\x10\x022\x94\x02\n" +
 	"\aMessage\x12@\n" +
 	"\vSendMessage\x12\x17.message.SendMessageReq\x1a\x18.message.SendMessageResp\x12=\n" +
 	"\n" +
 	"AckMessage\x12\x16.message.AckMessageReq\x1a\x17.message.AckMessageResp\x12@\n" +
-	"\vSyncMessage\x12\x17.message.SyncMessageReq\x1a\x18.message.SyncMessageRespB\vZ\t./messageb\x06proto3"
+	"\vSyncMessage\x12\x17.message.SyncMessageReq\x1a\x18.message.SyncMessageResp\x12F\n" +
+	"\rRecallMessage\x12\x19.message.RecallMessageReq\x1a\x1a.message.RecallMessageRespB\vZ\t./messageb\x06proto3"
 
 var (
 	file_message_proto_rawDescOnce sync.Once
@@ -1215,7 +1327,7 @@ func file_message_proto_rawDescGZIP() []byte {
 }
 
 var file_message_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_message_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_message_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_message_proto_goTypes = []any{
 	(MsgType)(0),                     // 0: message.MsgType
 	(MsgStatus)(0),                   // 1: message.MsgStatus
@@ -1230,8 +1342,10 @@ var file_message_proto_goTypes = []any{
 	(*AckMessageResp)(nil),           // 10: message.AckMessageResp
 	(*SyncMessageReq)(nil),           // 11: message.SyncMessageReq
 	(*SyncMessageResp)(nil),          // 12: message.SyncMessageResp
-	(*SyncMessageReq_ConSeq)(nil),    // 13: message.SyncMessageReq.ConSeq
-	(*SyncMessageResp_ConvSync)(nil), // 14: message.SyncMessageResp.ConvSync
+	(*RecallMessageReq)(nil),         // 13: message.RecallMessageReq
+	(*RecallMessageResp)(nil),        // 14: message.RecallMessageResp
+	(*SyncMessageReq_ConSeq)(nil),    // 15: message.SyncMessageReq.ConSeq
+	(*SyncMessageResp_ConvSync)(nil), // 16: message.SyncMessageResp.ConvSync
 }
 var file_message_proto_depIdxs = []int32{
 	5,  // 0: message.MessageExtra.reply_to:type_name -> message.ReplyRef
@@ -1243,17 +1357,19 @@ var file_message_proto_depIdxs = []int32{
 	6,  // 6: message.SendMessageReq.body:type_name -> message.MessageBody
 	4,  // 7: message.SendMessageReq.extra:type_name -> message.MessageExtra
 	2,  // 8: message.AckMessageReq.ack_type:type_name -> message.AckType
-	13, // 9: message.SyncMessageReq.conv_list:type_name -> message.SyncMessageReq.ConSeq
-	14, // 10: message.SyncMessageResp.conv_syncs:type_name -> message.SyncMessageResp.ConvSync
+	15, // 9: message.SyncMessageReq.conv_list:type_name -> message.SyncMessageReq.ConSeq
+	16, // 10: message.SyncMessageResp.conv_syncs:type_name -> message.SyncMessageResp.ConvSync
 	6,  // 11: message.SyncMessageResp.ConvSync.message:type_name -> message.MessageBody
 	7,  // 12: message.Message.SendMessage:input_type -> message.SendMessageReq
 	9,  // 13: message.Message.AckMessage:input_type -> message.AckMessageReq
 	11, // 14: message.Message.SyncMessage:input_type -> message.SyncMessageReq
-	8,  // 15: message.Message.SendMessage:output_type -> message.SendMessageResp
-	10, // 16: message.Message.AckMessage:output_type -> message.AckMessageResp
-	12, // 17: message.Message.SyncMessage:output_type -> message.SyncMessageResp
-	15, // [15:18] is the sub-list for method output_type
-	12, // [12:15] is the sub-list for method input_type
+	13, // 15: message.Message.RecallMessage:input_type -> message.RecallMessageReq
+	8,  // 16: message.Message.SendMessage:output_type -> message.SendMessageResp
+	10, // 17: message.Message.AckMessage:output_type -> message.AckMessageResp
+	12, // 18: message.Message.SyncMessage:output_type -> message.SyncMessageResp
+	14, // 19: message.Message.RecallMessage:output_type -> message.RecallMessageResp
+	16, // [16:20] is the sub-list for method output_type
+	12, // [12:16] is the sub-list for method input_type
 	12, // [12:12] is the sub-list for extension type_name
 	12, // [12:12] is the sub-list for extension extendee
 	0,  // [0:12] is the sub-list for field type_name
@@ -1271,7 +1387,7 @@ func file_message_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_message_proto_rawDesc), len(file_message_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   12,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

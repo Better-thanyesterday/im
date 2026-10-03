@@ -5,10 +5,14 @@ package logic
 
 import (
 	"context"
-	"github.com/zeromicro/go-zero/core/logx"
+	"fmt"
+
+	"im-platform/app/group/rpc/group"
 	"im-platform/app/im/api/internal/svc"
 	"im-platform/app/im/api/internal/types"
-	"im-platform/app/group/rpc/group"
+	"im-platform/common/middleware"
+
+	"github.com/zeromicro/go-zero/core/logx"
 )
 
 type CreateGroupLogic struct {
@@ -25,10 +29,14 @@ func NewCreateGroupLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Creat
 	}
 }
 
-func (l *CreateGroupLogic) CreateGroup(req *types.CreateGroupReq) (resp *types.CreateGroupResp, err error) {
-	// todo: add your logic here and delete this line
+func (l *CreateGroupLogic) CreateGroup(req *types.CreateGroupReq) (*types.CreateGroupResp, error) {
+	// 创建者身份以 token 为准,不信任请求体(防冒充任意人建群)
+	creatorId, ok := middleware.GetUserID(l.ctx)
+	if !ok || creatorId <= 0 {
+		return nil, fmt.Errorf("unauthorized")
+	}
 	res, err := l.svcCtx.Group.CreateGroup(l.ctx, &group.CreateGroupReq{
-		CreatorId:        req.CreatorId,
+		CreatorId:        creatorId,
 		Name:             req.Name,
 		Avatar:           req.Avatar,
 		InitialMembers:   req.InitialMembers,

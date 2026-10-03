@@ -41,6 +41,8 @@ message MessageContent {
   double lat = 11;            // 位置纬度
   double lng = 12;            // 位置经度
   string address = 13;        // 位置描述
+  string file_id = 14;        // 引用的文件 ID(file 服务上传后返回;图片/语音/视频/文件消息必填,
+                              // 发送链路据此校验文件存在/可用/归属,收方按此换预签名下载 URL)
 }
 message MessageExtra {
   repeated int64 mentions = 1; // @ 用户 ID 列表（群聊强推送用）
@@ -121,4 +123,13 @@ service Message {
     rpc SendMessage (SendMessageReq) returns (SendMessageResp);
     rpc AckMessage (AckMessageReq) returns (AckMessageResp);
     rpc SyncMessage (SyncMessageReq) returns (SyncMessageResp);
+    rpc RecallMessage (RecallMessageReq) returns (RecallMessageResp);
 }
+
+message RecallMessageReq {
+  int64 msg_id = 1;
+  string conv_id = 2;    // 会话 ID(归属校验)
+  int64 operator_id = 3; // 撤回者(必须是消息发送者)
+}
+
+message RecallMessageResp {}
