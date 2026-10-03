@@ -1,0 +1,29 @@
+# ===== Go 构建产物 =====
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.prof
+# delve 调试二进制(goctl/dlv 生成)
+__debug_bin*
+# ===== 编辑器 / IDE =====
+.vscode/
+.idea/
+.continue/
+*.swp
+*.swo
+# ===== OS =====
+.DS_Store
+Thumbs.db
+# ===== 前端(如以后引入) =====
+node_modules/
+dist/
+# ===== 本地环境 / 密钥(生产配置请勿入库) =====
+.env
+*.local.yaml
+# ===== 日志 / 临时文件 =====
+*.log
+/tmp/
