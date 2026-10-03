@@ -11,6 +11,7 @@
 # delve 调试二进制(goctl/dlv 生成)
 __debug_bin*
 
+
 # ===== 编辑器 / IDE =====
 .vscode/
 .idea/

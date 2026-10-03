@@ -2,6 +2,8 @@
 -- 目标库:im_file(见 app/file/rpc/etc/file.yaml)
 -- 执行:psql -h 127.0.0.1 -U postgres -d im_file -f docs/sql/files.sql
 
+
+
 CREATE TABLE IF NOT EXISTS public.files (
     id           varchar(32)  PRIMARY KEY,                      -- 雪花 file_id(字符串对外暴露)
     file_name    varchar(255) NOT NULL DEFAULT '',               -- 原始文件名
