@@ -1,5 +1,5 @@
 Name: message.rpc
-ListenOn: 0.0.0.0:18082
+ListenOn: 0.0.0.0:18004
 Timeout: 0   
 Etcd:
   Hosts:

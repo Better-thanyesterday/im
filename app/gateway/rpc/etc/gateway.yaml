@@ -1,5 +1,5 @@
 Name: gateway.rpc
-ListenOn: 0.0.0.0:18081
+ListenOn: 0.0.0.0:18001
 Etcd:
   Hosts:
   - 127.0.0.1:2379
@@ -25,7 +25,7 @@ Redis:
 
 # 写入在线表供 push 直连;127.0.0.1 会在启动时自动替换为本机对外 IP
 Gateway:
-  GrpcAddr: "127.0.0.1:18081"
+  GrpcAddr: "127.0.0.1:18001"
   BucketNum: 16
 
 # 链路追踪:OTLP gRPC 上报 Jaeger(v2, OTLP receiver 4317)

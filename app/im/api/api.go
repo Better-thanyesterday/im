@@ -14,7 +14,7 @@ import (
 	"im-platform/app/im/api/internal/svc"
 )
 
-var configFile = flag.String("f", "etc/gateway-api.yaml", "the config file")
+var configFile = flag.String("f", "etc/api.yaml", "the config file")
 
 func main() {
 	flag.Parse()
