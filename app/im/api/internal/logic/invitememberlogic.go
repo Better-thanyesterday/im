@@ -31,13 +31,13 @@ func NewInviteMemberLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Invi
 
 func (l *InviteMemberLogic) InviteMember(req *types.InviteMemberReq) (*types.InviteMemberResp, error) {
 	// 邀请人身份以 token 为准,不信任请求体(防把任意人拉进任意群)
-	inviterId, ok := middleware.GetUserID(l.ctx)
-	if !ok || inviterId <= 0 {
+	inviterID, ok := middleware.GetUserID(l.ctx)
+	if !ok || inviterID <= 0 {
 		return nil, fmt.Errorf("unauthorized")
 	}
 	res, err := l.svcCtx.Group.InviteMember(l.ctx, &group.InviteMemberReq{
-		GroupId:   req.GroupId,
-		InviterId: inviterId,
+		GroupId:   req.GroupID,
+		InviterId: inviterID,
 		UserIds:   req.UserIds,
 	})
 	if err != nil {

@@ -39,7 +39,7 @@ func (l *HandleApplyLogic) HandleApply(req *types.HandleApplyReq) (*types.GroupO
 		// group_id 由 rpc 侧按 apply 归属校验,这里只需传审批人与申请
 		GroupId:    0,
 		OperatorId: uid,
-		ApplyId:    req.ApplyId,
+		ApplyId:    req.ApplyID,
 		Approve:    req.Approve,
 	})
 	if err != nil {

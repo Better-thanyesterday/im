@@ -2,11 +2,11 @@ package middleware
 
 import (
 	"context"
+	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/rest/httpx"
 	"im-platform/common/utils"
 	"net/http"
 	"strings"
-	"github.com/zeromicro/go-zero/core/logx"
-	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
 type CtxKey string
@@ -27,17 +27,18 @@ type AuthError struct {
 func (e *AuthError) Error() string {
 	return e.Msg
 }
+
 // ==================== HTTP中间件（Gateway层）====================
 
 // GatewayAuthMiddleware Gateway接入鉴权中间件
 // 从Header或Query提取Token，查Redis校验，注入上下文
 // 使用方式：在 .api 文件中 @server(middleware: Auth) 声明
-func AuthMiddleware(tm *utils.TokenManager) func(next http.HandlerFunc) http.HandlerFunc{
+func AuthMiddleware(tm *utils.TokenManager) func(next http.HandlerFunc) http.HandlerFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			ctx:=r.Context()
+			ctx := r.Context()
 			// 兼容 "Bearer <token>" 与裸 token 两种携带方式
-			tokenStr:=r.Header.Get("Authorization")
+			tokenStr := r.Header.Get("Authorization")
 			if parts := strings.SplitN(tokenStr, " ", 2); len(parts) == 2 && strings.EqualFold(parts[0], "Bearer") {
 				tokenStr = strings.TrimSpace(parts[1])
 			}
@@ -46,11 +47,11 @@ func AuthMiddleware(tm *utils.TokenManager) func(next http.HandlerFunc) http.Han
 			if tokenStr == "" && r.URL.Path == "/ws" {
 				tokenStr = r.URL.Query().Get("token")
 			}
-			if tokenStr =="" {
+			if tokenStr == "" {
 				httpx.Error(w, &AuthError{Code: 100002, Msg: "Token缺失"})
 				return
 			}
-			info ,err :=tm.Verify(ctx,tokenStr)
+			info, err := tm.Verify(ctx, tokenStr)
 			if err != nil {
 				//logx.WithContext(ctx).Warnf("auth failed | token=%s... err=%v", tokenStr[:6], err)
 				httpx.Error(w, &AuthError{Code: 100002, Msg: "Token无效或过期"})

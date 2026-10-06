@@ -4,7 +4,7 @@ import "sync"
 
 type bucket struct {
 	Mu    sync.RWMutex
-	Conns map[string]*Conn // key: "userId:deviceType"
+	Conns map[string]*Conn // key: "userID:deviceType"
 }
 
 func newBucket() *bucket {

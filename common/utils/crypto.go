@@ -1,27 +1,27 @@
 package utils
 
-import(
-	"fmt"
-	"golang.org/x/crypto/bcrypt"
+import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"golang.org/x/crypto/bcrypt"
 )
+
 // ==================== 密码工具 ====================
 
 func HashPassword(password string) (string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err !=nil{
-		return "", fmt.Errorf("hash password failed %w" ,err)
+	if err != nil {
+		return "", fmt.Errorf("hash password failed %w", err)
 	}
-	return 	string (hashedPassword) ,nil
+	return string(hashedPassword), nil
 }
 
 func VerifyPassword(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
 }
-
 
 // ==================== Token工具 ====================
 

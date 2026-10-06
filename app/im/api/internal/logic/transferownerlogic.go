@@ -36,9 +36,9 @@ func (l *TransferOwnerLogic) TransferOwner(req *types.TransferOwnerReq) (*types.
 		return nil, fmt.Errorf("unauthorized")
 	}
 	resp, err := l.svcCtx.Group.TransferOwner(l.ctx, &group.TransferOwnerReq{
-		GroupId:    req.GroupId,
+		GroupId:    req.GroupID,
 		OldOwnerId: uid,
-		NewOwnerId: req.NewOwnerId,
+		NewOwnerId: req.NewOwnerID,
 	})
 	if err != nil {
 		return nil, err

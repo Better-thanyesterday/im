@@ -33,7 +33,7 @@ func NewCreateUploadTaskLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 const presignPutExpiry = 30 * time.Minute
 
 // CreateUploadTask 初始化分片上传任务，返回 file_id、S3 upload_id 与各分片预签名 UploadPart URL。
-// 走 S3 原生 Multipart：预签名 URL 自带 partNumber/uploadId 并参与 SigV4 签名，
+// 走 S3 原生 Multipart：预签名 URL 自带 partNumber/uploadID 并参与 SigV4 签名，
 // 客户端按 ChunkIndex+1 对应 partNumber 上传，CompleteUpload 时携带各片 ETag 合并。
 // 注意：除最后一片外每片 >= 5MiB（S3 Multipart 协议限制）。
 func (l *CreateUploadTaskLogic) CreateUploadTask(in *file.CreateUploadTaskReq) (*file.CreateUploadTaskResp, error) {
@@ -43,17 +43,17 @@ func (l *CreateUploadTaskLogic) CreateUploadTask(in *file.CreateUploadTaskReq) (
 	}
 
 	// 2. 生成 file_id（雪花，字符串对外）
-	fileId := strconv.FormatInt(l.svcCtx.Snowflake.NextID(), 10)
+	fileID := strconv.FormatInt(l.svcCtx.Snowflake.NextID(), 10)
 
 	// 3. 对象键：files/{file_id}/{原始文件名}
-	objectKey := fmt.Sprintf("files/%s/%s", fileId, in.FileName)
+	objectKey := fmt.Sprintf("files/%s/%s", fileID, in.FileName)
 
 	// 4. 落库元数据。
 	// 审核暂未接入:原流程 status=FileStatusAudit(审核中,合并完成前不可见),
 	// 现直接置 Normal 让文件合并后立即可用;
 	// 接入内容审核时改回 FileStatusAudit,由审核服务经 UpdateAudit 流转状态
 	if _, err := l.svcCtx.FilesModel.Insert(l.ctx, &models.Files{
-		Id:         fileId,
+		Id:         fileID,
 		FileName:   in.FileName,
 		FileSize:   in.FileSize,
 		MimeType:   in.MimeType,
@@ -80,7 +80,7 @@ func (l *CreateUploadTaskLogic) CreateUploadTask(in *file.CreateUploadTaskReq) (
 
 	// 6. 为每个分片生成预签名 UploadPart URL（proto 的 ChunkIndex 从 0 起，partNumber 从 1 起）
 	resp := &file.CreateUploadTaskResp{
-		FileId:   fileId,
+		FileId:   fileID,
 		UploadId: aws.ToString(out.UploadId),
 		Chunks:   make([]*file.ChunkUploadInfo, 0, in.TotalChunks),
 	}

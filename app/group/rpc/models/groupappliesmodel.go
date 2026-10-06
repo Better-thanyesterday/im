@@ -15,7 +15,7 @@ type (
 	GroupappliesModel interface {
 		groupappliesModel
 		withSession(session sqlx.Session) GroupappliesModel
-		HandleApply(ctx context.Context, applyId, handlerId, status int64) error
+		HandleApply(ctx context.Context, applyID, handlerID, status int64) error
 	}
 
 	customGroupappliesModel struct {
@@ -37,9 +37,9 @@ func (m *customGroupappliesModel) withSession(session sqlx.Session) Groupapplies
 // HandleApply 审批入群申请:status 2-接受 3-拒绝;定向更新并带 status=1 前置条件
 // (防重复处理/并发审批),生成版 Update 是全列覆盖不能用。
 // 0 行受影响 = 申请不存在或已被处理
-func (m *customGroupappliesModel) HandleApply(ctx context.Context, applyId, handlerId, status int64) error {
+func (m *customGroupappliesModel) HandleApply(ctx context.Context, applyID, handlerID, status int64) error {
 	query := fmt.Sprintf("update %s set status = $1, handler_id = $2, handled_at = now() where id = $3 and status = 1", m.table)
-	res, err := m.conn.ExecCtx(ctx, query, status, handlerId, applyId)
+	res, err := m.conn.ExecCtx(ctx, query, status, handlerID, applyID)
 	if err != nil {
 		return err
 	}

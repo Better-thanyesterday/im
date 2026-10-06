@@ -11,31 +11,31 @@ import (
 )
 
 type Snowflake struct {
-	mu        sync.Mutex
+	mu            sync.Mutex
 	lastTimestamp int64
 	workNode      int64
-	sequence  int64
+	sequence      int64
 }
 
 const (
-	workNodeBits  = 10
-	sequenceBits  = 12
-	workNodeMax   = -1 ^ (-1 << workNodeBits)
-	sequenceMask  = -1 ^ (-1 << sequenceBits)
+	workNodeBits   = 10
+	sequenceBits   = 12
+	workNodeMax    = -1 ^ (-1 << workNodeBits)
+	sequenceMask   = -1 ^ (-1 << sequenceBits)
 	timestampShift = workNodeBits + sequenceBits
 	workNodeShift  = sequenceBits
 	epoch          = int64(1609459200000) // 2021-01-01 00:00:00 UTC in milliseconds
 )
 
-func NewSnowflake(worknode int64)(*Snowflake,error){
-	if worknode<0||worknode>workNodeMax{
-		return nil,fmt.Errorf("worknode must be between 0 and %d",workNodeMax)
+func NewSnowflake(worknode int64) (*Snowflake, error) {
+	if worknode < 0 || worknode > workNodeMax {
+		return nil, fmt.Errorf("worknode must be between 0 and %d", workNodeMax)
 	}
 	return &Snowflake{
 		lastTimestamp: 0,
-		workNode:  worknode,
-		sequence:  0,
-	},nil
+		workNode:      worknode,
+		sequence:      0,
+	}, nil
 }
 
 // NewSnowflakeOrAuto workNode>0 时按配置创建,否则自动派生
@@ -47,7 +47,7 @@ func NewSnowflakeOrAuto(workNode int64) (*Snowflake, error) {
 }
 
 // NewSnowflakeAuto 从本机 IP 末两段 + 进程号自动派生 workNode。
-// 各服务硬编码同一个 WorkNode(如全是 1)时,多副本部署生成的 msgId 必然撞号;
+// 各服务硬编码同一个 WorkNode(如全是 1)时,多副本部署生成的 msgID 必然撞号;
 // 自动派生在同一 IP 上按 PID 区分副本,跨机按 IP 区分。冲突概率极低但仍非零,
 // 严格场景应改用 etcd/DB 分配节点号
 func NewSnowflakeAuto() (*Snowflake, error) {

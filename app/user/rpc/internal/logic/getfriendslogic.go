@@ -25,7 +25,7 @@ func NewGetFriendsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetFri
 
 func (l *GetFriendsLogic) GetFriends(in *user.GetFriendsReq) (*user.GetFriendsResp, error) {
 	// todo: add your logic here and delete this line
-	rows, err := l.svcCtx.FriendsModel.FindFriendsByUserId(
+	rows, err := l.svcCtx.FriendsModel.FindFriendsByUserID(
 		l.ctx,
 		in.UserId,
 		in.Keyword,

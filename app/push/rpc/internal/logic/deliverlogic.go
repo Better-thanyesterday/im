@@ -103,9 +103,9 @@ func (l *DeliverLogic) deliver(ctx context.Context, in *push.DeliverReq, body []
 func marshalPayload(pushType push.PushType, msg *push.PushMessage) ([]byte, error) {
 	if pushType == push.PushType_PushTypeNotify {
 		return json.Marshal(struct {
-			ConvId string `json:"conv_id"`
-			SeqId  int64  `json:"seq_id"`
-		}{ConvId: msg.ConvId, SeqId: msg.SeqId})
+			ConvID string `json:"conv_id"`
+			SeqID  int64  `json:"seq_id"`
+		}{ConvID: msg.ConvId, SeqID: msg.SeqId})
 	}
 	return json.Marshal(msg)
 }
@@ -133,7 +133,7 @@ func (l *DeliverLogic) pushToDevice(ctx context.Context, in *push.DeliverReq, de
 }
 
 // storeOffline 写入 Redis 离线信箱（Sorted Set，每会话独立 key）
-// key 约定与 message 侧 syncFromOffline 一致：im:offlineinbox:{uid}:{convId}
+// key 约定与 message 侧 syncFromOffline 一致：im:offlineinbox:{uid}:{convID}
 // 按会话拆 key 后，同步侧按 score 区间清理只影响本会话，不会误删其他会话条目
 func (l *DeliverLogic) storeOffline(ctx context.Context, in *push.DeliverReq) {
 	offlineKey := fmt.Sprintf("im:offlineinbox:%d:%s", in.UserId, in.Message.ConvId)

@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"im-platform/app/gateway/rpc/internal/conn"
-	"im-platform/app/gateway/rpc/internal/svc"
 	"im-platform/app/gateway/rpc/internal/protocol"
+	"im-platform/app/gateway/rpc/internal/svc"
 	"im-platform/app/message/rpc/messageclient"
 	"strconv"
 	"time"
@@ -27,8 +27,8 @@ func HandleFrame(svcCtx *svc.ServiceContext, c *conn.Conn, data []byte) {
 		if json.Unmarshal(payload, &in) != nil {
 			return
 		}
-		// sender_id 不信任客户端,以握手鉴权写入 conn 的 userId 为准
-		in.SenderId = c.UserId()
+		// sender_id 不信任客户端,以握手鉴权写入 conn 的 userID 为准
+		in.SenderId = c.UserID()
 		if in.SenderId <= 0 {
 			logx.Errorf("未鉴权连接上行帧,丢弃 | frame=send userid=%d", in.SenderId)
 			return
@@ -50,8 +50,8 @@ func HandleFrame(svcCtx *svc.ServiceContext, c *conn.Conn, data []byte) {
 		if json.Unmarshal(payload, &in) != nil {
 			return
 		}
-		// user_id 不信任客户端,以握手鉴权写入 conn 的 userId 为准
-		in.UserId = c.UserId()
+		// user_id 不信任客户端,以握手鉴权写入 conn 的 userID 为准
+		in.UserId = c.UserID()
 		if in.UserId <= 0 {
 			logx.Errorf("未鉴权连接上行帧,丢弃 | frame=ack userid=%d", in.UserId)
 			return
@@ -67,7 +67,7 @@ func HandleFrame(svcCtx *svc.ServiceContext, c *conn.Conn, data []byte) {
 		if json.Unmarshal(payload, &in) != nil {
 			return
 		}
-		in.UserId = c.UserId()
+		in.UserId = c.UserID()
 		if in.UserId <= 0 {
 			logx.Errorf("未鉴权连接上行帧,丢弃 | frame=sync userid=%d", in.UserId)
 			return
@@ -102,6 +102,6 @@ func sendErrorFrame(c *conn.Conn, frameType byte, err error) {
 // 若 message rpc 挂起,读泵的 goroutine 会集体假死,必须在调用点自带超时
 func rpcCtx(c *conn.Conn, timeout time.Duration) (context.Context, context.CancelFunc) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	md := metadata.Pairs("x-user-id", strconv.FormatInt(c.UserId(), 10))
+	md := metadata.Pairs("x-user-id", strconv.FormatInt(c.UserID(), 10))
 	return metadata.NewOutgoingContext(ctx, md), cancel
 }

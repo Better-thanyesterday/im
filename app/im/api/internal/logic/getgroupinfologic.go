@@ -28,16 +28,16 @@ func NewGetGroupInfoLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetG
 }
 
 func (l *GetGroupInfoLogic) GetGroupInfo(req *types.GetGroupInfoReq) (*types.GetGroupInfoResp, error) {
-	resp, err := l.svcCtx.Group.GetGroupInfo(l.ctx, &group.GetGroupInfoReq{GroupId: req.GroupId})
+	resp, err := l.svcCtx.Group.GetGroupInfo(l.ctx, &group.GetGroupInfoReq{GroupId: req.GroupID})
 	if err != nil {
 		return nil, err
 	}
 	g := resp.Info
 	return &types.GetGroupInfoResp{Info: types.GroupInfo{
-		Id:               g.Id,
+		ID:               g.Id,
 		Name:             g.Name,
 		Avatar:           g.Avatar,
-		OwnerId:          g.OwnerId,
+		OwnerID:          g.OwnerId,
 		Notice:           g.Notice,
 		MemberCount:      g.MemberCount,
 		MaxMember:        g.MaxMember,

@@ -37,7 +37,7 @@ func (l *FriendsLogic) GetFriends(req *types.GetFriendsReq) (*types.GetFriendsRe
 	}
 	resp, err := l.svcCtx.User.GetFriends(l.ctx, &user.GetFriendsReq{
 		UserId:        uid,
-		FriendGroupId: req.FriendGroupId,
+		FriendGroupId: req.FriendGroupID,
 		Keyword:       req.Keyword,
 		Page:          req.Page,
 		PageSize:      req.PageSize,
@@ -48,11 +48,11 @@ func (l *FriendsLogic) GetFriends(req *types.GetFriendsReq) (*types.GetFriendsRe
 	friends := make([]types.Friend, 0, len(resp.Friends))
 	for _, f := range resp.Friends {
 		friends = append(friends, types.Friend{
-			UserId:        f.UserId,
+			UserID:        f.UserId,
 			Nickname:      f.Nickname,
 			Avatar:        f.Avatar,
 			Remark:        f.Remark,
-			FriendGroupId: f.FriendGroupId,
+			FriendGroupID: f.FriendGroupId,
 			CreatedAt:     f.CreatedAt,
 		})
 	}

@@ -36,8 +36,8 @@ func (l *RecallMessageLogic) RecallMessage(req *types.RecallMessageReq) (*types.
 		return nil, fmt.Errorf("unauthorized")
 	}
 	_, err := l.svcCtx.Message.RecallMessage(l.ctx, &messageclient.RecallMessageReq{
-		MsgId:      req.MsgId,
-		ConvId:     req.ConvId,
+		MsgId:      req.MsgID,
+		ConvId:     req.ConvID,
 		OperatorId: uid,
 	})
 	if err != nil {

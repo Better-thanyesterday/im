@@ -29,7 +29,7 @@ func NewGetMemberVersionLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 
 // GetMemberVersion 查成员版本号(客户端成员缓存失效校验用)
 func (l *GetMemberVersionLogic) GetMemberVersion(req *types.GetMemberVersionReq) (*types.GetMemberVersionResp, error) {
-	resp, err := l.svcCtx.Group.GetMemberVersion(l.ctx, &group.GetMemberVersionReq{GroupId: req.GroupId})
+	resp, err := l.svcCtx.Group.GetMemberVersion(l.ctx, &group.GetMemberVersionReq{GroupId: req.GroupID})
 	if err != nil {
 		return nil, err
 	}

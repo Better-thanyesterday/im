@@ -22,7 +22,8 @@ func NewManager(bucketNum int) *ConnManager {
 func ConnKey(userID int64, deviceType int32) string {
 	return strconv.FormatInt(userID, 10) + ":" + strconv.FormatInt(int64(deviceType), 10)
 }
-//有倾斜的可能
+
+// 有倾斜的可能
 func (m *ConnManager) BucketOf(userID int64) *bucket {
 	idx := uint64(userID) % uint64((len(m.buckets)))
 	return m.buckets[idx]
@@ -79,10 +80,10 @@ func (m *ConnManager) Count() int {
 func (m *ConnManager) Remove(userID int64, deviceType int32) {
 	b := m.BucketOf(userID)
 	b.Mu.Lock()
-	key:=ConnKey(userID,deviceType)
-	c,ok:=b.Conns[key]
-	if ok{
-		delete(b.Conns,key)
+	key := ConnKey(userID, deviceType)
+	c, ok := b.Conns[key]
+	if ok {
+		delete(b.Conns, key)
 	}
 	b.Mu.Unlock()
 	if ok {
@@ -90,20 +91,20 @@ func (m *ConnManager) Remove(userID int64, deviceType int32) {
 	}
 }
 
-
-func (m *ConnManager) RemoveConn(c*Conn) {
+func (m *ConnManager) RemoveConn(c *Conn) {
 	b := m.BucketOf(c.userID)
 	b.Mu.Lock()
-	key:=c.Key()
-	cur,ok :=b.Conns[key]
-	if ok&&cur==c{
-		delete(b.Conns,key)
+	key := c.Key()
+	cur, ok := b.Conns[key]
+	if ok && cur == c {
+		delete(b.Conns, key)
 	}
 	b.Mu.Unlock()
-	if ok&&cur==c{
+	if ok && cur == c {
 		c.Close()
 	}
 }
+
 // Range 遍历所有连接；fn 返回 false 提前终止。
 // 注意：不要在 fn 里调用 manager 的加锁方法，否则死锁。
 // 锁内只收集,锁外执行回调,避免回调里再做 Redis/网络调用时拖住桶锁
@@ -124,8 +125,6 @@ func (m *ConnManager) Range(fn func(*Conn)) {
 	}
 }
 
-
-
 // CloseAll 关闭全部连接（服务优雅退出时调用）
 func (m *ConnManager) CloseAll() {
 	for _, b := range m.buckets {
@@ -142,4 +141,3 @@ func (m *ConnManager) CloseAll() {
 		}
 	}
 }
-

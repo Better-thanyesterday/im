@@ -47,7 +47,7 @@ func NewConn(userID int64, deviceType int32, ws *websocket.Conn, onclose func(c 
 }
 
 func (c *Conn) Key() string            { return ConnKey(c.userID, c.deviceType) }
-func (c *Conn) UserId() int64          { return c.userID }
+func (c *Conn) UserID() int64          { return c.userID }
 func (c *Conn) DeviceType() int32      { return c.deviceType }
 func (c *Conn) RemoteAddr() string     { return c.remoteAddr }
 func (c *Conn) ConnectedAt() time.Time { return c.connectedAt }

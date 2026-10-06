@@ -25,34 +25,34 @@ func NewSeqIdLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SeqIdLogic 
 
 // AllocateSeq 为指定会话分配下一个 SeqID
 // 策略：Redis INCR（主）→ 批量预取（优化）→ PG 兜底（降级）
-func (l *SeqIdLogic) AllocateSeq(convId string) (seq int64, needAsync bool, err error) {
+func (l *SeqIdLogic) AllocateSeq(convID string) (seq int64, needAsync bool, err error) {
 	//local Cache hit
-	seg, ok := l.svcCtx.SeqIdCache.Get(convId)
+	seg, ok := l.svcCtx.SeqIdCache.Get(convID)
 	if ok {
-		l.Infof("seq 命中本地缓存 | conv=%s seq=%d", convId, seg)
+		l.Infof("seq 命中本地缓存 | conv=%s seq=%d", convID, seg)
 		//写缓存成功写kafka
 		return seg, true, nil
 	}
 	// 2. Redis 批量预取：一次 INCRBY 拿 N 个 Seq，减少 90% 的 Redis 往返
 
 	const batchSize int64 = 100
-	seqKey := fmt.Sprintf("im:seq:%s", convId)
+	seqKey := fmt.Sprintf("im:seq:%s", convID)
 	// Redis INCRBY 原子返回当前最大值
 	maxSeq, err := l.svcCtx.Redis.Incrby(seqKey, batchSize)
 	if err != nil {
-		logx.Errorf("redis seq 预取失败,降级 PG 兜底 | conv=%s err=%v", convId, err)
+		logx.Errorf("redis seq 预取失败,降级 PG 兜底 | conv=%s err=%v", convID, err)
 		// 降级到 PG 兜底
-		seq, err := l.allocateFromPG(convId)
+		seq, err := l.allocateFromPG(convID)
 		if err != nil {
 			// PG 兜底自身失败,没有更下游可降级,只能让发送失败由客户端重试
-			logx.Errorf("pg seq 兜底分配失败 | conv=%s err=%v", convId, err)
+			logx.Errorf("pg seq 兜底分配失败 | conv=%s err=%v", convID, err)
 			return 0, false, err
 			// 兜底失败写kafka
 		}
 		// Put 的 max=0 是"一次性段"语义:PG 只批了这一个号,没有可缓存的区间,
 		// 该段立即耗尽(Get 恒 miss),下一条消息重新走 Redis/PG——
 		// 不能把 current=seq 当普通段缓存,否则等于把未经 PG 批准的 seq+1 发出去
-		l.svcCtx.SeqIdCache.Put(convId, seq, 0)
+		l.svcCtx.SeqIdCache.Put(convID, seq, 0)
 		// PG 分配的号必须回填 Redis(只前进不回退),否则 Redis 恢复后计数器
 		// 停在旧值,会重复分配 PG 已发出的号
 		l.backfillRedisSeq(seqKey, seq)
@@ -61,8 +61,8 @@ func (l *SeqIdLogic) AllocateSeq(convId string) (seq int64, needAsync bool, err 
 	// seq 计数器是会话的永久单调状态,绝不能设 TTL:
 	// 过期后从 0 重新计数,所有端按旧 seq 同步会整体错乱
 	start := maxSeq - batchSize
-	l.svcCtx.SeqIdCache.Put(convId, start, maxSeq)
-	l.Infof("seq 段预取成功 | conv=%s range=[%d,%d]", convId, start+1, maxSeq)
+	l.svcCtx.SeqIdCache.Put(convID, start, maxSeq)
+	l.Infof("seq 段预取成功 | conv=%s range=[%d,%d]", convID, start+1, maxSeq)
 	//redis 成功写kafka
 	return start + 1, true, nil
 }
@@ -83,9 +83,9 @@ func (l *SeqIdLogic) backfillRedisSeq(seqKey string, pgSeq int64) {
 }
 
 // allocateFromPG PG 兜底：直接行锁更新 seq_counters 表
-func (l *SeqIdLogic) allocateFromPG(convId string) (int64, error) {
+func (l *SeqIdLogic) allocateFromPG(convID string) (int64, error) {
 	var seq int64
-	seq, err := l.svcCtx.SeqModel.IncrSeq(l.ctx, convId)
+	seq, err := l.svcCtx.SeqModel.IncrSeq(l.ctx, convID)
 	if err != nil {
 		return 0, fmt.Errorf("pg allocate seq failed: %w", err)
 	}
@@ -93,18 +93,18 @@ func (l *SeqIdLogic) allocateFromPG(convId string) (int64, error) {
 }
 
 // BatchAllocateSeq 批量分配（用于群聊写扩散，一次给 N 个成员各分配 inbox seq）
-func (l *SeqIdLogic) BatchAllocateSeq(convId string, count int) ([]int64, error) {
+func (l *SeqIdLogic) BatchAllocateSeq(convID string, count int) ([]int64, error) {
 	if count <= 0 {
 		return nil, nil
 	}
-	seqKey := fmt.Sprintf("im:seq:%s", convId)
+	seqKey := fmt.Sprintf("im:seq:%s", convID)
 	maxSeq, err := l.svcCtx.Redis.Incrby(seqKey, int64(count))
 	if err != nil {
-		logx.Errorf("redis 批量预取 seq 失败 | conv=%s err=%v", convId, err)
+		logx.Errorf("redis 批量预取 seq 失败 | conv=%s err=%v", convID, err)
 		// 降级：逐个 PG 分配（慢但可靠）
 		seqs := make([]int64, count)
 		for i := 0; i < count; i++ {
-			seq, err := l.allocateFromPG(convId)
+			seq, err := l.allocateFromPG(convID)
 			if err != nil {
 				return nil, err
 			}

@@ -37,11 +37,11 @@ func (l *AddFriendLogic) AddFriend(req *types.AddFriendReq) (*types.AddFriendRes
 	}
 	resp, err := l.svcCtx.User.AddFriend(l.ctx, &user.AddFriendReq{
 		UserId:       uid,
-		TargetUserId: req.TargetUserId,
+		TargetUserId: req.TargetUserID,
 		ApplyReason:  req.ApplyReason,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &types.AddFriendResp{ApplyId: resp.ApplyId}, nil
+	return &types.AddFriendResp{ApplyID: resp.ApplyId}, nil
 }

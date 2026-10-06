@@ -127,8 +127,8 @@ func (l *SendMessageLogic) validate(in *message.SendMessageReq) error {
 		}
 	case true:
 		if isGroupConv(in.Body.ConvId) {
-			groupId, err := strconv.ParseInt(strings.TrimPrefix(in.Body.ConvId, "group_"), 10, 64)
-			if err != nil || groupId <= 0 {
+			groupID, err := strconv.ParseInt(strings.TrimPrefix(in.Body.ConvId, "group_"), 10, 64)
+			if err != nil || groupID <= 0 {
 				return constants.NewMsgError(constants.ErrCodeMsgInValidParam)
 			}
 			if in.Body.ConvId != constants.BuildGroupConvID(in.ToUid) {
@@ -143,8 +143,8 @@ func (l *SendMessageLogic) validate(in *message.SendMessageReq) error {
 	return nil
 }
 
-func isGroupConv(convId string) bool {
-	return strings.HasPrefix(convId, "group_")
+func isGroupConv(convID string) bool {
+	return strings.HasPrefix(convID, "group_")
 }
 
 // validateMediaFile 媒体类消息发送前校验 content.file_id 引用的文件:
@@ -177,8 +177,8 @@ func (l *SendMessageLogic) validateMediaFile(in *message.SendMessageReq) error {
 }
 
 // checkRateLimit 基于 Redis 滑动窗口的分布式限流
-// func (l *SendMessageLogic) checkRateLimit(userId int64) error {
-// 	key := fmt.Sprintf("im:ratelimit:send:%d", userId)
+// func (l *SendMessageLogic) checkRateLimit(userID int64) error {
+// 	key := fmt.Sprintf("im:ratelimit:send:%d", userID)
 // 	const (
 // 		windowMs int64 = 1000 // 1 秒窗口
 // 		limit    int64 = 30   // 30 条/秒（生产可配到 etcd）

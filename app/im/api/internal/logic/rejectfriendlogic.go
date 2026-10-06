@@ -36,7 +36,7 @@ func (l *RejectFriendLogic) RejectFriend(req *types.RejectFriendReq) (*types.Suc
 		return nil, fmt.Errorf("unauthorized")
 	}
 	resp, err := l.svcCtx.User.RejectFriend(l.ctx, &userclient.RejectFriendReq{
-		ApplyId:    req.ApplyId,
+		ApplyId:    req.ApplyID,
 		OperatorId: uid,
 	})
 	if err != nil {

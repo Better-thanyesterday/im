@@ -42,10 +42,10 @@ func (l *DevicesLogic) GetDevices() (*types.DevicesResp, error) {
 	devices := make([]types.Device, 0, len(resp.Devices))
 	for _, d := range resp.Devices {
 		devices = append(devices, types.Device{
-			Id:           d.Id,
+			ID:           d.Id,
 			DeviceType:   d.DeviceType,
 			DeviceName:   d.DeviceName,
-			DeviceId:     d.DeviceId,
+			DeviceID:     d.DeviceId,
 			Location:     d.Location,
 			LoginAt:      d.LoginAt,
 			LastActiveAt: d.LastActiveAt,

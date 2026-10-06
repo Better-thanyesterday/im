@@ -36,7 +36,7 @@ func (l *KickDeviceLogic) KickDevice(req *types.KickDeviceReq) (*types.SuccessRe
 		return nil, fmt.Errorf("unauthorized")
 	}
 	resp, err := l.svcCtx.User.KickDevice(l.ctx, &user.KickDeviceReq{
-		DeviceId: req.DeviceId,
+		DeviceId: req.DeviceID,
 		UserId:   uid,
 	})
 	if err != nil {

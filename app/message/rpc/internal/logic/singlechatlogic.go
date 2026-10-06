@@ -53,7 +53,7 @@ func (l *SingleChatLogic) Send(in *message.SendMessageReq, convid string) (*mess
 	}
 	wdb := WriteDiffBundle{}
 	//2.分配seq_id
-	seqId, needAsync, err := NewSeqIdLogic(l.ctx, l.svcCtx).AllocateSeq(convid)
+	seqID, needAsync, err := NewSeqIdLogic(l.ctx, l.svcCtx).AllocateSeq(convid)
 	if err != nil {
 		return nil, fmt.Errorf("allocate seq failed: %w", err)
 	}
@@ -61,22 +61,22 @@ func (l *SingleChatLogic) Send(in *message.SendMessageReq, convid string) (*mess
 	//如果 Kafka 失败，同步降级写 PG
 	if needAsync {
 		seq := &models.Seqs{
-			MaxSeq: seqId,
+			MaxSeq: seqID,
 			ConvId: convid,
 		}
 		wdb.Seq = seq
 	}
 	//3.生成msg_id
-	msgId := l.svcCtx.Snowflake.NextID()
+	msgID := l.svcCtx.Snowflake.NextID()
 	content, _ := json.Marshal(in.Body.Content)
 	msg := &models.Messages{
-		Id:          msgId,
+		Id:          msgID,
 		Convid:      convid,
 		Clientmsgid: in.ClientMsgId,
 		Senderid:    in.SenderId,
 		Msgtype:     int64(in.MsgType),
 		Content:     string(content), // 或 JSONB 序列化
-		Seqid:       seqId,
+		Seqid:       seqID,
 		Sendtime:    time.Now(),
 		Status:      1,
 	}
@@ -84,22 +84,22 @@ func (l *SingleChatLogic) Send(in *message.SendMessageReq, convid string) (*mess
 	// "发送时对方是否在线"不是已读语义
 	inboxmsg := models.Inboxes{
 		Userid: in.ToUid,
-		Msgid:  msgId,
+		Msgid:  msgID,
 		Isread: false,
 		Convid: convid,
 		Status: 1,
-		Seqid:  seqId,
+		Seqid:  seqID,
 	}
 	wdb.Inboxes = append(wdb.Inboxes, &inboxmsg)
 	// 发送方也写一行 inbox(isread=true,不计未读):
 	// 发送方的其他设备靠这行做离线补发/会话状态同步,原实现只写接收方导致缺位
 	senderInbox := models.Inboxes{
 		Userid: in.SenderId,
-		Msgid:  msgId,
+		Msgid:  msgID,
 		Isread: true,
 		Convid: convid,
 		Status: 1,
-		Seqid:  seqId,
+		Seqid:  seqID,
 	}
 	wdb.Inboxes = append(wdb.Inboxes, &senderInbox)
 	wdb.Msg = msg
@@ -108,18 +108,18 @@ func (l *SingleChatLogic) Send(in *message.SendMessageReq, convid string) (*mess
 	// 否则收方实时收到了但 Sync 永远拉不到
 	err = NewAsyncPersistMsg(l.ctx, l.svcCtx).WriteDiffPersistMsg(l.ctx, &wdb)
 	if err != nil {
-		logx.Errorf("persist msg failed, conv=%s msgId=%d: %v", convid, msgId, err)
+		logx.Errorf("persist msg failed, conv=%s msgID=%d: %v", convid, msgID, err)
 		return nil, fmt.Errorf("persist msg failed: %w", err)
 	}
 
 	//5. 调用 Push 服务投递给接收方
 	pmsg := &push.PushMessage{
-		MsgId:    msgId,
+		MsgId:    msgID,
 		ConvId:   convid,
 		ConvType: in.Isgroup,
 		MsgType:  int64(in.MsgType),
 		Content:  string(content),
-		SeqId:    seqId,
+		SeqId:    seqID,
 		SenderId: in.SenderId,
 		SendTime: in.Body.SendTime,
 	}
@@ -135,8 +135,8 @@ func (l *SingleChatLogic) Send(in *message.SendMessageReq, convid string) (*mess
 
 	// 8. 返回服务端 ACK（携带 msg_id + seq_id，客户端用于匹配）
 	return &message.SendMessageResp{
-		MsgId:    msgId,
-		SeqId:    seqId,
+		MsgId:    msgID,
+		SeqId:    seqID,
 		ConvId:   convid,
 		SendTime: msg.Sendtime.UnixMilli(),
 	}, nil

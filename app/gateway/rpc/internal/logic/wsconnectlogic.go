@@ -27,7 +27,7 @@ func NewWsConnectLogic(ctx context.Context, svcCtx *svc.ServiceContext) *WsConne
 }
 
 func (l *WsConnectLogic) Register(ctx context.Context, c *conn.Conn) error {
-	userID := c.UserId()
+	userID := c.UserID()
 	deviceType := c.DeviceType()
 	// 注册 + 踢旧收敛到 manager.Add 一处,避免两套桶操作漂移;
 	// 旧连接由这里在锁外"先通知(FrameKick)后 Close"

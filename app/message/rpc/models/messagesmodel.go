@@ -15,8 +15,8 @@ type (
 	MessagesModel interface {
 		messagesModel
 		InsertIgnore(ctx context.Context, data *Messages) error
-		MaxSeq(ctx context.Context, convId string) (int64, error)
-		RecallMessage(ctx context.Context, msgId, operatorId int64) error
+		MaxSeq(ctx context.Context, convID string) (int64, error)
+		RecallMessage(ctx context.Context, msgID, operatorID int64) error
 	}
 
 	customMessagesModel struct {
@@ -33,9 +33,9 @@ func NewMessagesModel(conn sqlx.SqlConn) MessagesModel {
 
 // RecallMessage 撤回:定向更新 status=2 + recalledby/recalled_at,
 // 带 status=1 前置条件(已撤回/已删除的消息不能再撤);0 行受影响 = 状态不允许
-func (m *customMessagesModel) RecallMessage(ctx context.Context, msgId, operatorId int64) error {
+func (m *customMessagesModel) RecallMessage(ctx context.Context, msgID, operatorID int64) error {
 	query := fmt.Sprintf("update %s set status = 2, recalledby = $1, recalled_at = now() where id = $2 and status = 1", m.table)
-	res, err := m.conn.ExecCtx(ctx, query, operatorId, msgId)
+	res, err := m.conn.ExecCtx(ctx, query, operatorID, msgID)
 	if err != nil {
 		return err
 	}
@@ -57,9 +57,9 @@ func (m *customMessagesModel) InsertIgnore(ctx context.Context, data *Messages) 
 // MaxSeq 会话当前最大 seq,以 messages 表为准。
 // Redis im:seq 计数器是 +100 批量预分配的 padding 值,直接当 serverSeq 用
 // 会造成 diff 虚高、反复空拉
-func (m *customMessagesModel) MaxSeq(ctx context.Context, convId string) (int64, error) {
+func (m *customMessagesModel) MaxSeq(ctx context.Context, convID string) (int64, error) {
 	query := fmt.Sprintf("select coalesce(max(seqid), 0) from %s where convid = $1", m.table)
 	var maxSeq int64
-	err := m.conn.QueryRowCtx(ctx, &maxSeq, query, convId)
+	err := m.conn.QueryRowCtx(ctx, &maxSeq, query, convID)
 	return maxSeq, err
 }

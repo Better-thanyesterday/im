@@ -56,8 +56,8 @@ func (l *CreateUploadTaskLogic) CreateUploadTask(req *types.CreateUploadTaskReq)
 		})
 	}
 	return &types.CreateUploadTaskResp{
-		FileId:   resp.FileId,
-		UploadId: resp.UploadId,
+		FileID:   resp.FileId,
+		UploadID: resp.UploadId,
 		Chunks:   chunks,
 	}, nil
 }

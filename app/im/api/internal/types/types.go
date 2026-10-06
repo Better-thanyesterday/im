@@ -18,7 +18,7 @@ type LoginReq struct {
 	Email      string `json:"email,optional"`
 	Account    string `json:"account,optional"`
 	DeviceType int32  `json:"devicetype,optional"`
-	DeviceId   string `json:"deviceid,optional"`
+	DeviceID   string `json:"deviceid,optional"`
 	Password   string `json:"password"`
 }
 
@@ -47,11 +47,11 @@ type ResetPasswordReq struct {
 // ==================== 用户资料/设备 ====================
 
 type ProfileReq struct {
-	UserId int64 `json:"user_id,optional"` // 0=查本人
+	UserID int64 `json:"user_id,optional"` // 0=查本人
 }
 
 type ProfileResp struct {
-	UserId    int64  `json:"user_id"`
+	UserID    int64  `json:"user_id"`
 	Phone     string `json:"phone,optional"`
 	Email     string `json:"email,optional"`
 	Nickname  string `json:"nickname,optional"`
@@ -75,10 +75,10 @@ type UpdateProfileReq struct {
 }
 
 type Device struct {
-	Id           int64  `json:"id"`
+	ID           int64  `json:"id"`
 	DeviceType   int32  `json:"device_type"`
 	DeviceName   string `json:"device_name,optional"`
-	DeviceId     string `json:"device_id,optional"`
+	DeviceID     string `json:"device_id,optional"`
 	Location     string `json:"location,optional"`
 	LoginAt      int64  `json:"login_at"`
 	LastActiveAt int64  `json:"last_active_at"`
@@ -90,24 +90,24 @@ type DevicesResp struct {
 }
 
 type KickDeviceReq struct {
-	DeviceId int64 `json:"device_id"`
+	DeviceID int64 `json:"device_id"`
 }
 
 // ==================== 好友 ====================
 
 type GetFriendsReq struct {
-	FriendGroupId int64  `json:"friend_group_id,optional"`
+	FriendGroupID int64  `json:"friend_group_id,optional"`
 	Keyword       string `json:"keyword,optional"`
 	Page          int32  `json:"page,optional"`
 	PageSize      int32  `json:"page_size,optional"`
 }
 
 type Friend struct {
-	UserId        int64  `json:"user_id"`
+	UserID        int64  `json:"user_id"`
 	Nickname      string `json:"nickname,optional"`
 	Avatar        string `json:"avatar,optional"`
 	Remark        string `json:"remark,optional"`
-	FriendGroupId int64  `json:"friend_group_id"`
+	FriendGroupID int64  `json:"friend_group_id"`
 	CreatedAt     int64  `json:"created_at"`
 }
 
@@ -123,11 +123,11 @@ type GetFriendAppliesReq struct {
 }
 
 type FriendApply struct {
-	Id                int64  `json:"id"`
-	ApplicantId       int64  `json:"applicant_id"`
+	ID                int64  `json:"id"`
+	ApplicantID       int64  `json:"applicant_id"`
 	ApplicantNickname string `json:"applicant_nickname,optional"`
 	ApplicantAvatar   string `json:"applicant_avatar,optional"`
-	TargetId          int64  `json:"target_id"`
+	TargetID          int64  `json:"target_id"`
 	ApplyReason       string `json:"apply_reason,optional"`
 	Status            int32  `json:"status"`
 	CreatedAt         int64  `json:"created_at"`
@@ -140,33 +140,33 @@ type GetFriendAppliesResp struct {
 }
 
 type AddFriendReq struct {
-	TargetUserId int64  `json:"target_user_id"`
+	TargetUserID int64  `json:"target_user_id"`
 	ApplyReason  string `json:"apply_reason,optional"`
 }
 
 type AddFriendResp struct {
-	ApplyId int64 `json:"apply_id"`
+	ApplyID int64 `json:"apply_id"`
 }
 
 type AcceptFriendReq struct {
-	ApplyId int64  `json:"apply_id"`
+	ApplyID int64  `json:"apply_id"`
 	Remark  string `json:"remark,optional"`
 }
 
 type DeleteFriendReq struct {
-	FriendUserId int64 `json:"friend_user_id"`
+	FriendUserID int64 `json:"friend_user_id"`
 }
 
 type BlockUserReq struct {
-	TargetUserId int64 `json:"target_user_id"`
+	TargetUserID int64 `json:"target_user_id"`
 }
 
 type RejectFriendReq struct {
-	ApplyId int64 `json:"apply_id"`
+	ApplyID int64 `json:"apply_id"`
 }
 
 type HandleApplyReq struct {
-	ApplyId int64 `json:"apply_id"`
+	ApplyID int64 `json:"apply_id"`
 	Approve bool  `json:"approve"` // true-接受入群 false-拒绝
 }
 
@@ -183,12 +183,12 @@ type CreateGroupReq struct {
 }
 
 type CreateGroupResp struct {
-	GroupId       int64 `json:"group_id"`
+	GroupID       int64 `json:"group_id"`
 	MemberVersion int64 `json:"member_version"`
 }
 
 type InviteMemberReq struct {
-	GroupId int64   `json:"group_id"`
+	GroupID int64   `json:"group_id"`
 	UserIds []int64 `json:"user_ids"`
 }
 
@@ -198,14 +198,14 @@ type InviteMemberResp struct {
 }
 
 type GetGroupInfoReq struct {
-	GroupId int64 `json:"group_id"`
+	GroupID int64 `json:"group_id"`
 }
 
 type GroupInfo struct {
-	Id               int64  `json:"id"`
+	ID               int64  `json:"id"`
 	Name             string `json:"name"`
 	Avatar           string `json:"avatar,optional"`
-	OwnerId          int64  `json:"owner_id"`
+	OwnerID          int64  `json:"owner_id"`
 	Notice           string `json:"notice,optional"`
 	MemberCount      int32  `json:"member_count"`
 	MaxMember        int32  `json:"max_member"`
@@ -223,13 +223,13 @@ type GetGroupInfoResp struct {
 }
 
 type GetMembersReq struct {
-	GroupId  int64 `json:"group_id"`
-	LastId   int64 `json:"last_id,optional"`   // 游标,首页传 0
+	GroupID  int64 `json:"group_id"`
+	LastID   int64 `json:"last_id,optional"`   // 游标,首页传 0
 	PageSize int32 `json:"page_size,optional"` // 默认 200,最大 200
 }
 
 type Member struct {
-	UserId        int64  `json:"user_id"`
+	UserID        int64  `json:"user_id"`
 	Role          int32  `json:"role"` // 1-群主 2-管理员 3-普通成员
 	GroupNickname string `json:"group_nickname,optional"`
 }
@@ -238,7 +238,7 @@ type GetMembersResp struct {
 	Members       []Member `json:"members"`
 	HasMore       bool     `json:"has_more"`
 	MemberVersion int64    `json:"member_version"`
-	LastId        int64    `json:"last_id"`
+	LastID        int64    `json:"last_id"`
 }
 
 type GetUserGroupsResp struct {
@@ -248,33 +248,33 @@ type GetUserGroupsResp struct {
 // ---- 群管理(操作者身份全部取自 token) ----
 
 type QuitGroupReq struct {
-	GroupId int64 `json:"group_id"`
+	GroupID int64 `json:"group_id"`
 }
 
 type KickMemberReq struct {
-	GroupId  int64 `json:"group_id"`
-	TargetId int64 `json:"target_id"`
+	GroupID  int64 `json:"group_id"`
+	TargetID int64 `json:"target_id"`
 }
 
 type MuteMemberReq struct {
-	GroupId   int64 `json:"group_id"`
-	TargetId  int64 `json:"target_id"`
+	GroupID   int64 `json:"group_id"`
+	TargetID  int64 `json:"target_id"`
 	MuteUntil int64 `json:"mute_until,optional"` // 毫秒时间戳,0=解除禁言
 }
 
 type SetAdminReq struct {
-	GroupId  int64 `json:"group_id"`
-	TargetId int64 `json:"target_id"`
+	GroupID  int64 `json:"group_id"`
+	TargetID int64 `json:"target_id"`
 	IsAdmin  bool  `json:"is_admin"`
 }
 
 type TransferOwnerReq struct {
-	GroupId    int64 `json:"group_id"`
-	NewOwnerId int64 `json:"new_owner_id"`
+	GroupID    int64 `json:"group_id"`
+	NewOwnerID int64 `json:"new_owner_id"`
 }
 
 type UpdateGroupInfoReq struct {
-	GroupId          int64  `json:"group_id"`
+	GroupID          int64  `json:"group_id"`
 	Name             string `json:"name,optional"` // 空=不修改
 	Avatar           string `json:"avatar,optional"`
 	Notice           string `json:"notice,optional"`
@@ -284,17 +284,17 @@ type UpdateGroupInfoReq struct {
 }
 
 type ApplyJoinGroupReq struct {
-	GroupId     int64  `json:"group_id"`
+	GroupID     int64  `json:"group_id"`
 	ApplyReason string `json:"apply_reason,optional"`
 }
 
 type ApplyJoinGroupResp struct {
-	ApplyId int64 `json:"apply_id"`
+	ApplyID int64 `json:"apply_id"`
 	Status  int32 `json:"status"` // 1-待审批 2-已加入(免审批群)
 }
 
 type GetMemberVersionReq struct {
-	GroupId int64 `json:"group_id"`
+	GroupID int64 `json:"group_id"`
 }
 
 type GetMemberVersionResp struct {
@@ -309,8 +309,8 @@ type GroupOpResp struct {
 // ==================== 消息 ====================
 
 type RecallMessageReq struct {
-	MsgId  int64  `json:"msg_id"`
-	ConvId string `json:"conv_id"`
+	MsgID  int64  `json:"msg_id"`
+	ConvID string `json:"conv_id"`
 }
 
 // ==================== 文件 ====================
@@ -330,50 +330,50 @@ type ChunkUpload struct {
 }
 
 type CreateUploadTaskResp struct {
-	FileId   string        `json:"file_id"`
-	UploadId string        `json:"upload_id"`
+	FileID   string        `json:"file_id"`
+	UploadID string        `json:"upload_id"`
 	Chunks   []ChunkUpload `json:"chunks"`
 }
 
 type CompleteUploadReq struct {
-	FileId   string   `json:"file_id"`
-	UploadId string   `json:"upload_id"`
+	FileID   string   `json:"file_id"`
+	UploadID string   `json:"upload_id"`
 	Etags    []string `json:"etags"`
 }
 
 type CompleteUploadResp struct {
-	FileId string `json:"file_id"`
+	FileID string `json:"file_id"`
 	Url    string `json:"url"`
 	Status int32  `json:"status"`
 }
 
 type GetFileMetaReq struct {
-	FileId string `json:"file_id"`
+	FileID string `json:"file_id"`
 }
 
 type FileMeta struct {
-	FileId     string            `json:"file_id"`
+	FileID     string            `json:"file_id"`
 	FileName   string            `json:"file_name"`
 	FileSize   int64             `json:"file_size"`
 	MimeType   string            `json:"mime_type"`
 	FileType   int32             `json:"file_type"`
-	UploaderId int64             `json:"uploader_id"`
+	UploaderID int64             `json:"uploader_id"`
 	UploadTime int64             `json:"upload_time"`
 	Status     int32             `json:"status"`
 	Thumbnails map[string]string `json:"thumbnails,optional"`
 }
 
 type GeneratePresignedUrlReq struct {
-	FileId string `json:"file_id"`
+	FileID string `json:"file_id"`
 	Expiry int32  `json:"expiry,optional"` // 秒,默认 900
 }
 
 type GeneratePresignedUrlResp struct {
-	FileId       string `json:"file_id"`
+	FileID       string `json:"file_id"`
 	PresignedUrl string `json:"presigned_url"`
 	ExpiresAt    int64  `json:"expires_at"`
 }
 
 type DeleteFileReq struct {
-	FileId string `json:"file_id"`
+	FileID string `json:"file_id"`
 }

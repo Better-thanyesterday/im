@@ -36,9 +36,9 @@ func (l *KickMemberLogic) KickMember(req *types.KickMemberReq) (*types.GroupOpRe
 		return nil, fmt.Errorf("unauthorized")
 	}
 	resp, err := l.svcCtx.Group.KickMember(l.ctx, &group.KickMemberReq{
-		GroupId:    req.GroupId,
+		GroupId:    req.GroupID,
 		OperatorId: uid,
-		TargetId:   req.TargetId,
+		TargetId:   req.TargetID,
 	})
 	if err != nil {
 		return nil, err

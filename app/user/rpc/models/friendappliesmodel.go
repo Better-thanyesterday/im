@@ -16,8 +16,8 @@ type (
 		friendappliesModel
 		withSession(session sqlx.Session) FriendappliesModel
 		InsertApply(ctx context.Context, data *Friendapplies) (int64, error)
-		AcceptFriendTx(ctx context.Context, applyId, applicantId, targetId int64, remark string) error
-		RejectFriend(ctx context.Context, applyId, operatorId int64) error
+		AcceptFriendTx(ctx context.Context, applyID, applicantID, targetID int64, remark string) error
+		RejectFriend(ctx context.Context, applyID, operatorID int64) error
 	}
 
 	customFriendappliesModel struct {
@@ -38,9 +38,9 @@ func (m *customFriendappliesModel) withSession(session sqlx.Session) Friendappli
 
 // RejectFriend 拒绝好友申请:定向更新(带 status=1 前置条件防重复处理),
 // 不动好友关系表;0 行受影响 = 申请不存在或已处理
-func (m *customFriendappliesModel) RejectFriend(ctx context.Context, applyId, operatorId int64) error {
+func (m *customFriendappliesModel) RejectFriend(ctx context.Context, applyID, operatorID int64) error {
 	query := fmt.Sprintf("update %s set status = 3, handler_id = $1, handled_at = now() where id = $2 and status = 1", m.table)
-	res, err := m.conn.ExecCtx(ctx, query, operatorId, applyId)
+	res, err := m.conn.ExecCtx(ctx, query, operatorID, applyID)
 	if err != nil {
 		return err
 	}
@@ -62,11 +62,11 @@ func (m *customFriendappliesModel) InsertApply(ctx context.Context, data *Friend
 // AcceptFriendTx 事务内完成接受申请:定向更新申请状态(带 status=1 前置条件,
 // 防重复处理) + 写入双向好友关系。任一步失败整体回滚。
 // 生成版 Update 是全列覆盖且原调用方没传 where 用的 Id,一直静默 no-op
-func (m *customFriendappliesModel) AcceptFriendTx(ctx context.Context, applyId, applicantId, targetId int64, remark string) error {
+func (m *customFriendappliesModel) AcceptFriendTx(ctx context.Context, applyID, applicantID, targetID int64, remark string) error {
 	return m.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		sconn := sqlx.NewSqlConnFromSession(session)
 		upd := fmt.Sprintf("update %s set status = $1, handler_remark = $2, handled_at = now() where id = $3 and status = 1", m.table)
-		res, err := sconn.ExecCtx(ctx, upd, 2, remark, applyId)
+		res, err := sconn.ExecCtx(ctx, upd, 2, remark, applyID)
 		if err != nil {
 			return err
 		}
@@ -74,6 +74,6 @@ func (m *customFriendappliesModel) AcceptFriendTx(ctx context.Context, applyId, 
 			return ErrNotFound // 申请不存在或已被处理
 		}
 		fm := NewFriendsModel(sconn)
-		return fm.InsertRelation(ctx, applicantId, targetId, remark)
+		return fm.InsertRelation(ctx, applicantID, targetID, remark)
 	})
 }

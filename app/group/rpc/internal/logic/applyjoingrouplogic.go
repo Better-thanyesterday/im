@@ -78,9 +78,9 @@ func (l *ApplyJoinGroupLogic) ApplyJoinGroup(in *group.ApplyJoinGroupReq) (*grou
 		return &group.ApplyJoinGroupResp{ApplyId: existing.Id, Status: 1}, nil
 	}
 
-	applyId := l.svcCtx.Snowflake.NextID()
+	applyID := l.svcCtx.Snowflake.NextID()
 	_, err = l.svcCtx.GroupAppliesModel.Insert(l.ctx, &models.Groupapplies{
-		Id:          applyId,
+		Id:          applyID,
 		GroupId:     in.GroupId,
 		ApplicantId: in.ApplicantId,
 		ApplyType:   1, // 1-主动申请
@@ -90,5 +90,5 @@ func (l *ApplyJoinGroupLogic) ApplyJoinGroup(in *group.ApplyJoinGroupReq) (*grou
 	if err != nil {
 		return nil, err
 	}
-	return &group.ApplyJoinGroupResp{ApplyId: applyId, Status: 1}, nil
+	return &group.ApplyJoinGroupResp{ApplyId: applyID, Status: 1}, nil
 }

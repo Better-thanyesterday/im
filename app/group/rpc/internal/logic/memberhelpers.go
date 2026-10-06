@@ -15,8 +15,8 @@ import (
 // 成员操作共享的取数/权限助手:9 个成员管理 logic 的公共前置
 
 // fetchGroup 取群并校验未解散
-func fetchGroup(ctx context.Context, svcCtx *svc.ServiceContext, groupId int64) (*models.Groups, error) {
-	g, err := svcCtx.GroupsModel.FindOne(ctx, groupId)
+func fetchGroup(ctx context.Context, svcCtx *svc.ServiceContext, groupID int64) (*models.Groups, error) {
+	g, err := svcCtx.GroupsModel.FindOne(ctx, groupID)
 	if err != nil {
 		return nil, err
 	}
@@ -27,11 +27,11 @@ func fetchGroup(ctx context.Context, svcCtx *svc.ServiceContext, groupId int64) 
 }
 
 // fetchMember 取成员行,不存在时返回可读错误
-func fetchMember(ctx context.Context, svcCtx *svc.ServiceContext, groupId, userId int64) (*models.Groupmembers, error) {
-	m, err := svcCtx.GroupMembersModel.FindByGroupAndUser(ctx, groupId, userId)
+func fetchMember(ctx context.Context, svcCtx *svc.ServiceContext, groupID, userID int64) (*models.Groupmembers, error) {
+	m, err := svcCtx.GroupMembersModel.FindByGroupAndUser(ctx, groupID, userID)
 	if err != nil {
 		if errors.Is(err, sqlx.ErrNotFound) {
-			return nil, fmt.Errorf("用户 %d 不是群 %d 的成员", userId, groupId)
+			return nil, fmt.Errorf("用户 %d 不是群 %d 的成员", userID, groupID)
 		}
 		return nil, err
 	}

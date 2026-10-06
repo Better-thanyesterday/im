@@ -33,11 +33,11 @@ func NewSyncMessageLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SyncM
 // SyncMessages 断线补发 + 消息漫游入口
 func (l *SyncMessageLogic) SyncMessage(in *message.SyncMessageReq) (*message.SyncMessageResp, error) {
 	// 身份以 gateway 注入的 metadata 为准,请求字段仅作内部调用回退,防止拉取他人离线消息
-	userId := userIDFromCtx(l.ctx)
-	if userId <= 0 {
-		userId = in.UserId
+	userID := userIDFromCtx(l.ctx)
+	if userID <= 0 {
+		userID = in.UserId
 	}
-	if userId <= 0 {
+	if userID <= 0 {
 		return nil, constants.NewMsgError(constants.ErrCodeMsgInValidParam)
 	}
 	//构造ConvSyncs包含多条离线信息
@@ -49,7 +49,7 @@ func (l *SyncMessageLogic) SyncMessage(in *message.SyncMessageReq) (*message.Syn
 	convList := in.ConvList
 	if len(convList) == 0 {
 		var err error
-		if convList, err = l.buildUserConvList(userId); err != nil {
+		if convList, err = l.buildUserConvList(userID); err != nil {
 			return nil, err
 		}
 	}
@@ -58,7 +58,7 @@ func (l *SyncMessageLogic) SyncMessage(in *message.SyncMessageReq) (*message.Syn
 		if conv.ConvId == "" {
 			continue
 		}
-		cs, err := l.SyncSingleConv(userId, conv)
+		cs, err := l.SyncSingleConv(userID, conv)
 		if err != nil {
 			logx.Errorf("sync conv %s err: %v", conv.ConvId, err)
 			continue
@@ -71,7 +71,7 @@ func (l *SyncMessageLogic) SyncMessage(in *message.SyncMessageReq) (*message.Syn
 }
 
 // syncSingleConv 处理单个会话的同步
-func (l *SyncMessageLogic) SyncSingleConv(userId int64, conv *message.SyncMessageReq_ConSeq) (*message.SyncMessageResp_ConvSync, error) {
+func (l *SyncMessageLogic) SyncSingleConv(userID int64, conv *message.SyncMessageReq_ConSeq) (*message.SyncMessageResp_ConvSync, error) {
 	serverSeq, err := l.getServerSeq(conv.ConvId)
 	if err != nil {
 		return nil, err
@@ -91,7 +91,7 @@ func (l *SyncMessageLogic) SyncSingleConv(userId int64, conv *message.SyncMessag
 	var hasMore bool
 	if diff <= 1000 {
 		// 小差值：优先 Redis 离线信箱，失败/为空降级 PG
-		msgs, hasMore, err = l.syncFromOffline(userId, conv.ConvId, startSeq, serverSeq, limit)
+		msgs, hasMore, err = l.syncFromOffline(userID, conv.ConvId, startSeq, serverSeq, limit)
 		// 优先级修复:原条件 err == nil && hasMore == false || err != nil 因运算符优先级,
 		// 成功取到数据也会误打错误日志并白查一次 DB;正确语义是"失败或没取到"才降级
 		if err != nil {
@@ -114,17 +114,17 @@ func (l *SyncMessageLogic) SyncSingleConv(userId int64, conv *message.SyncMessag
 // getServerSeq 获取会话当前最大 Seq。
 // 必须以 messages 表 max(seqid) 为准:Redis im:seq 是 +100 批量预分配计数器,
 // 值含未分配的 padding(会话只有 1 条消息时计数器已是 100,diff 虚高反复空拉)
-func (l *SyncMessageLogic) getServerSeq(convId string) (int64, error) {
-	return l.svcCtx.MessagesModel.MaxSeq(l.ctx, convId)
+func (l *SyncMessageLogic) getServerSeq(convID string) (int64, error) {
+	return l.svcCtx.MessagesModel.MaxSeq(l.ctx, convID)
 }
 
 // buildUserConvList 组装用户的全部会话(单聊=好友列表,群聊=所在群),
 // 每个会话的 last_seq 取 inbox 已投递水位,重连补拉不重发也不漏
-func (l *SyncMessageLogic) buildUserConvList(userId int64) ([]*message.SyncMessageReq_ConSeq, error) {
+func (l *SyncMessageLogic) buildUserConvList(userID int64) ([]*message.SyncMessageReq_ConSeq, error) {
 	convIds := make([]string, 0, 32)
 	// 单聊:好友列表
 	friendResp, err := l.svcCtx.User.GetFriends(l.ctx, &userclient.GetFriendsReq{
-		UserId:   userId,
+		UserId:   userID,
 		Page:     1,
 		PageSize: 500,
 	})
@@ -132,10 +132,10 @@ func (l *SyncMessageLogic) buildUserConvList(userId int64) ([]*message.SyncMessa
 		return nil, fmt.Errorf("get friends for sync failed: %w", err)
 	}
 	for _, f := range friendResp.Friends {
-		convIds = append(convIds, constants.BuildSingleConvID(userId, f.UserId))
+		convIds = append(convIds, constants.BuildSingleConvID(userID, f.UserId))
 	}
 	// 群聊:所在群
-	groupResp, err := l.svcCtx.Group.GetUserGroups(l.ctx, &groupclient.GetUserGroupsReq{UserId: userId})
+	groupResp, err := l.svcCtx.Group.GetUserGroups(l.ctx, &groupclient.GetUserGroupsReq{UserId: userID})
 	if err != nil {
 		return nil, fmt.Errorf("get user groups for sync failed: %w", err)
 	}
@@ -143,14 +143,14 @@ func (l *SyncMessageLogic) buildUserConvList(userId int64) ([]*message.SyncMessa
 		convIds = append(convIds, constants.BuildGroupConvID(gid))
 	}
 	convs := make([]*message.SyncMessageReq_ConSeq, 0, len(convIds))
-	for _, convId := range convIds {
-		lastSeq, err := l.svcCtx.InboxesModel.DeliveredMaxSeq(l.ctx, userId, convId)
+	for _, convID := range convIds {
+		lastSeq, err := l.svcCtx.InboxesModel.DeliveredMaxSeq(l.ctx, userID, convID)
 		if err != nil {
-			logx.Errorf("获取已投递水位失败 | user=%d conv=%s err=%v", userId, convId, err)
+			logx.Errorf("获取已投递水位失败 | user=%d conv=%s err=%v", userID, convID, err)
 			lastSeq = 0
 		}
 		convs = append(convs, &message.SyncMessageReq_ConSeq{
-			ConvId:  convId,
+			ConvId:  convID,
 			LastSeq: lastSeq,
 		})
 	}
@@ -158,11 +158,11 @@ func (l *SyncMessageLogic) buildUserConvList(userId int64) ([]*message.SyncMessa
 }
 
 // syncFromOffline 从 Redis 离线信箱拉取
-// 离线信箱: 每会话独立 ZSet key=im:offlineinbox:{uid}:{convId}, member=msg_id, score=seq_id
+// 离线信箱: 每会话独立 ZSet key=im:offlineinbox:{uid}:{convID}, member=msg_id, score=seq_id
 // 按会话拆 key 后,本函数的 score 区间拉取与清理都只作用于本会话,不会误删/混入其他会话的条目
 // (key 由 push 侧 storeOffline 写入,两端约定必须一致)
-func (l *SyncMessageLogic) syncFromOffline(userId int64, convId string, startSeq, endSeq, limit int64) ([]*message.MessageBody, bool, error) {
-	offlineKey := fmt.Sprintf("im:offlineinbox:%d:%s", userId, convId)
+func (l *SyncMessageLogic) syncFromOffline(userID int64, convID string, startSeq, endSeq, limit int64) ([]*message.MessageBody, bool, error) {
+	offlineKey := fmt.Sprintf("im:offlineinbox:%d:%s", userID, convID)
 	// 带 LIMIT:大区间(如长离线)一次性拉取会打爆内存,超出的部分标记 has_more 走下轮
 	members, err := l.svcCtx.Redis.ZrevrangebyscoreWithScoresAndLimitCtx(l.ctx, offlineKey, startSeq, endSeq, 0, int(limit))
 	if err != nil {
@@ -184,13 +184,13 @@ func (l *SyncMessageLogic) syncFromOffline(userId int64, convId string, startSeq
 		}
 	}
 	// 批量反查 PG 获取完整消息(信箱 key 已按会话隔离,Convid 过滤仅作防御)
-	dbMsgs, err := l.svcCtx.MessagesModel.BatchGetByIds(l.ctx, convId, msgIds)
+	dbMsgs, err := l.svcCtx.MessagesModel.BatchGetByIds(l.ctx, convID, msgIds)
 	if err != nil {
 		return nil, false, err
 	}
 	result := make([]*message.MessageBody, 0, len(dbMsgs))
 	for _, m := range dbMsgs {
-		if m.Convid != convId || m.Seqid < startSeq || m.Seqid > endSeq {
+		if m.Convid != convID || m.Seqid < startSeq || m.Seqid > endSeq {
 			continue
 		}
 		result = append(result, l.toMessage(m))
@@ -216,8 +216,8 @@ func (l *SyncMessageLogic) syncFromOffline(userId int64, convId string, startSeq
 // syncFromDB 从 PG 直接分页拉取（messages 表）
 // 单聊/大群读扩散直接查 messages；小群写扩散也可查 messages（因为 messages 有 conv_id 索引）
 
-func (l *SyncMessageLogic) syncFromDB(convId string, startSeq, endSeq, limit int64) ([]*message.MessageBody, bool, error) {
-	msgs, err := l.svcCtx.MessagesModel.FindBySeqRange(l.ctx, convId, startSeq, endSeq, limit+1)
+func (l *SyncMessageLogic) syncFromDB(convID string, startSeq, endSeq, limit int64) ([]*message.MessageBody, bool, error) {
+	msgs, err := l.svcCtx.MessagesModel.FindBySeqRange(l.ctx, convID, startSeq, endSeq, limit+1)
 	if err != nil {
 		return nil, false, err
 	}

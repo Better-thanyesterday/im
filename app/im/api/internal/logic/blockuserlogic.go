@@ -36,7 +36,7 @@ func (l *BlockUserLogic) BlockUser(req *types.BlockUserReq) (*types.SuccessResp,
 		return nil, fmt.Errorf("unauthorized")
 	}
 	resp, err := l.svcCtx.User.BlockUser(l.ctx, &user.BlockUserReq{
-		TargetUserId: req.TargetUserId,
+		TargetUserId: req.TargetUserID,
 		UserId:       uid,
 	})
 	if err != nil {

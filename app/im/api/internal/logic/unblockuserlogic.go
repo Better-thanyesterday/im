@@ -36,7 +36,7 @@ func (l *UnblockUserLogic) UnblockUser(req *types.BlockUserReq) (*types.SuccessR
 		return nil, fmt.Errorf("unauthorized")
 	}
 	resp, err := l.svcCtx.User.UnblockUser(l.ctx, &user.UnblockUserReq{
-		TargetUserId: req.TargetUserId,
+		TargetUserId: req.TargetUserID,
 		UserId:       uid,
 	})
 	if err != nil {

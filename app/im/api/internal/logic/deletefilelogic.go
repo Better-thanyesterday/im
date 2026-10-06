@@ -36,7 +36,7 @@ func (l *DeleteFileLogic) DeleteFile(req *types.DeleteFileReq) (*types.SuccessRe
 		return nil, fmt.Errorf("unauthorized")
 	}
 	_, err := l.svcCtx.File.DeleteFile(l.ctx, &file.DeleteFileReq{
-		FileId:     req.FileId,
+		FileId:     req.FileID,
 		OperatorId: uid,
 	})
 	if err != nil {

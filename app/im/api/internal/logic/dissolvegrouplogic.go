@@ -36,7 +36,7 @@ func (l *DissolveGroupLogic) DissolveGroup(req *types.QuitGroupReq) (*types.Succ
 		return nil, fmt.Errorf("unauthorized")
 	}
 	_, err := l.svcCtx.Group.DissolveGroup(l.ctx, &group.DissolveGroupReq{
-		GroupId:    req.GroupId,
+		GroupId:    req.GroupID,
 		OperatorId: uid,
 	})
 	if err != nil {

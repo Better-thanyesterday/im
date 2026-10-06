@@ -36,7 +36,7 @@ func (l *QuitGroupLogic) QuitGroup(req *types.QuitGroupReq) (*types.GroupOpResp,
 		return nil, fmt.Errorf("unauthorized")
 	}
 	resp, err := l.svcCtx.Group.QuitGroup(l.ctx, &group.QuitGroupReq{
-		GroupId: req.GroupId,
+		GroupId: req.GroupID,
 		UserId:  uid,
 	})
 	if err != nil {

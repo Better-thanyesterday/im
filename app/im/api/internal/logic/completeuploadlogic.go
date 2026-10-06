@@ -30,15 +30,15 @@ func NewCompleteUploadLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Co
 // CompleteUpload 全部分片上传完成后合并:归属校验(只能完成自己的任务)由 file rpc 做
 func (l *CompleteUploadLogic) CompleteUpload(req *types.CompleteUploadReq) (*types.CompleteUploadResp, error) {
 	resp, err := l.svcCtx.File.CompleteUpload(l.ctx, &file.CompleteUploadReq{
-		FileId:   req.FileId,
-		UploadId: req.UploadId,
+		FileId:   req.FileID,
+		UploadId: req.UploadID,
 		Etags:    req.Etags,
 	})
 	if err != nil {
 		return nil, err
 	}
 	return &types.CompleteUploadResp{
-		FileId: resp.FileId,
+		FileID: resp.FileId,
 		Url:    resp.Url,
 		Status: resp.Status,
 	}, nil

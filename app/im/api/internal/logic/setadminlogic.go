@@ -36,9 +36,9 @@ func (l *SetAdminLogic) SetAdmin(req *types.SetAdminReq) (*types.GroupOpResp, er
 		return nil, fmt.Errorf("unauthorized")
 	}
 	resp, err := l.svcCtx.Group.SetAdmin(l.ctx, &group.SetAdminReq{
-		GroupId:    req.GroupId,
+		GroupId:    req.GroupID,
 		OperatorId: uid,
-		TargetId:   req.TargetId,
+		TargetId:   req.TargetID,
 		IsAdmin:    req.IsAdmin,
 	})
 	if err != nil {

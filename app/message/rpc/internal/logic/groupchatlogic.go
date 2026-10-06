@@ -49,23 +49,23 @@ func (l *GroupChatLogic) Send(in *message.SendMessageReq, convid string) (*messa
 	if groupInfo.Info.Status != 1 {
 		return nil, fmt.Errorf("group not available")
 	}
-	seqId, needAsync, err := NewSeqIdLogic(l.ctx, l.svcCtx).AllocateSeq(convid)
+	seqID, needAsync, err := NewSeqIdLogic(l.ctx, l.svcCtx).AllocateSeq(convid)
 	if err != nil {
 		return nil, fmt.Errorf("allocate seq failed: %w", err)
 	}
 	//seq异步持久化：写 Kafka
 	if needAsync {
-		wdb.Seq = utils.BuildSeqEntity(convid, seqId)
+		wdb.Seq = utils.BuildSeqEntity(convid, seqID)
 	}
-	msgId := l.svcCtx.Snowflake.NextID()
+	msgID := l.svcCtx.Snowflake.NextID()
 	// ========== 5. 构造消息体并异步持久化到 Kafka ==========
-	msg, _ := utils.BuildMsgEntity(msgId, seqId, convid, in)
+	msg, _ := utils.BuildMsgEntity(msgID, seqID, convid, in)
 	wdb.Msg = msg
 	// ========== 5.5 持久化消息主表与 seq(Kafka 异步,失败降级同步写 PG) ==========
 	// 必须先于扩散执行:inbox 消费依赖 messages 已落库;
 	// Kafka 与 PG 兜底都失败说明消息没落库,必须返回错误让客户端重发
 	if err := NewAsyncPersistMsg(l.ctx, l.svcCtx).WriteDiffPersistMsg(l.ctx, &wdb); err != nil {
-		l.Errorf("persist group msg failed: msgId=%d conv=%s err=%v", msgId, convid, err)
+		l.Errorf("persist group msg failed: msgID=%d conv=%s err=%v", msgID, convid, err)
 		return nil, fmt.Errorf("persist msg failed: %w", err)
 	}
 	// ========== 6. 自适应扩散策略 ==========
@@ -82,8 +82,8 @@ func (l *GroupChatLogic) Send(in *message.SendMessageReq, convid string) (*messa
 	// ========== 8. 返回服务端 ACK ==========
 	return &message.SendMessageResp{
 		ClientMsgId: in.ClientMsgId,
-		MsgId:       msgId,
-		SeqId:       seqId,
+		MsgId:       msgID,
+		SeqId:       seqID,
 		ConvId:      convid,
 		SendTime:    msg.Sendtime.UnixMilli(),
 		Isdup:       false,
@@ -96,10 +96,10 @@ type memberCheckState struct {
 	MuteUntil int64 `json:"mute_until"`
 }
 
-func (l *GroupChatLogic) validateSender(senderId, groupId int64) error {
+func (l *GroupChatLogic) validateSender(senderID, groupID int64) error {
 	// 结果按 (群,用户) 缓存 60s:原实现每条消息一次 CheckMember RPC + DB EXISTS;
 	// 禁言时间戳随缓存下发,陈旧窗口(≤60s)远小于典型禁言时长,可接受
-	cacheKey := fmt.Sprintf("im:gck:%d:%d", groupId, senderId)
+	cacheKey := fmt.Sprintf("im:gck:%d:%d", groupID, senderID)
 	if cached, err := l.svcCtx.Redis.GetCtx(l.ctx, cacheKey); err == nil && cached != "" {
 		var st memberCheckState
 		if json.Unmarshal([]byte(cached), &st) == nil {
@@ -107,8 +107,8 @@ func (l *GroupChatLogic) validateSender(senderId, groupId int64) error {
 		}
 	}
 	checkResp, err := l.svcCtx.Group.CheckMember(l.ctx, &group.CheckMemberReq{
-		GroupId: groupId,
-		UserId:  senderId,
+		GroupId: groupID,
+		UserId:  senderID,
 	})
 	if err != nil {
 		return fmt.Errorf("check member rpc failed: %w", err)
@@ -224,12 +224,12 @@ func (l *GroupChatLogic) groupMemberIds(groupInfo *group.GroupInfo) ([]int64, er
 	// miss:分页拉全量（每页 200，避免单次 RPC 过大）
 	pageSize := int64(200)
 	var ids []int64
-	lastId := int64(math.MaxInt64)
+	lastID := int64(math.MaxInt64)
 	for {
 		resp, err := l.svcCtx.Group.GetMembers(l.ctx, &group.GetMembersReq{
 			GroupId:  groupInfo.Id,
 			PageSize: int32(pageSize),
-			LastId:   lastId,
+			LastId:   lastID,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("get members failed: %w", err)
@@ -237,7 +237,7 @@ func (l *GroupChatLogic) groupMemberIds(groupInfo *group.GroupInfo) ([]int64, er
 		for _, m := range resp.Members {
 			ids = append(ids, m.UserId)
 		}
-		lastId = resp.LastId
+		lastID = resp.LastId
 		if !resp.HasMore {
 			break
 		}

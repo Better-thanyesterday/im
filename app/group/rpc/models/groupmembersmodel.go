@@ -19,9 +19,9 @@ type (
 		groupmembersModel
 		withSession(session sqlx.Session) GroupmembersModel
 		BatchInsertIgnore(ctx context.Context, rows []*Groupmembers) ([]int64, error)
-		GetUserGroupIds(ctx context.Context, userId int64) ([]int64, error)
-		FindByGroupAndUser(ctx context.Context, groupId, userId int64) (*Groupmembers, error)
-		UpdateMuteUntil(ctx context.Context, groupId, userId int64, muteUntil time.Time) error
+		GetUserGroupIds(ctx context.Context, userID int64) ([]int64, error)
+		FindByGroupAndUser(ctx context.Context, groupID, userID int64) (*Groupmembers, error)
+		UpdateMuteUntil(ctx context.Context, groupID, userID int64, muteUntil time.Time) error
 	}
 
 	customGroupmembersModel struct {
@@ -55,31 +55,31 @@ func (m *customGroupmembersModel) BatchInsertIgnore(ctx context.Context, rows []
 		args = append(args, r.Id, r.GroupId, r.UserId, r.Role, r.GroupNickname, r.JoinTime, r.MuteUntil, r.LastAckSeq)
 	}
 	var inserted []struct {
-		UserId int64 `db:"user_id"`
+		UserID int64 `db:"user_id"`
 	}
 	if err := m.conn.QueryRowsCtx(ctx, &inserted, query, args...); err != nil {
 		return nil, err
 	}
 	ids := make([]int64, 0, len(inserted))
 	for _, r := range inserted {
-		ids = append(ids, r.UserId)
+		ids = append(ids, r.UserID)
 	}
 	return ids, nil
 }
 
 // GetUserGroupIds 用户所在的全部群 ID
-func (m *customGroupmembersModel) GetUserGroupIds(ctx context.Context, userId int64) ([]int64, error) {
+func (m *customGroupmembersModel) GetUserGroupIds(ctx context.Context, userID int64) ([]int64, error) {
 	query := fmt.Sprintf("select group_id from %s where user_id = $1", m.table)
 	var ids []int64
-	err := m.conn.QueryRowsCtx(ctx, &ids, query, userId)
+	err := m.conn.QueryRowsCtx(ctx, &ids, query, userID)
 	return ids, err
 }
 
 // FindByGroupAndUser 查单个成员行(角色/禁言判断用),不存在返回 ErrNotFound
-func (m *customGroupmembersModel) FindByGroupAndUser(ctx context.Context, groupId, userId int64) (*Groupmembers, error) {
+func (m *customGroupmembersModel) FindByGroupAndUser(ctx context.Context, groupID, userID int64) (*Groupmembers, error) {
 	query := fmt.Sprintf("select %s from %s where group_id = $1 and user_id = $2 limit 1", groupmembersRows, m.table)
 	var resp Groupmembers
-	err := m.conn.QueryRowCtx(ctx, &resp, query, groupId, userId)
+	err := m.conn.QueryRowCtx(ctx, &resp, query, groupID, userID)
 	switch err {
 	case nil:
 		return &resp, nil
@@ -92,11 +92,11 @@ func (m *customGroupmembersModel) FindByGroupAndUser(ctx context.Context, groupI
 
 // UpdateMuteUntil 设置/解除禁言:muteUntil 为零值时置 NULL(解除)。
 // 不递增 member_version:禁言不影响成员列表,CheckMember 缓存靠自身 60s TTL 收敛
-func (m *customGroupmembersModel) UpdateMuteUntil(ctx context.Context, groupId, userId int64, muteUntil time.Time) error {
+func (m *customGroupmembersModel) UpdateMuteUntil(ctx context.Context, groupID, userID int64, muteUntil time.Time) error {
 	query := fmt.Sprintf("update %s set mute_until = $1, updated_at = now() where group_id = $2 and user_id = $3", m.table)
 	res, err := m.conn.ExecCtx(ctx, query,
 		sql.NullTime{Time: muteUntil, Valid: !muteUntil.IsZero()},
-		groupId, userId,
+		groupID, userID,
 	)
 	if err != nil {
 		return err
@@ -108,9 +108,9 @@ func (m *customGroupmembersModel) UpdateMuteUntil(ctx context.Context, groupId, 
 }
 
 // updateRole 定向更新单个成员角色(供 SetMemberRoleTx/TransferOwnerTx 在事务内经 session 调用)
-func (m *defaultGroupmembersModel) updateRole(ctx context.Context, groupId, userId, role int64) error {
+func (m *defaultGroupmembersModel) updateRole(ctx context.Context, groupID, userID, role int64) error {
 	query := fmt.Sprintf("update %s set role = $1, updated_at = now() where group_id = $2 and user_id = $3", m.table)
-	res, err := m.conn.ExecCtx(ctx, query, role, groupId, userId)
+	res, err := m.conn.ExecCtx(ctx, query, role, groupID, userID)
 	if err != nil {
 		return err
 	}

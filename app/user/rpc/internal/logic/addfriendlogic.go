@@ -32,7 +32,7 @@ func (l *AddFriendLogic) AddFriend(in *user.AddFriendReq) (*user.AddFriendResp, 
 		return nil, fmt.Errorf("invalid add friend req: user=%d target=%d", in.UserId, in.TargetUserId)
 	}
 	// ApplicantId 必须是申请人 uid(原实现存的是新雪花 ID,接受时无法还原申请人)
-	applyId, err := l.svcCtx.FriendAppliesModel.InsertApply(l.ctx, &models.Friendapplies{
+	applyID, err := l.svcCtx.FriendAppliesModel.InsertApply(l.ctx, &models.Friendapplies{
 		ApplicantId: in.UserId,
 		TargetId:    in.TargetUserId,
 		ApplyReason: sql.NullString{
@@ -45,6 +45,6 @@ func (l *AddFriendLogic) AddFriend(in *user.AddFriendReq) (*user.AddFriendResp, 
 		return nil, err
 	}
 	return &user.AddFriendResp{
-		ApplyId: applyId,
+		ApplyId: applyID,
 	}, nil
 }

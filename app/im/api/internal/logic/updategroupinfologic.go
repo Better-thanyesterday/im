@@ -36,7 +36,7 @@ func (l *UpdateGroupInfoLogic) UpdateGroupInfo(req *types.UpdateGroupInfoReq) (*
 		return nil, fmt.Errorf("unauthorized")
 	}
 	_, err := l.svcCtx.Group.UpdateGroupInfo(l.ctx, &group.UpdateGroupInfoReq{
-		GroupId:          req.GroupId,
+		GroupId:          req.GroupID,
 		OperatorId:       uid,
 		Name:             req.Name,
 		Avatar:           req.Avatar,

@@ -47,11 +47,11 @@ func (l *FriendAppliesLogic) GetFriendApplies(req *types.GetFriendAppliesReq) (*
 	applies := make([]types.FriendApply, 0, len(resp.Applies))
 	for _, a := range resp.Applies {
 		applies = append(applies, types.FriendApply{
-			Id:                a.Id,
-			ApplicantId:       a.ApplicantId,
+			ID:                a.Id,
+			ApplicantID:       a.ApplicantId,
 			ApplicantNickname: a.ApplicantNickname,
 			ApplicantAvatar:   a.ApplicantAvatar,
-			TargetId:          a.TargetId,
+			TargetID:          a.TargetId,
 			ApplyReason:       a.ApplyReason,
 			Status:            a.Status,
 			CreatedAt:         a.CreatedAt,

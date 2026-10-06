@@ -30,7 +30,7 @@ func NewAcceptFriendLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Acce
 // AcceptFriend 接受好友申请:申请人/处理者归属校验由 user rpc 完成
 func (l *AcceptFriendLogic) AcceptFriend(req *types.AcceptFriendReq) (*types.SuccessResp, error) {
 	resp, err := l.svcCtx.User.AcceptFriend(l.ctx, &user.AcceptFriendReq{
-		ApplyId: req.ApplyId,
+		ApplyId: req.ApplyID,
 		Remark:  req.Remark,
 	})
 	if err != nil {

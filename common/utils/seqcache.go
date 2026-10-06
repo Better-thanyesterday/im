@@ -25,9 +25,9 @@ func NewSeqIdCache() *SeqIdCache {
 
 // Get 尝试从本地缓存分配一个 seq
 // 返回值: (seq, ok)
-func (c *SeqIdCache) Get(convId string) (int64, bool) {
+func (c *SeqIdCache) Get(convID string) (int64, bool) {
 	c.mu.RLock()
-	seg, ok := c.segments[convId]
+	seg, ok := c.segments[convID]
 	c.mu.RUnlock()
 
 	if !ok {
@@ -50,15 +50,15 @@ func (c *SeqIdCache) Get(convId string) (int64, bool) {
 // 正常路径:start=段底-1、max=段顶,Get 从 start+1 连续发号到 max;
 // max=0(或 max<=start)是"一次性段":仅记录 current、无可发区间,Get 恒 miss——
 // 供 PG 兜底路径使用,单号分配没有可缓存的区间,防止把未经 PG 批准的号发出去
-func (c *SeqIdCache) Put(convId string, start, max int64) {
+func (c *SeqIdCache) Put(convID string, start, max int64) {
 	c.mu.Lock()
 	if max != 0 && max > start {
-		c.segments[convId] = &seqSegment{
+		c.segments[convID] = &seqSegment{
 			current: start,
 			max:     max,
 		}
 	} else {
-		c.segments[convId] = &seqSegment{
+		c.segments[convID] = &seqSegment{
 			current: start,
 		}
 	}

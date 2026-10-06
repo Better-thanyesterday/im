@@ -93,7 +93,7 @@ const (
 	ErrCodeMsgSendTooFrequent int64 = 300001 // 消息发送过于频繁
 	ErrCodeMsgIdempotentDup   int64 = 300002 // 消息幂等重复
 	ErrCodeMsgBlocked         int64 = 300003 // 对方已拉黑
-	ErrCodeMsgInValidParam    int64 = 300004 // 消息非法 
+	ErrCodeMsgInValidParam    int64 = 300004 // 消息非法
 	ErrCodeMsgNotFound        int64 = 300005 // 消息不存在
 	ErrCodeMsgRecallTimeout   int64 = 300006 // 撤回超时（默认 2 分钟）
 	ErrCodeMsgRecallForbidden int64 = 300007 // 无权限撤回（非发送方）

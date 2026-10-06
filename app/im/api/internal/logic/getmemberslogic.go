@@ -30,8 +30,8 @@ func NewGetMembersLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetMem
 // GetMembers 游标分页拉群成员:首页 last_id 传 0,配合 member_version 做客户端缓存校验
 func (l *GetMembersLogic) GetMembers(req *types.GetMembersReq) (*types.GetMembersResp, error) {
 	resp, err := l.svcCtx.Group.GetMembers(l.ctx, &group.GetMembersReq{
-		GroupId:  req.GroupId,
-		LastId:   req.LastId,
+		GroupId:  req.GroupID,
+		LastId:   req.LastID,
 		PageSize: req.PageSize,
 	})
 	if err != nil {
@@ -40,7 +40,7 @@ func (l *GetMembersLogic) GetMembers(req *types.GetMembersReq) (*types.GetMember
 	members := make([]types.Member, 0, len(resp.Members))
 	for _, m := range resp.Members {
 		members = append(members, types.Member{
-			UserId:        m.UserId,
+			UserID:        m.UserId,
 			Role:          m.Role,
 			GroupNickname: m.GroupNickname,
 		})
@@ -49,6 +49,6 @@ func (l *GetMembersLogic) GetMembers(req *types.GetMembersReq) (*types.GetMember
 		Members:       members,
 		HasMore:       resp.HasMore,
 		MemberVersion: resp.MemberVersion,
-		LastId:        resp.LastId,
+		LastID:        resp.LastId,
 	}, nil
 }

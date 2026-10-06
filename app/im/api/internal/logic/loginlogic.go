@@ -36,7 +36,7 @@ func (l *LoginLogic) Login(req *types.LoginReq) (*types.LoginResp, error) {
 		Email:      req.Email,
 		Password:   req.Password,
 		Devicetype: req.DeviceType,
-		Deviceid:   req.DeviceId,
+		Deviceid:   req.DeviceID,
 	})
 	if err != nil {
 		return nil, err
@@ -49,7 +49,7 @@ func (l *LoginLogic) Login(req *types.LoginReq) (*types.LoginResp, error) {
 	}
 	token, err := l.svcCtx.TokenManager.Issue(l.ctx, utils.TokenInfo{
 		UserID:     loginResp.Userid,
-		DeviceID:   req.DeviceId,
+		DeviceID:   req.DeviceID,
 		DeviceType: req.DeviceType,
 	}, time.Duration(l.svcCtx.Config.Token.DefaultTTLHours)*time.Hour)
 	if err != nil {

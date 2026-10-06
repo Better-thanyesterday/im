@@ -36,14 +36,14 @@ func (l *GeneratePresignedUrlLogic) GeneratePresignedUrl(req *types.GeneratePres
 		expiry = defaultPresignExpiry
 	}
 	resp, err := l.svcCtx.File.GeneratePresignedUrl(l.ctx, &file.GeneratePresignedUrlReq{
-		FileId: req.FileId,
+		FileId: req.FileID,
 		Expiry: expiry,
 	})
 	if err != nil {
 		return nil, err
 	}
 	return &types.GeneratePresignedUrlResp{
-		FileId:       resp.FileId,
+		FileID:       resp.FileId,
 		PresignedUrl: resp.PresignedUrl,
 		ExpiresAt:    resp.ExpiresAt,
 	}, nil

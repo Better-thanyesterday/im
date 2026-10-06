@@ -18,15 +18,15 @@ type (
 	GroupsModel interface {
 		groupsModel
 		withSession(session sqlx.Session) GroupsModel
-		IncrMembers(ctx context.Context, groupId, delta int64) error
+		IncrMembers(ctx context.Context, groupID, delta int64) error
 		CreateGroupTx(ctx context.Context, g *Groups, members []*Groupmembers) error
-		BumpVersion(ctx context.Context, groupId int64) error
-		UpdateGroupInfoFields(ctx context.Context, groupId int64, name, avatar, notice *string, invitePermission, joinApproval, maxMember *int64) error
-		MarkDissolved(ctx context.Context, groupId int64) error
-		RemoveMemberTx(ctx context.Context, groupId, userId int64) error
-		TransferOwnerTx(ctx context.Context, groupId, oldOwnerId, newOwnerId int64) error
-		SetMemberRoleTx(ctx context.Context, groupId, userId, role int64) error
-		JoinGroupTx(ctx context.Context, groupId int64, member *Groupmembers) (bool, error)
+		BumpVersion(ctx context.Context, groupID int64) error
+		UpdateGroupInfoFields(ctx context.Context, groupID int64, name, avatar, notice *string, invitePermission, joinApproval, maxMember *int64) error
+		MarkDissolved(ctx context.Context, groupID int64) error
+		RemoveMemberTx(ctx context.Context, groupID, userID int64) error
+		TransferOwnerTx(ctx context.Context, groupID, oldOwnerId, newOwnerId int64) error
+		SetMemberRoleTx(ctx context.Context, groupID, userID, role int64) error
+		JoinGroupTx(ctx context.Context, groupID int64, member *Groupmembers) (bool, error)
 	}
 
 	customGroupsModel struct {
@@ -67,9 +67,9 @@ func (m *customGroupsModel) CreateGroupTx(ctx context.Context, g *Groups, member
 // IncrMembers 原子增减成员数并递增 member_version(驱动成员列表缓存失效)。
 // 单条 SQL 自增,避免读-改-写在并发入群/退群时丢计数;
 // 生成版 Update 是全列覆盖,不能只传 member_count
-func (m *customGroupsModel) IncrMembers(ctx context.Context, groupId, delta int64) error {
+func (m *customGroupsModel) IncrMembers(ctx context.Context, groupID, delta int64) error {
 	query := fmt.Sprintf("update %s set member_count = member_count + $1, member_version = member_version + 1, updated_at = now() where id = $2", m.table)
-	res, err := m.conn.ExecCtx(ctx, query, delta, groupId)
+	res, err := m.conn.ExecCtx(ctx, query, delta, groupID)
 	if err != nil {
 		return err
 	}
@@ -81,9 +81,9 @@ func (m *customGroupsModel) IncrMembers(ctx context.Context, groupId, delta int6
 
 // BumpVersion 仅递增 member_version(驱动成员列表缓存失效)。
 // 成员增删走 RemoveMemberTx/JoinGroupTx(内部已带版本递增),该方法供独立场景使用
-func (m *customGroupsModel) BumpVersion(ctx context.Context, groupId int64) error {
+func (m *customGroupsModel) BumpVersion(ctx context.Context, groupID int64) error {
 	query := fmt.Sprintf("update %s set member_version = member_version + 1, updated_at = now() where id = $1", m.table)
-	res, err := m.conn.ExecCtx(ctx, query, groupId)
+	res, err := m.conn.ExecCtx(ctx, query, groupID)
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (m *customGroupsModel) BumpVersion(ctx context.Context, groupId int64) erro
 
 // UpdateGroupInfoFields 定向更新群资料:指针为 nil 的字段保持原值(COALESCE),
 // 避免生成版 Update 全列覆盖把 owner_id/status 等清零
-func (m *customGroupsModel) UpdateGroupInfoFields(ctx context.Context, groupId int64, name, avatar, notice *string, invitePermission, joinApproval, maxMember *int64) error {
+func (m *customGroupsModel) UpdateGroupInfoFields(ctx context.Context, groupID int64, name, avatar, notice *string, invitePermission, joinApproval, maxMember *int64) error {
 	nullStr := func(s *string) sql.NullString {
 		if s == nil {
 			return sql.NullString{}
@@ -120,7 +120,7 @@ func (m *customGroupsModel) UpdateGroupInfoFields(ctx context.Context, groupId i
 	res, err := m.conn.ExecCtx(ctx, query,
 		nullStr(name), nullStr(avatar), nullStr(notice),
 		nullInt(invitePermission), nullInt(joinApproval), nullInt(maxMember),
-		groupId,
+		groupID,
 	)
 	if err != nil {
 		return err
@@ -133,10 +133,10 @@ func (m *customGroupsModel) UpdateGroupInfoFields(ctx context.Context, groupId i
 
 // MarkDissolved 标记群解散(软删:status + dissolved_at),同时递增 member_version
 // 让所有成员的成员列表/群信息缓存失效
-func (m *customGroupsModel) MarkDissolved(ctx context.Context, groupId int64) error {
+func (m *customGroupsModel) MarkDissolved(ctx context.Context, groupID int64) error {
 	query := fmt.Sprintf(`update %s set status = 2, dissolved_at = now(),
 		member_version = member_version + 1, updated_at = now() where id = $1`, m.table)
-	res, err := m.conn.ExecCtx(ctx, query, groupId)
+	res, err := m.conn.ExecCtx(ctx, query, groupID)
 	if err != nil {
 		return err
 	}
@@ -148,12 +148,12 @@ func (m *customGroupsModel) MarkDissolved(ctx context.Context, groupId int64) er
 
 // RemoveMemberTx 事务内退群/踢人:删成员行 + member_count-1 + member_version+1,
 // 任一步失败整体回滚,避免计数与成员行不一致
-func (m *customGroupsModel) RemoveMemberTx(ctx context.Context, groupId, userId int64) error {
+func (m *customGroupsModel) RemoveMemberTx(ctx context.Context, groupID, userID int64) error {
 	return m.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		sconn := sqlx.NewSqlConnFromSession(session)
 		res, err := sconn.ExecCtx(ctx,
 			fmt.Sprintf("delete from %s where group_id = $1 and user_id = $2", `"public"."groupmembers"`),
-			groupId, userId,
+			groupID, userID,
 		)
 		if err != nil {
 			return err
@@ -163,7 +163,7 @@ func (m *customGroupsModel) RemoveMemberTx(ctx context.Context, groupId, userId 
 		}
 		_, err = sconn.ExecCtx(ctx,
 			fmt.Sprintf("update %s set member_count = member_count - 1, member_version = member_version + 1, updated_at = now() where id = $1", m.table),
-			groupId,
+			groupID,
 		)
 		return err
 	})
@@ -171,12 +171,12 @@ func (m *customGroupsModel) RemoveMemberTx(ctx context.Context, groupId, userId 
 
 // TransferOwnerTx 事务内转让群主:owner_id 换人(带 owner 条件防并发重复转让) +
 // 新群主 role→OWNER + 旧群主降为普通成员 + 版本递增
-func (m *customGroupsModel) TransferOwnerTx(ctx context.Context, groupId, oldOwnerId, newOwnerId int64) error {
+func (m *customGroupsModel) TransferOwnerTx(ctx context.Context, groupID, oldOwnerId, newOwnerId int64) error {
 	return m.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		sconn := sqlx.NewSqlConnFromSession(session)
 		res, err := sconn.ExecCtx(ctx,
 			fmt.Sprintf("update %s set owner_id = $1, member_version = member_version + 1, updated_at = now() where id = $2 and owner_id = $3", m.table),
-			newOwnerId, groupId, oldOwnerId,
+			newOwnerId, groupID, oldOwnerId,
 		)
 		if err != nil {
 			return err
@@ -186,24 +186,24 @@ func (m *customGroupsModel) TransferOwnerTx(ctx context.Context, groupId, oldOwn
 			return fmt.Errorf("only owner can transfer group")
 		}
 		mm := &defaultGroupmembersModel{conn: sconn, table: `"public"."groupmembers"`}
-		if err := mm.updateRole(ctx, groupId, newOwnerId, int64(group.GroupRole_OWNER)); err != nil {
+		if err := mm.updateRole(ctx, groupID, newOwnerId, int64(group.GroupRole_OWNER)); err != nil {
 			return fmt.Errorf("new owner is not a member: %w", err)
 		}
-		return mm.updateRole(ctx, groupId, oldOwnerId, int64(group.GroupRole_MEMBER))
+		return mm.updateRole(ctx, groupID, oldOwnerId, int64(group.GroupRole_MEMBER))
 	})
 }
 
 // SetMemberRoleTx 事务内设/撤管理员:改 role + member_version+1(驱动成员缓存失效)
-func (m *customGroupsModel) SetMemberRoleTx(ctx context.Context, groupId, userId, role int64) error {
+func (m *customGroupsModel) SetMemberRoleTx(ctx context.Context, groupID, userID, role int64) error {
 	return m.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		sconn := sqlx.NewSqlConnFromSession(session)
 		mm := &defaultGroupmembersModel{conn: sconn, table: `"public"."groupmembers"`}
-		if err := mm.updateRole(ctx, groupId, userId, role); err != nil {
+		if err := mm.updateRole(ctx, groupID, userID, role); err != nil {
 			return err
 		}
 		res, err := sconn.ExecCtx(ctx,
 			fmt.Sprintf("update %s set member_version = member_version + 1, updated_at = now() where id = $1", m.table),
-			groupId,
+			groupID,
 		)
 		if err != nil {
 			return err
@@ -217,7 +217,7 @@ func (m *customGroupsModel) SetMemberRoleTx(ctx context.Context, groupId, userId
 
 // JoinGroupTx 事务内直接入群(免审批):插入成员行(on conflict do nothing),
 // 真正插入时 member_count+1、版本+1;返回 false 表示已是成员
-func (m *customGroupsModel) JoinGroupTx(ctx context.Context, groupId int64, member *Groupmembers) (bool, error) {
+func (m *customGroupsModel) JoinGroupTx(ctx context.Context, groupID int64, member *Groupmembers) (bool, error) {
 	var inserted bool
 	err := m.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		sconn := sqlx.NewSqlConnFromSession(session)
@@ -238,7 +238,7 @@ func (m *customGroupsModel) JoinGroupTx(ctx context.Context, groupId int64, memb
 		inserted = true
 		_, err = sconn.ExecCtx(ctx,
 			fmt.Sprintf("update %s set member_count = member_count + 1, member_version = member_version + 1, updated_at = now() where id = $1", m.table),
-			groupId,
+			groupID,
 		)
 		return err
 	})

@@ -29,17 +29,17 @@ func NewGetFileMetaLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetFi
 
 // GetFileMeta 查文件元数据(含审核状态/缩略图);访问可见性校验由 file rpc 做
 func (l *GetFileMetaLogic) GetFileMeta(req *types.GetFileMetaReq) (*types.FileMeta, error) {
-	resp, err := l.svcCtx.File.GetFileMeta(l.ctx, &file.GetFileMetaReq{FileId: req.FileId})
+	resp, err := l.svcCtx.File.GetFileMeta(l.ctx, &file.GetFileMetaReq{FileId: req.FileID})
 	if err != nil {
 		return nil, err
 	}
 	return &types.FileMeta{
-		FileId:     resp.FileId,
+		FileID:     resp.FileId,
 		FileName:   resp.FileName,
 		FileSize:   resp.FileSize,
 		MimeType:   resp.MimeType,
 		FileType:   resp.FileType,
-		UploaderId: resp.UploaderId,
+		UploaderID: resp.UploaderId,
 		UploadTime: resp.UploadTime,
 		Status:     resp.Status,
 		Thumbnails: resp.Thumbnails,

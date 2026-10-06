@@ -31,12 +31,12 @@ func NewCreateGroupLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Creat
 
 func (l *CreateGroupLogic) CreateGroup(req *types.CreateGroupReq) (*types.CreateGroupResp, error) {
 	// 创建者身份以 token 为准,不信任请求体(防冒充任意人建群)
-	creatorId, ok := middleware.GetUserID(l.ctx)
-	if !ok || creatorId <= 0 {
+	creatorID, ok := middleware.GetUserID(l.ctx)
+	if !ok || creatorID <= 0 {
 		return nil, fmt.Errorf("unauthorized")
 	}
 	res, err := l.svcCtx.Group.CreateGroup(l.ctx, &group.CreateGroupReq{
-		CreatorId:        creatorId,
+		CreatorId:        creatorID,
 		Name:             req.Name,
 		Avatar:           req.Avatar,
 		InitialMembers:   req.InitialMembers,
@@ -49,7 +49,7 @@ func (l *CreateGroupLogic) CreateGroup(req *types.CreateGroupReq) (*types.Create
 		return nil, err
 	}
 	return &types.CreateGroupResp{
-		GroupId:       res.GroupId,
+		GroupID:       res.GroupId,
 		MemberVersion: res.MemberVersion,
 	}, nil
 }

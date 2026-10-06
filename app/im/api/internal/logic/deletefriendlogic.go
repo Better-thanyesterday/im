@@ -36,7 +36,7 @@ func (l *DeleteFriendLogic) DeleteFriend(req *types.DeleteFriendReq) (*types.Suc
 		return nil, fmt.Errorf("unauthorized")
 	}
 	resp, err := l.svcCtx.User.DeleteFriend(l.ctx, &user.DeleteFriendReq{
-		FriendUserId: req.FriendUserId,
+		FriendUserId: req.FriendUserID,
 		UserId:       uid,
 	})
 	if err != nil {

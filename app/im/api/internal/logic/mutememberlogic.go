@@ -36,9 +36,9 @@ func (l *MuteMemberLogic) MuteMember(req *types.MuteMemberReq) (*types.SuccessRe
 		return nil, fmt.Errorf("unauthorized")
 	}
 	_, err := l.svcCtx.Group.MuteMember(l.ctx, &group.MuteMemberReq{
-		GroupId:    req.GroupId,
+		GroupId:    req.GroupID,
 		OperatorId: uid,
-		TargetId:   req.TargetId,
+		TargetId:   req.TargetID,
 		MuteUntil:  req.MuteUntil,
 	})
 	if err != nil {

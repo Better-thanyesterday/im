@@ -36,12 +36,12 @@ func (l *ApplyJoinGroupLogic) ApplyJoinGroup(req *types.ApplyJoinGroupReq) (*typ
 		return nil, fmt.Errorf("unauthorized")
 	}
 	resp, err := l.svcCtx.Group.ApplyJoinGroup(l.ctx, &group.ApplyJoinGroupReq{
-		GroupId:     req.GroupId,
+		GroupId:     req.GroupID,
 		ApplicantId: uid,
 		ApplyReason: req.ApplyReason,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &types.ApplyJoinGroupResp{ApplyId: resp.ApplyId, Status: resp.Status}, nil
+	return &types.ApplyJoinGroupResp{ApplyID: resp.ApplyId, Status: resp.Status}, nil
 }

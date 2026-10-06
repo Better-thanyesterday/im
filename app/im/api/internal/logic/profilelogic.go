@@ -36,14 +36,14 @@ func (l *ProfileLogic) GetProfile(req *types.ProfileReq) (*types.ProfileResp, er
 		return nil, fmt.Errorf("unauthorized")
 	}
 	p, err := l.svcCtx.User.GetProfile(l.ctx, &user.GetProfileReq{
-		UserId:   req.UserId, // 0=查本人
+		UserId:   req.UserID, // 0=查本人
 		ViewerId: uid,
 	})
 	if err != nil {
 		return nil, err
 	}
 	return &types.ProfileResp{
-		UserId:    p.UserId,
+		UserID:    p.UserId,
 		Phone:     p.Phone,
 		Email:     p.Email,
 		Nickname:  p.Nickname,
