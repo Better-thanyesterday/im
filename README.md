@@ -14,7 +14,7 @@
 
 - **HTTP API 层（im-api）**：统一 REST 入口，聚合用户/群组/文件/消息能力，统一 Token 鉴权。
 - **WebSocket 网关（gateway）**：长连接接入、心跳保活、同设备互踢、客户端驱动的离线同步。
-- **五个 RPC 服务**：`user、``group、``message、``push、``file`
+- **五个 RPC 服务**：`user、group、message、push、file`
 - **完整消息链路**：消息以 `WriteDiffBundle` 单载荷经 Kafka 落库，单 topic 单消费组保证会话内有序、不丢、可重放。
 - **文件服务**：基于 MinIO/S3 原生 Multipart 分片上传，客户端直传，服务端只管元数据与预签名。
 
