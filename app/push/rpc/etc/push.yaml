@@ -55,3 +55,19 @@ Telemetry:
   Endpoint: 127.0.0.1:4317
   Sampler: 1.0              # 生产建议 0.1
   Batcher: otlpgrpc
+
+# 内建调试口:/metrics(普罗米修斯抓取)+ /debug/pprof(按需采样)+ /healthz
+# 生产不对公网暴露,必要时 EnablePprof: false
+DevServer:
+  Enabled: true
+  Host: 0.0.0.0
+  Port: 6064
+  EnableMetrics: true
+  EnablePprof: true
+
+# 持续 profiling(接 Pyroscope,启用前先起 pyroscope 服务,再取消注释)
+# Profiling:
+#   Name: push.rpc
+#   ServerAddr: 127.0.0.1:4040
+#   CpuThreshold: 700        # CPU >70% 才自动采样,平时零开销
+#   UploadRate: 15s
