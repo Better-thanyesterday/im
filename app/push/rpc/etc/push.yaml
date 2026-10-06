@@ -49,3 +49,9 @@ GatewayRpc:
     Hosts:
       - 127.0.0.1:2379
     Key: gateway.rpc
+# 链路追踪:OTLP gRPC 上报 Jaeger(v2, OTLP receiver 4317)
+Telemetry:
+  Name: push.rpc
+  Endpoint: 127.0.0.1:4317
+  Sampler: 1.0              # 生产建议 0.1
+  Batcher: otlpgrpc

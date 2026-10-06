@@ -1,0 +1,39 @@
+# Jaeger v2 最小可用配置(OTel Collector 格式,内存存储,联调用)
+# 启动:  jaeger --config docs/jaeger-v2.yaml
+# 校验:  jaeger validate --config docs/jaeger-v2.yaml
+# UI:    http://localhost:16686   (OTLP gRPC 收口在 4317,与各服务 Telemetry.Endpoint 对应)
+# 生产:  memstore 换成 ES/Cassandra 后端,Sampler 降到 0.1
+extensions:
+  jaeger_query:
+    storage:
+      traces: memstore
+  jaeger_storage:
+    backends:
+      memstore:
+        memory:
+          max_traces: 10000
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    send_batch_size: 1024
+    timeout: 5s
+
+exporters:
+  jaeger_storage_exporter:
+    trace_storage: memstore
+
+service:
+  extensions: [jaeger_query, jaeger_storage]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [jaeger_storage_exporter]

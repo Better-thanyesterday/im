@@ -17,3 +17,9 @@ Postgres:
 
 Snowflake:
   WorkNode: 0  # 0=按 IP+PID 自动派生,多副本不撞号
+# 链路追踪:OTLP gRPC 上报 Jaeger(v2, OTLP receiver 4317)
+Telemetry:
+  Name: group.rpc
+  Endpoint: 127.0.0.1:4317
+  Sampler: 1.0              # 生产建议 0.1
+  Batcher: otlpgrpc
