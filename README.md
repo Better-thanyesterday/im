@@ -133,7 +133,7 @@ im-platform/
 │   └── utils/               # TokenManager/Snowflake/SeqCache 等
 ├── docs/
 │   ├── jaeger-v2.yaml       # Jaeger v2 配置
-│   └── sql/files.sql        # 文件服务建表脚本(其余服务表 DDL 待补)
+│   └── sql/files.sql        # 文件服务建表脚本
 ├── test/binarygen.go        # WS 二进制帧联调工具
 ├── go.mod
 └── README.md
