@@ -334,7 +334,6 @@ go run test/binarygen.go   # WS 二进制帧联调样例
 
 ### v0.1 — 生产可用基线
 
-- [ ] 建表脚本全量入库：user/group/message 服务 DDL 补齐至 `docs/sql/`（pg_trgm 索引脚本已有）
 - [ ] Docker Compose 一键部署：etcd / Kafka / PostgreSQL / Redis / MinIO / Jaeger 全家桶 + 各服务健康检查
 - [ ] 配置安全化：数据库/MinIO 凭证环境变量化，接入密管（当前为明文开发默认值）
 - [ ] 单元测试与 CI 流水线（`go build` / `go vet` / `go test` / 生成代码一致性检查）
