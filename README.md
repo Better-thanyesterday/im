@@ -274,11 +274,3 @@ go vet ./...       # 静态检查
 go run test/binarygen.go   # WS 二进制帧联调样例
 ```
 
-## 📄 许可证
-
-License 待定（计划 MIT）。
-
-## 📧 联系方式
-
-- 作者：lancelot-G
-- 项目地址：https://github.com/your-org/im-platform （替换为实际仓库地址）
