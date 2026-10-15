@@ -8,6 +8,7 @@ import (
 	"im-platform/app/message/rpc/internal/svc"
 	"im-platform/app/message/rpc/message"
 	"im-platform/common/constants"
+	"im-platform/common/mq"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -49,6 +50,17 @@ func (l *RecallMessageLogic) RecallMessage(in *message.RecallMessageReq) (*messa
 	}
 	if err := l.svcCtx.MessagesModel.RecallMessage(l.ctx, in.MsgId, in.OperatorId); err != nil {
 		return nil, err
+	}
+	// 广播撤回事件:在线的对端实时感知;离线端由 Sync 按 status=2 兜底
+	if payload, err := mq.MarshalEvent(&mq.Event{
+		Event:      mq.EventMsgRecall,
+		ConvID:     in.ConvId,
+		MsgID:      in.MsgId,
+		OperatorID: in.OperatorId,
+	}); err == nil {
+		if err := l.svcCtx.KafkaProducer.PublishWithKey(l.ctx, mq.TopicEventNotify, in.ConvId, payload); err != nil {
+			logx.Errorf("撤回事件发布失败 | conv=%s msg=%d err=%v", in.ConvId, in.MsgId, err)
+		}
 	}
 	return &message.RecallMessageResp{}, nil
 }

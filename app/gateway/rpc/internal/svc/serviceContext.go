@@ -4,6 +4,7 @@ import (
 	"im-platform/app/gateway/rpc/internal/config"
 	"im-platform/app/gateway/rpc/internal/conn"
 	"im-platform/app/message/rpc/messageclient"
+	"im-platform/common/mq"
 	"im-platform/common/utils"
 	"net"
 	"time"
@@ -14,21 +15,37 @@ import (
 )
 
 type ServiceContext struct {
-	Config       config.Config
-	TokenManager *utils.TokenManager
-	ConnManager  *conn.ConnManager
-	Redis        *redis.Redis
+	Config        config.Config
+	TokenManager  *utils.TokenManager
+	ConnManager   *conn.ConnManager
+	Redis         *redis.Redis
+	KafkaProducer *mq.Producer // 上下线事件广播(初始化失败只降级,不影响连接生命周期)
 	messageclient.Message
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
 	rds := redis.MustNewRedis(c.Redis)
 	c.Gateway.GrpcAddr = normalizeAdvertiseAddr(c.Gateway.GrpcAddr)
+	// 自注册到存活 gateway 地址集合,push 事件扇出按此集合遍历实例
+	if _, err := rds.Sadd("im:gateways", c.Gateway.GrpcAddr); err != nil {
+		logx.Errorf("gateway 自注册失败,事件扇出可能遗漏本实例 | err=%v", err)
+	}
+	var producer *mq.Producer
+	if saramaCfg, err := mq.BuildSaramaConfig(c.Kafka); err == nil {
+		if p, perr := mq.NewProducer(c.Kafka.Brokers, saramaCfg); perr == nil {
+			producer = p
+		} else {
+			logx.Errorf("kafka producer 初始化失败,上下线事件不可用 | err=%v", perr)
+		}
+	} else {
+		logx.Errorf("kafka 配置构建失败,上下线事件不可用 | err=%v", err)
+	}
 	return &ServiceContext{
-		Config:       c,
-		TokenManager: utils.NewTokenManager(rds, 7*24*time.Hour),
-		ConnManager:  conn.NewManager(c.Gateway.BucketNum),
-		Redis:        rds,
+		Config:        c,
+		TokenManager:  utils.NewTokenManager(rds, 7*24*time.Hour),
+		ConnManager:   conn.NewManager(c.Gateway.BucketNum),
+		Redis:         rds,
+		KafkaProducer: producer,
 		// 嵌入接口必须显式初始化,否则 nil 接口编译期无提示、第一帧上行就 panic
 		Message: messageclient.NewMessage(zrpc.MustNewClient(c.MsgRpc)),
 	}

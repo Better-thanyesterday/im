@@ -7,6 +7,7 @@ import (
 	"im-platform/app/gateway/rpc/internal/logic"
 	"im-platform/app/gateway/rpc/internal/svc"
 	"im-platform/common/middleware"
+	"im-platform/common/mq"
 	"net/http"
 	"net/url"
 
@@ -106,6 +107,8 @@ func onConnClosed(svcCtx *svc.ServiceContext, c *conn.Conn) {
 			logx.Errorf("下线清理 Redis 失败 | user=%d device=%d err=%v",
 				c.UserID(), c.DeviceType(), err)
 		}
+		// 广播下线事件(失败只记日志)
+		logic.PublishPresence(svcCtx, mq.EventUserOffline, c.UserID(), c.DeviceType())
 	}
 	logx.Infof("连接关闭,在线态已清理 | user=%d device=%d self=%v", c.UserID(), c.DeviceType(), self)
 }

@@ -41,9 +41,8 @@
 
 ### 🚧 半成品（待补全）
 
-- 撤回的对方实时感知（目前落库 status=2，对方经 Sync 才能感知）
-- 富媒体展示：客户端发图片/文件的上传三步流程未接入
-- `im.event.notify` 事件广播 topic：已定义，尚无消费者（上下线/群变更通知未通）
+- 富媒体**客户端**接入：后端三步上传流已完整（含单片快传/归属校验，见核心设计·文件），客户端发图片/文件的调用侧待实现
+- 事件帧的客户端处理：服务端事件广播链路已通（见核心设计），客户端需按 `event` 字段处理事件帧
 
 ---
 
@@ -213,10 +212,26 @@ curl -X POST http://127.0.0.1:18888/login    -d '{"phone":"13800000000","passwor
 - GatewayPool 连接池：读写锁 + 双重检查，连续失败 3 次才逐出。
 - 投递语义：任一设备实时送达即成功；全失败/离线转会话级离线信箱并计未读。
 
+### 事件广播（im.event.notify）
+
+统一事件总线：生产者发布 JSON 信封（契约见 `common/mq/event.go`），**push.rpc 单消费者**负责"查目标用户 → 遍历 gateway 实例 `BatchPushToConn` 扇出"。
+
+| 事件 | 生产者 | 扇出目标 | 说明 |
+|------|--------|----------|------|
+| `user_online` / `user_offline` | gateway | 该用户的好友 | 好友即订阅(MVP)；离线好友不补发 |
+| `group_changed` | group.rpc | 全体群成员 | 邀请/踢出/退群/解散，客户端收到后刷新群信息 |
+| `msg_recall` | message.rpc | 会话内除操作者外所有人 | 在线端实时移除消息；离线端 Sync 按 status=2 兜底 |
+| `group_new_msg_lite` | message.rpc(大群读扩散) | 群在线成员(除发送方) | 仅 {group_id, seq_id}，客户端主动 Sync |
+
+事件语义：**只增强实时性，不承诺必达**——不转离线信箱、不重试，离线端一律由 Sync/主动拉取兜底；gateway 实例启动时自注册 `im:gateways` 集合供扇出寻址，崩溃残留地址由建连失败自然剔除。
+
 ### 文件（file.rpc）
 
-- 三步流：`CreateUploadTask`（file_id + 分片预签名 URL）→ 客户端直传 MinIO → `CompleteUpload`（ETag 合并）。
-- 消息只引用 `content.file_id`，下载走预签名 URL（默认 15 分钟）；发送链路由 message.rpc 反查校验文件归属与状态。
+- 三步流：`CreateUploadTask`（file_id + 预签名 URL）→ 客户端直传 MinIO → `CompleteUpload`。两条路径：
+  - **单片快传**（`total_chunks=1`，小图片等高频小文件）：预签名 `PutObject` 单请求直传，`CompleteUpload` 传空 `upload_id` 即完成，省一次合并往返；
+  - **分片上传**（>1 片）：S3 原生 Multipart，除最后片外 ≥5MiB（服务端在创建任务时校验分片参数，不必等合并才失败），`CompleteUpload` 按 ETag 顺序合并。
+- 归属链路完整：`uploader_id` 由 im-api 从 token 注入（不信任请求体），创建/完成/删除均校验文件归属；消息只引用 `content.file_id`，发送链路由 message.rpc 反查校验"存在/正常/归属"。
+- 下载：接收方（任意登录用户）经 `/file/url` 签预签名 URL（默认 15 分钟，上限 7 天），已删除/审核拒绝的文件拒签。
 
 ---
 
@@ -271,7 +286,7 @@ etcdctl put im/hotcfg/message '{"send_rate_limit": 100, "log_level": "debug"}'
 - 各 yaml 中的数据库/MinIO 凭证为**明文开发默认值**，不可用于生产，公开部署前务必环境变量化。
 - 仓库内 DDL 仅覆盖 `files` 表，其余服务的建表脚本待补齐。
 - 无单元测试与 CI；质量把关目前依赖 `go build` / `go vet`。
-- 消息撤回、上下线、群变更暂无实时推送（事件 topic `im.event.notify` 已预留未接线）。
+- 撤回/群变更的**离线端**感知仍靠 Sync 兜底（实时帧只发在线用户）；撤回时间窗、多设备已读同步等策略待完善。
 
 ---
 
@@ -323,8 +338,8 @@ go run test/binarygen.go   # WS 二进制帧联调样例
 - [ ] Docker Compose 一键部署：etcd / Kafka / PostgreSQL / Redis / MinIO / Jaeger 全家桶 + 各服务健康检查
 - [ ] 配置安全化：数据库/MinIO 凭证环境变量化，接入密管（当前为明文开发默认值）
 - [ ] 单元测试与 CI 流水线（`go build` / `go vet` / `go test` / 生成代码一致性检查）
-- [ ] `im.event.notify` 消费者接线（已预留）：上下线 / 群变更实时通知
-- [ ] 撤回实时感知：对方在线时推撤回事件帧，不再等 Sync 兜底
+- [x] `im.event.notify` 消费者接线：gateway 上下线 / group 群变更 / message 撤回与大群轻量通知，push 统一消费扇出 ✅
+- [x] 撤回实时感知：撤回成功即广播 msg_recall 事件，在线对端实时移除消息 ✅
 - [ ] 集中式限流：Redis 滑动窗口替代进程内桶（阈值经 hotconfig 热更新，已预留）
 - [ ] 压测基线报告：WS 长连接数 / 消息吞吐 / 推送 P99（wrk + 自研帧工具）沉淀为文档
 
@@ -333,7 +348,7 @@ go run test/binarygen.go   # WS 二进制帧联调样例
 - [ ] 会话列表服务端化：多端消息漫游，新设备登录即得完整会话与未读
 - [ ] 富媒体闭环：客户端接入文件三步上传流，图片/语音/视频/文件消息端到端可发
 - [ ] 已读回执发送方实时感知：阅读方 Ack 后向发送方推已读事件（协议帧已预留）
-- [ ] 好友在线状态订阅：上下线事件经 `im.event.notify` 推给关注者
+- [ ] 好友在线状态订阅：现按"好友即订阅"全量扇出，后续引入关系订阅/在线状态节流
 - [ ] 消息搜索：服务端全文检索（pg_trgm / full-text，索引脚本已预留）
 - [ ] Web 演示客户端：轻量 Web 端（复用 REST + WS 协议）降低联调门槛
 

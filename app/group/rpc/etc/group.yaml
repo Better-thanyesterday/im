@@ -39,3 +39,13 @@ DevServer:
 #   ServerAddr: 127.0.0.1:4040
 #   CpuThreshold: 700        # CPU >70% 才自动采样,平时零开销
 #   UploadRate: 15s
+
+# 群变更事件广播(im.event.notify,生产者)
+Kafka:
+  Brokers:
+    - 127.0.0.1:9092
+  Producer:
+    Acks: 1
+    RetryMax: 3
+    Compression: none
+    MaxMessageBytes: 1048576

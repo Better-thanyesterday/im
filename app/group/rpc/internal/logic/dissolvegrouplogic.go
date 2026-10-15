@@ -7,6 +7,7 @@ import (
 	"im-platform/app/group/rpc/group"
 	"im-platform/app/group/rpc/internal/svc"
 	"im-platform/common/constants"
+	"im-platform/common/mq"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -40,5 +41,6 @@ func (l *DissolveGroupLogic) DissolveGroup(in *group.DissolveGroupReq) (*group.D
 	if err := l.svcCtx.GroupsModel.MarkDissolved(l.ctx, in.GroupId); err != nil {
 		return nil, err
 	}
+	PublishGroupChanged(l.ctx, l.svcCtx, in.GroupId, mq.GroupActionDissolve, in.OperatorId, 0)
 	return &group.DissolveGroupResp{}, nil
 }

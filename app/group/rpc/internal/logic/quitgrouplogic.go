@@ -7,6 +7,7 @@ import (
 	"im-platform/app/group/rpc/group"
 	"im-platform/app/group/rpc/internal/svc"
 	"im-platform/common/constants"
+	"im-platform/common/mq"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -44,5 +45,6 @@ func (l *QuitGroupLogic) QuitGroup(in *group.QuitGroupReq) (*group.QuitGroupResp
 	if err := l.svcCtx.GroupsModel.RemoveMemberTx(l.ctx, in.GroupId, in.UserId); err != nil {
 		return nil, err
 	}
+	PublishGroupChanged(l.ctx, l.svcCtx, in.GroupId, mq.GroupActionMemberDel, in.UserId, in.UserId)
 	return &group.QuitGroupResp{MemberVersion: g.MemberVersion + 1}, nil
 }

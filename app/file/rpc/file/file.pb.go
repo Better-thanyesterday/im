@@ -228,8 +228,9 @@ func (x *ChunkUploadInfo) GetPresignedUrl() string {
 type CompleteUploadReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	FileId        string                 `protobuf:"bytes,1,opt,name=file_id,json=fileId,proto3" json:"file_id,omitempty"`
-	UploadId      string                 `protobuf:"bytes,2,opt,name=upload_id,json=uploadId,proto3" json:"upload_id,omitempty"`
-	Etags         []string               `protobuf:"bytes,3,rep,name=etags,proto3" json:"etags,omitempty"` // 各分片上传成功后 MinIO 返回的 ETag，按顺序
+	UploadId      string                 `protobuf:"bytes,2,opt,name=upload_id,json=uploadId,proto3" json:"upload_id,omitempty"`        // multipart 上传 ID;单片直传(PutObject)路径为空
+	Etags         []string               `protobuf:"bytes,3,rep,name=etags,proto3" json:"etags,omitempty"`                              // 各分片上传成功后 MinIO 返回的 ETag，按顺序;单片路径忽略
+	UploaderId    int64                  `protobuf:"varint,4,opt,name=uploader_id,json=uploaderId,proto3" json:"uploader_id,omitempty"` // 上传者 user_id,必须与文件归属一致(防越权合并他人任务)
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -283,6 +284,13 @@ func (x *CompleteUploadReq) GetEtags() []string {
 		return x.Etags
 	}
 	return nil
+}
+
+func (x *CompleteUploadReq) GetUploaderId() int64 {
+	if x != nil {
+		return x.UploaderId
+	}
+	return 0
 }
 
 type CompleteUploadResp struct {
@@ -799,11 +807,13 @@ const file_file_proto_rawDesc = "" +
 	"\x0fChunkUploadInfo\x12\x1f\n" +
 	"\vchunk_index\x18\x01 \x01(\x05R\n" +
 	"chunkIndex\x12#\n" +
-	"\rpresigned_url\x18\x02 \x01(\tR\fpresignedUrl\"_\n" +
+	"\rpresigned_url\x18\x02 \x01(\tR\fpresignedUrl\"\x80\x01\n" +
 	"\x11CompleteUploadReq\x12\x17\n" +
 	"\afile_id\x18\x01 \x01(\tR\x06fileId\x12\x1b\n" +
 	"\tupload_id\x18\x02 \x01(\tR\buploadId\x12\x14\n" +
-	"\x05etags\x18\x03 \x03(\tR\x05etags\"W\n" +
+	"\x05etags\x18\x03 \x03(\tR\x05etags\x12\x1f\n" +
+	"\vuploader_id\x18\x04 \x01(\x03R\n" +
+	"uploaderId\"W\n" +
 	"\x12CompleteUploadResp\x12\x17\n" +
 	"\afile_id\x18\x01 \x01(\tR\x06fileId\x12\x10\n" +
 	"\x03url\x18\x02 \x01(\tR\x03url\x12\x16\n" +

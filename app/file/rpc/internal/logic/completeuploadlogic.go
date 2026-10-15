@@ -28,21 +28,20 @@ func NewCompleteUploadLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Co
 	}
 }
 
-// CompleteUpload 合并分片（S3 CompleteMultipartUpload）、状态流转。
-// in.Etags：客户端上传每片后从响应 ETag 头取到的值，按 ChunkIndex 顺序排列，
-// ETag 原样回传（含引号），与 partNumber=i+1 一一对应。
+// CompleteUpload 完成上传:multipart 路径做 S3 CompleteMultipartUpload 合并,
+// 单片快传路径(UploadId 为空,客户端 PUT 已直传)直接状态流转。
+// in.Etags:分片路径下客户端按 ChunkIndex 顺序回传的 ETag(含引号),与 partNumber=i+1 对应。
 func (l *CompleteUploadLogic) CompleteUpload(in *file.CompleteUploadReq) (*file.CompleteUploadResp, error) {
-	if in.FileId == "" || in.UploadId == "" {
+	if in.FileId == "" || in.UploaderId <= 0 {
 		return nil, fmt.Errorf("invalid complete params")
 	}
-	if len(in.Etags) == 0 {
-		return nil, fmt.Errorf("etags required")
-	}
-
-	// 1. 查元数据，文件必须存在且未完成/未删除
+	// 1. 查元数据,校验归属——防止合并/完成他人的上传任务
 	meta, err := l.svcCtx.FilesModel.FindOne(l.ctx, in.FileId)
 	if err != nil {
 		return nil, fmt.Errorf("file not found: %w", err)
+	}
+	if meta.UploaderId != in.UploaderId {
+		return nil, fmt.Errorf("permission denied: file %s belongs to %d", in.FileId, meta.UploaderId)
 	}
 	if meta.Status == models.FileStatusNormal {
 		return &file.CompleteUploadResp{FileId: in.FileId, Status: 1}, nil // 幂等：已完成直接返回
@@ -51,7 +50,25 @@ func (l *CompleteUploadLogic) CompleteUpload(in *file.CompleteUploadReq) (*file.
 		return nil, fmt.Errorf("file already deleted")
 	}
 
-	// 2. 按 partNumber=i+1 与 ETag 组装，请求 CompleteMultipartUpload
+	// 2a. 单片快传:UploadId 为空,对象已由客户端 PUT 直传,跳过 S3 合并
+	if in.UploadId == "" {
+		if err := l.svcCtx.FilesModel.UpdateStatus(l.ctx, in.FileId, models.FileStatusNormal); err != nil {
+			return nil, fmt.Errorf("update status failed: %w", err)
+		}
+		return &file.CompleteUploadResp{
+			FileId: in.FileId,
+			Url:    fmt.Sprintf("/%s/%s", meta.Bucket, meta.ObjectKey),
+			Status: 1,
+		}, nil
+	}
+
+	// 2b. 分片路径:必须有 ETags 且与请求一起做 S3 合并
+	if len(in.Etags) == 0 {
+		return nil, fmt.Errorf("etags required")
+	}
+	if len(in.Etags) > maxTotalChunks {
+		return nil, fmt.Errorf("too many etags")
+	}
 	parts := make([]types.CompletedPart, 0, len(in.Etags))
 	for i, etag := range in.Etags {
 		parts = append(parts, types.CompletedPart{

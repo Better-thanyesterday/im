@@ -23,6 +23,16 @@ Redis:
   Type: node
   Pass: ""
 
+# 上下线事件广播(im.event.notify,生产者)
+Kafka:
+  Brokers:
+    - 127.0.0.1:9092
+  Producer:
+    Acks: 1
+    RetryMax: 3
+    Compression: none
+    MaxMessageBytes: 1048576
+
 # 写入在线表供 push 直连;127.0.0.1 会在启动时自动替换为本机对外 IP
 Gateway:
   GrpcAddr: "127.0.0.1:18001"

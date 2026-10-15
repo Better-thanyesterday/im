@@ -5,15 +5,16 @@ Etcd:
   - 127.0.0.1:2379
   Key: push.rpc
 
+# 事件广播消费:im.event.notify(上下线/群变更/撤回/大群轻量通知)
 Kafka:
   Brokers:
     - 127.0.0.1:9092  # 多机部署时改为 Kafka 集群地址
-  Topic: im.msg.persist        # 消息持久化 topic
-  Group: msg-persist-group     # Consumer 用，Producer 不用
-  Offset: latest
-  Consumers: 8
-  Processors: 8
-  ForceCommit: false
+  Consumer:
+    GroupID:
+      - push-event-group
+    OffsetInitial: latest
+    SessionTimeout: 10s
+    HeartbeatInterval: 3s
 
 RedisCache:
     Host: 127.0.0.1:6379

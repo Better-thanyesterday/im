@@ -7,6 +7,7 @@ import (
 	"im-platform/app/group/rpc/group"
 	"im-platform/app/group/rpc/internal/svc"
 	"im-platform/common/constants"
+	"im-platform/common/mq"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -58,5 +59,6 @@ func (l *KickMemberLogic) KickMember(in *group.KickMemberReq) (*group.KickMember
 	if err := l.svcCtx.GroupsModel.RemoveMemberTx(l.ctx, in.GroupId, in.TargetId); err != nil {
 		return nil, err
 	}
+	PublishGroupChanged(l.ctx, l.svcCtx, in.GroupId, mq.GroupActionMemberDel, in.OperatorId, in.TargetId)
 	return &group.KickMemberResp{MemberVersion: g.MemberVersion + 1}, nil
 }

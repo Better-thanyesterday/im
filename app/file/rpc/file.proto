@@ -51,8 +51,9 @@ message ChunkUploadInfo {
 
 message CompleteUploadReq {
   string file_id   = 1;
-  string upload_id = 2;
-  repeated string etags = 3; // 各分片上传成功后 MinIO 返回的 ETag，按顺序
+  string upload_id = 2;      // multipart 上传 ID;单片直传(PutObject)路径为空
+  repeated string etags = 3; // 各分片上传成功后 MinIO 返回的 ETag，按顺序;单片路径忽略
+  int64  uploader_id = 4;    // 上传者 user_id,必须与文件归属一致(防越权合并他人任务)
 }
 
 message CompleteUploadResp {

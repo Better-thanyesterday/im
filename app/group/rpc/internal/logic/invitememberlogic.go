@@ -9,6 +9,7 @@ import (
 	"im-platform/app/group/rpc/internal/svc"
 	"im-platform/app/group/rpc/models"
 	"im-platform/common/constants"
+	"im-platform/common/mq"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -79,6 +80,10 @@ func (l *InviteMemberLogic) InviteMember(in *group.InviteMemberReq) (*group.Invi
 	if success := int64(len(inserted)); success > 0 {
 		if err := l.svcCtx.GroupsModel.IncrMembers(l.ctx, in.GroupId, success); err != nil {
 			logx.Errorf("incr member count failed: group=%d delta=%d err=%v", in.GroupId, success, err)
+		}
+		// 广播成员变更(每个新成员一条,量小;离线成员由客户端拉群信息兜底)
+		for _, uid := range inserted {
+			PublishGroupChanged(l.ctx, l.svcCtx, in.GroupId, mq.GroupActionMemberAdd, in.InviterId, uid)
 		}
 	}
 	return &group.InviteMemberResp{

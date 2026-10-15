@@ -7,6 +7,8 @@ import (
 	"im-platform/app/gateway/rpc/internal/conn"
 	"im-platform/app/gateway/rpc/internal/protocol"
 	"im-platform/app/gateway/rpc/internal/svc"
+	"im-platform/common/mq"
+	"strconv"
 	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -66,6 +68,8 @@ func (l *WsConnectLogic) Register(ctx context.Context, c *conn.Conn) error {
 		logx.Errorf("在线态写入 Redis 失败 | user=%d device=%d err=%v", userID, deviceType, err)
 		return err
 	}
+	// 广播上线事件(失败只记日志,不影响连接)
+	PublishPresence(l.svcCtx, mq.EventUserOnline, userID, deviceType)
 	// 5. 启动读写协程
 	go c.WritePump()
 	go c.OnMessage(func(data []byte) {
@@ -81,4 +85,24 @@ func (l *WsConnectLogic) Register(ctx context.Context, c *conn.Conn) error {
 	// 3) 弱网重连瞬间打大同步请求易再次超时,退避时机应由客户端掌握
 	c.ReadPump(nil)
 	return nil
+}
+
+// PublishPresence 广播上下线事件到 im.event.notify(handler 与 logic 共用)。
+// 发布失败只记日志:事件是实时性增强信号,不阻塞也不回滚连接生命周期
+func PublishPresence(svcCtx *svc.ServiceContext, event string, userID int64, deviceType int32) {
+	if svcCtx.KafkaProducer == nil {
+		return
+	}
+	payload, err := mq.MarshalEvent(&mq.Event{
+		Event:      event,
+		UserID:     userID,
+		DeviceType: int64(deviceType),
+	})
+	if err != nil {
+		return
+	}
+	if err := svcCtx.KafkaProducer.PublishWithKey(context.Background(),
+		mq.TopicEventNotify, strconv.FormatInt(int64(userID), 10), payload); err != nil {
+		logx.Errorf("上下线事件发布失败 | event=%s user=%d err=%v", event, userID, err)
+	}
 }
