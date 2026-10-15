@@ -6,7 +6,7 @@
 [![go-zero](https://img.shields.io/badge/go--zero-v1.10+-blue)](https://go-zero.dev/)
 [![Status](https://img.shields.io/badge/status-开发中-orange)]()
 
-> ⚠️ **本项目处于开发阶段**：核心链路已跑通并联调，但接口、WS 协议与配置格式仍可能调整；生产部署、单元测试尚未就绪。当前 README 面向**本地开发与联调**。
+> ⚠️ **本项目处于开发阶段**：核心链路已跑通，但接口、WS 协议与配置格式仍可能调整；生产部署、单元测试尚未就绪。当前 README 面向**本地开发与联调**。
 
 ---
 
