@@ -153,11 +153,16 @@ im-platform/
 
 ```bash
 # 按各服务 yaml 中的 DSN 分库:im_user / im_group / im_message / im_file
-createdb im_file   # 其余库同理
+createdb im_user && createdb im_group && createdb im_message && createdb im_file
 
-# 目前仓库内 DDL 仅覆盖文件服务,其余服务表结构参照各自 models 手工建表
-psql -h 127.0.0.1 -U postgres -d im_file -f docs/sql/files.sql
+# 各服务建表脚本(幂等可重跑;user.sql 含 pg_trgm 扩展与模糊搜索索引)
+psql -h 127.0.0.1 -U postgres -d im_user    -f docs/sql/user.sql
+psql -h 127.0.0.1 -U postgres -d im_group   -f docs/sql/group.sql
+psql -h 127.0.0.1 -U postgres -d im_message -f docs/sql/message.sql
+psql -h 127.0.0.1 -U postgres -d im_file    -f docs/sql/files.sql
 ```
+
+> 💡 2026-10 之前建立的存量库注意：三个脚本末尾各附有「存量库修复」小节（friends 复合主键、groupmembers/inboxes 幂等唯一索引），按注释内的检测→去重→建索引步骤执行。
 
 ### 2. 检查配置
 
@@ -284,7 +289,7 @@ etcdctl put im/hotcfg/message '{"send_rate_limit": 100, "log_level": "debug"}'
 ## ⚠️ 已知限制
 
 - 各 yaml 中的数据库/MinIO 凭证为**明文开发默认值**，不可用于生产，公开部署前务必环境变量化。
-- 仓库内 DDL 仅覆盖 `files` 表，其余服务的建表脚本待补齐。
+- 存量开发库与 DDL 存在三处已知不一致（friends 单列主键 / groupmembers、inboxes 缺幂等唯一索引），修复语句在各 SQL 文件末尾的「存量库修复」小节，未自动执行。
 - 无单元测试与 CI；质量把关目前依赖 `go build` / `go vet`。
 - 撤回/群变更的**离线端**感知仍靠 Sync 兜底（实时帧只发在线用户）；撤回时间窗、多设备已读同步等策略待完善。
 
