@@ -55,16 +55,3 @@ CREATE TABLE IF NOT EXISTS public.seqs (
     max_seq    bigint      NOT NULL DEFAULT 0,
     updated_at timestamptz NOT NULL DEFAULT now()
 );
-
--- ============================================================================
--- ★ 存量库修复(此前 inboxes 缺 (userid, msgid) 唯一索引,Kafka 重投会插重复行)。
---   全新库无需执行本节。步骤:
---   1) 检测重复:
---      SELECT userid, msgid, count(*) FROM public.inboxes
---      GROUP BY userid, msgid HAVING count(*) > 1;
---   2) 去重(保留每组 id 最小的一行):
---      DELETE FROM public.inboxes a USING public.inboxes b
---       WHERE a.userid = b.userid AND a.msgid = b.msgid AND a.id > b.id;
---   3) 建唯一索引:
---      CREATE UNIQUE INDEX IF NOT EXISTS uk_inboxes_user_msg ON public.inboxes (userid, msgid);
--- ============================================================================

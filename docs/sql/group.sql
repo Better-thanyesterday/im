@@ -77,17 +77,3 @@ CREATE INDEX IF NOT EXISTS idx_group_applies_group     ON public.groupapplies (g
 -- 部分唯一:同人对同群只允许一条待处理申请(HandleApply 幂等返回原 apply_id 依赖它)
 CREATE UNIQUE INDEX IF NOT EXISTS uk_group_applies_pending
     ON public.groupapplies (group_id, applicant_id) WHERE status = 1;
-
--- ============================================================================
--- ★ 存量库修复(此前 groupmembers 缺 (group_id, user_id) 唯一索引,
---   重复邀请会插入重复成员行)。全新库无需执行本节。步骤:
---   1) 检测重复(必须先看): 
---      SELECT group_id, user_id, count(*) FROM public.groupmembers
---      GROUP BY group_id, user_id HAVING count(*) > 1;
---   2) 去重(保留每组 id 最小的一行;若群不存在重复行则 0 行受影响):
---      DELETE FROM public.groupmembers a USING public.groupmembers b
---       WHERE a.group_id = b.group_id AND a.user_id = b.user_id AND a.id > b.id;
---   3) 去重后同步群计数(member_count 与实际行数对齐),再建唯一索引:
---      CREATE UNIQUE INDEX IF NOT EXISTS uk_group_members_group_user
---          ON public.groupmembers (group_id, user_id);
--- ============================================================================

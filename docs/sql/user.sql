@@ -96,11 +96,3 @@ CREATE INDEX IF NOT EXISTS idx_friend_applies_target    ON public.friendapplies 
 -- 部分唯一:同一申请人对同一目标只允许一条"待处理"申请,已处理的不再拦截
 CREATE UNIQUE INDEX IF NOT EXISTS uk_friend_applies_pending
     ON public.friendapplies (applicant_id, target_id) WHERE status = 1;
-
--- ============================================================================
--- ★ 存量库修复(2026-10 之前的库 friends 主键误建为单列 friend_id,
---   导致同一用户只能被一个人加为好友)。全新库无需执行本节。
---   复合主键包含 friend_id,存量数据必然满足唯一性,可直接切换:
--- ============================================================================
--- ALTER TABLE public.friends DROP CONSTRAINT friends_pkey;
--- ALTER TABLE public.friends ADD  CONSTRAINT friends_pkey PRIMARY KEY (user_id, friend_id);
