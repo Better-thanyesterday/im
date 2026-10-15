@@ -74,6 +74,6 @@ CREATE TABLE IF NOT EXISTS public.groupapplies (
 );
 CREATE INDEX IF NOT EXISTS idx_group_applies_applicant ON public.groupapplies (applicant_id, status);
 CREATE INDEX IF NOT EXISTS idx_group_applies_group     ON public.groupapplies (group_id, status, created_at);
--- 部分唯一:同人对同群只允许一条待处理申请(HandleApply 幂等返回原 apply_id 依赖它)
+-- 部分唯一:同人对同群只允许一条待处理申请(HandleApply 幂等返回原apply_id 依赖它)
 CREATE UNIQUE INDEX IF NOT EXISTS uk_group_applies_pending
     ON public.groupapplies (group_id, applicant_id) WHERE status = 1;
