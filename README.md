@@ -45,13 +45,9 @@
 - 富媒体展示：客户端发图片/文件的上传三步流程未接入
 - `im.event.notify` 事件广播 topic：已定义，尚无消费者（上下线/群变更通知未通）
 
-### 📋 规划中（未开始）
+### 📋 后续规划
 
-- [ ] 内容审核（文件与消息，审核状态机已预留）
-- [ ] 生产部署：Docker Compose / K8s、配置环境变量化（当前 yaml 含明文开发凭证）
-- [ ] 单元测试与性能测试
-- [ ] 多端消息漫游、会话列表服务端化（当前由客户端本地组装）
-- [ ] 限流阈值 etcd 热更新
+统一收敛至文末 **[Roadmap](#-roadmap)**，按版本里程碑跟踪。
 
 ---
 
@@ -228,6 +224,52 @@ curl -X POST http://127.0.0.1:18888/login    -d '{"phone":"13800000000","passwor
 
 ---
 
+## 🔭 可观测性与动态配置
+
+六服务均内置 go-zero `ServiceConf` 的观测能力，**纯 yaml 开关、零代码接入**。
+
+### 链路追踪（Jaeger，已启用）
+
+所有服务已配置 `Telemetry`（OTLP gRPC → `127.0.0.1:4317`），跨服务调用自动串联 trace：
+
+```bash
+# 启动 Jaeger v2(OTel Collector 格式,内存存储,联调用)
+jaeger --config docs/jaeger-v2.yaml
+# UI: http://localhost:16686   生产把 memstore 换 ES,Sampler 降 0.1
+```
+
+### 指标 + 按需 pprof（DevServer，已启用）
+
+每个服务一个调试口，`/metrics`（Prometheus 格式）+ `/debug/pprof` + `/healthz`：
+
+| 服务 | user | message | group | push | file | gateway |
+|------|------|---------|-------|------|------|---------|
+| DevServer 端口 | 6061 | 6062 | 6063 | 6064 | 6065 | 6066 |
+
+```bash
+curl 127.0.0.1:6062/metrics                          # Prometheus 抓取
+go tool pprof -http=:8080 http://127.0.0.1:6062/debug/pprof/profile?seconds=30   # CPU 火焰图
+curl 127.0.0.1:6062/debug/pprof/goroutine?debug=1    # goroutine 泄漏排查
+```
+
+> ⚠️ pprof 端口只对内网，生产部署改 `Host` 或 `EnablePprof: false`。
+
+### 持续 profiling（Pyroscope，已预留未启用）
+
+各 yaml 中 `# Profiling:` 注释块已按服务预写好，起 `docker run -p 4040:4040 grafana/pyroscope` 后取消注释重启即可，CPU 超 70% 才自动采样。
+
+### 动态配置（common/hotconfig，etcd watch）
+
+运行时改配置不重启：watch 一个 etcd key，`PUT` 即原子替换配置快照，解析失败保留旧值。
+
+```bash
+etcdctl put im/hotcfg/message '{"send_rate_limit": 100, "log_level": "debug"}'
+```
+
+接入方法见包注释 `common/hotconfig/hotconfig.go`（泛型 + 变更回调，适合限流阈值/日志级别）。
+
+---
+
 ## ⚠️ 已知限制
 
 - 各 yaml 中的数据库/MinIO 凭证为**明文开发默认值**，不可用于生产，公开部署前务必环境变量化。
@@ -272,4 +314,47 @@ go build ./...     # 编译
 go vet ./...       # 静态检查
 go run test/binarygen.go   # WS 二进制帧联调样例
 ```
+
+---
+
+## 🗺️ Roadmap
+
+> 按里程碑组织；带"（已预留）"的条目表示代码/配置/协议层已埋点，只差接线。
+
+### v0.1 — 生产可用基线
+
+- [ ] 建表脚本全量入库：user/group/message 服务 DDL 补齐至 `docs/sql/`（pg_trgm 索引脚本已有）
+- [ ] Docker Compose 一键部署：etcd / Kafka / PostgreSQL / Redis / MinIO / Jaeger 全家桶 + 各服务健康检查
+- [ ] 配置安全化：数据库/MinIO 凭证环境变量化，接入密管（当前为明文开发默认值）
+- [ ] 单元测试与 CI 流水线（`go build` / `go vet` / `go test` / 生成代码一致性检查）
+- [ ] `im.event.notify` 消费者接线（已预留）：上下线 / 群变更实时通知
+- [ ] 撤回实时感知：对方在线时推撤回事件帧，不再等 Sync 兜底
+- [ ] 集中式限流：Redis 滑动窗口替代进程内桶（阈值经 hotconfig 热更新，已预留）
+- [ ] 压测基线报告：WS 长连接数 / 消息吞吐 / 推送 P99（wrk + 自研帧工具）沉淀为文档
+
+### v0.2 — 消息与多端体验增强
+
+- [ ] 会话列表服务端化：多端消息漫游，新设备登录即得完整会话与未读
+- [ ] 富媒体闭环：客户端接入文件三步上传流，图片/语音/视频/文件消息端到端可发
+- [ ] 已读回执发送方实时感知：阅读方 Ack 后向发送方推已读事件（协议帧已预留）
+- [ ] 好友在线状态订阅：上下线事件经 `im.event.notify` 推给关注者
+- [ ] 消息搜索：服务端全文检索（pg_trgm / full-text，索引脚本已预留）
+- [ ] Web 演示客户端：轻量 Web 端（复用 REST + WS 协议）降低联调门槛
+
+### v1.0 — 平台化与治理
+
+- [ ] 离线推送通道：APNs / FCM 厂商通道，App 被杀也能收到新消息提醒
+- [ ] 内容审核接入：文件与消息双审核（审核状态机已预留），审核拒绝自动撤回
+- [ ] 运营后台与治理：封禁 / 审计日志 / 敏感词
+- [ ] 告警体系：Prometheus 告警规则 + 钉钉/飞书/Webhook 通知渠道，值班轮转
+- [ ] 持续 profiling 上线：Pyroscope（配置已预留），与 Grafana 联动
+- [ ] v1.0 稳定版发布：协议冻结，语义化版本
+
+### 长期展望
+
+- 端到端加密（密钥协商 + 消息体加密，服务端仅存密文）
+- 音视频通话（WebRTC 信令复用现有 WS 网关）
+- 消息冷热分层：历史消息归档 ClickHouse / 对象存储，检索与成本兼得
+- 多租户 / SaaS 化：租户隔离与配额
+- 跨区域异地多活：按用户分片的单元化部署
 
