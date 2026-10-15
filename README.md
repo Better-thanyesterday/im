@@ -18,7 +18,7 @@
 - **gateway**：WebSocket 网关（:18890），长连接接入、心跳保活、同设备互踢。
 - **五个 RPC 服务**：`user` / `group` / `message` / `push` / `file`，按服务分库（PostgreSQL）。
 - **消息链路**：`WriteDiffBundle` 单载荷经 Kafka（单 topic 单消费组）异步落库，会话内有序、幂等可重放。
-- **桌面客户端**：[im-wails](https://github.com/your-org/im-wails)（Wails v2 + Vue 3，独立仓库）。
+- **桌面客户端**：[im-wails](https://github.com/your-org/im-wails)（Wails v2 + Vue 3，独立仓库 正在开发中）。
 
 ---
 
@@ -39,10 +39,9 @@
 - 可靠性：消费端幂等（InsertIgnore / UpsertMaxSeq）、失败批次后台补偿、Redis SETNX 发送去重
 - 可观测性：OTLP → Jaeger 全链路追踪，DevServer 暴露 Prometheus 指标与 pprof
 
-### 🚧 半成品（有后端、待补全）
+### 🚧 半成品（待补全）
 
 - 撤回的对方实时感知（目前落库 status=2，对方经 Sync 才能感知）
-- 入群申请审批：后端 RPC 完整，客户端尚无 UI
 - 富媒体展示：客户端发图片/文件的上传三步流程未接入
 - `im.event.notify` 事件广播 topic：已定义，尚无消费者（上下线/群变更通知未通）
 
@@ -50,9 +49,9 @@
 
 - [ ] 内容审核（文件与消息，审核状态机已预留）
 - [ ] 生产部署：Docker Compose / K8s、配置环境变量化（当前 yaml 含明文开发凭证）
-- [ ] 单元测试与 CI（当前仅 `go build` / `go vet` 把关）
+- [ ] 单元测试与性能测试
 - [ ] 多端消息漫游、会话列表服务端化（当前由客户端本地组装）
-- [ ] 限流阈值 etcd 热更新（hotconfig 包已就绪，未接线）
+- [ ] 限流阈值 etcd 热更新
 
 ---
 
