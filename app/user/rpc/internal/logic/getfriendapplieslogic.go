@@ -24,11 +24,16 @@ func NewGetFriendAppliesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 }
 
 func (l *GetFriendAppliesLogic) GetFriendApplies(in *user.GetFriendAppliesReq) (*user.GetFriendAppliesResp, error) {
-	// todo: add your logic here and delete this line
+	// status=0(未指定)按"待处理"处理:SQL 是 status = $2 精确匹配,
+	// 传 0 会恒返回空,而前端默认就不带这个参数
+	status := in.Status
+	if status == 0 {
+		status = 1 // 1=pending
+	}
 	rows, err := l.svcCtx.FriendAppliesModel.FindByTargetWithUserInfo(
 		l.ctx,
 		in.UserId,
-		in.Status,
+		status,
 		in.Page,
 		in.PageSize,
 	)

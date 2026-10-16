@@ -49,3 +49,11 @@ Kafka:
     RetryMax: 3
     Compression: none
     MaxMessageBytes: 1048576
+  # go-zero 的 mq.Config 要求 Producer/Consumer 两块都存在才通过校验,
+  # 本服务只发不收,这里的 Consumer 仅为满足配置校验(不参与实际消费)
+  Consumer:
+    GroupID:
+      - group-event-group
+    OffsetInitial: latest
+    SessionTimeout: 10s
+    HeartbeatInterval: 3s

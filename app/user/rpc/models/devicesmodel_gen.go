@@ -83,7 +83,7 @@ func (m *defaultDevicesModel) FindOne(ctx context.Context, id int64) (*Devices, 
 }
 
 func (m *defaultDevicesModel) FindByUserId(ctx context.Context, userid int64) ([]Devices, error) {
-	query := fmt.Sprintf("select %s from %s where user_id = $1", devicesRows, m.table)
+	query := fmt.Sprintf("select %s from %s where userid = $1", devicesRows, m.table)
 	var resp []Devices
 	err := m.conn.QueryRowsCtx(ctx, &resp, query, userid)
 	if err != nil {

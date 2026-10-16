@@ -59,6 +59,7 @@ func (l *LoginLogic) Login(req *types.LoginReq) (*types.LoginResp, error) {
 	// 不在这里写在线表:HTTP 登录还没建 WS,写的是"幽灵在线";
 	// 在线状态由 gateway 的 WS 连接注册统一写入并由心跳续期
 	return &types.LoginResp{
-		Token: token,
+		Token:  token,
+		UserID: loginResp.Userid,
 	}, nil
 }

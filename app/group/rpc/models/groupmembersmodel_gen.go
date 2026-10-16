@@ -119,7 +119,7 @@ func (m *defaultGroupmembersModel) GetBatchMemberInfo(ctx context.Context, group
            (EXTRACT(epoch FROM join_time)*1000)::bigint AS join_time,
            (EXTRACT(epoch FROM mute_until)*1000)::bigint AS mute_until
     FROM %s
-    WHERE group_id = $1 AND id < $2
+    WHERE group_id = $1 AND ($2 = 0 OR id < $2)
     ORDER BY id DESC
     LIMIT $3
 	`, m.table)

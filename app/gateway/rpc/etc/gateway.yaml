@@ -1,15 +1,19 @@
 Name: gateway.rpc
-ListenOn: 0.0.0.0:18001
-Etcd:
-  Hosts:
-  - 127.0.0.1:2379
-  Key: gateway.rpc
+# GatewayRpc 是**具名字段**(zrpc.RpcServerConf),Name/ListenOn/Etcd 必须包在它自己的块里
+GatewayRpc:
+  Name: gateway.rpc
+  ListenOn: 0.0.0.0:18001
+  Etcd:
+    Hosts:
+    - 127.0.0.1:2379
+    Key: gateway.rpc
 
 # WS/HTTP 入口:客户端连 ws://<host>:18890/ws(带 Authorization: Bearer <token>)
-RestConf:
-  Host: 0.0.0.0
-  Port: 18890
-  Timeout: 0
+# 注意:Config 里内嵌的是 rest.RestConf,其字段(Name/Host/Port/Timeout)必须写在**顶层**,
+# 不能像这样包成 RestConf: 块 —— 否则启动即 "field Port is not set"
+Host: 0.0.0.0
+Port: 18890
+Timeout: 0
 
 # 上行消息转发到 message rpc
 MsgRpc:
@@ -32,10 +36,21 @@ Kafka:
     RetryMax: 3
     Compression: none
     MaxMessageBytes: 1048576
+  # go-zero 的 mq.Config 要求 Producer/Consumer 两块都存在才通过校验
+  Consumer:
+    GroupID:
+      - gateway-event-group
+    OffsetInitial: latest
+    SessionTimeout: 10s
+    HeartbeatInterval: 3s
 
-# 写入在线表供 push 直连;127.0.0.1 会在启动时自动替换为本机对外 IP
+# 写入在线表供 push 直连。
+# 写回环地址会被 normalizeAdvertiseAddr 自动替换成 AdvertiseHost() 的结果,
+# 而它取的是"第一个非回环 IPv4"(不认默认路由接口),本机可能挑到 169.254.x.x
+# 这类不可达地址 → push 按它投递会静默失败、实时推送全断。
+# 所以这里显式写本机可达 IP;**换网络环境要同步改这一行**(或改用默认路由网卡)。
 Gateway:
-  GrpcAddr: "127.0.0.1:18001"
+  GrpcAddr: "192.168.0.101:18001"
   BucketNum: 16
 
 # 链路追踪:OTLP gRPC 上报 Jaeger(v2, OTLP receiver 4317)

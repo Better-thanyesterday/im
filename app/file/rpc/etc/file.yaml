@@ -13,9 +13,11 @@ Snowflake:
   WorkNode: 0  # 0=按 IP+PID 自动派生,多副本不撞号
 
 Minio:
-  Endpoint: 127.0.0.1:9000
+  # 必须带 scheme:AWS SDK 只接受合法 URI,"127.0.0.1:9000" 会在建立 bucket 时 panic
+  Endpoint: http://127.0.0.1:9000
   AccessKey: root
-  SecretKey: root
+  # MinIO 强制 root 密码 >=8 位,本地启动 MinIO 时用同一组凭据
+  SecretKey: rootroot
   Bucket: im-files
   UseSSL: false
 

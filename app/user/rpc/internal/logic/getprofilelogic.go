@@ -26,7 +26,10 @@ func NewGetProfileLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetPro
 
 // 用户资料
 func (l *GetProfileLogic) GetProfile(in *user.GetProfileReq) (*user.Profile, error) {
-	// todo: add your logic here and delete this line
+	// 0 = 查本人:用调用方身份兜底,否则 FindOne(0) 恒无行
+	if in.UserId == 0 {
+		in.UserId = in.ViewerId
+	}
 	u, err := l.svcCtx.UsersModel.FindOne(l.ctx, in.UserId)
 	if err != nil {
 		logx.Errorf("Get Profile fail")

@@ -125,8 +125,8 @@ func (m *defaultFriendappliesModel) FindByTargetWithUserInfo(ctx context.Context
             fa.target_id,
             fa.apply_reason,
             fa.status,
-            EXTRACT(epoch FROM fa.created_at) * 1000 AS created_at,
-            EXTRACT(epoch FROM fa.handled_at) * 1000 AS handled_at
+            (EXTRACT(epoch FROM fa.created_at) * 1000)::bigint AS created_at,
+            COALESCE((EXTRACT(epoch FROM fa.handled_at) * 1000)::bigint, 0) AS handled_at
         FROM %s fa
         LEFT JOIN users u ON fa.applicant_id = u.id
         WHERE fa.target_id = $1 AND fa.status = $2

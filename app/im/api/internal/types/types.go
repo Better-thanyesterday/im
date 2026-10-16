@@ -23,7 +23,8 @@ type LoginReq struct {
 }
 
 type LoginResp struct {
-	Token string `json:"token"`
+	Token  string `json:"token"`
+	UserID int64  `json:"user_id"` // 登录者 uid:客户端拼单聊 conv_id(min:max) 必用
 }
 
 type RegisterReq struct {
@@ -47,7 +48,7 @@ type ResetPasswordReq struct {
 // ==================== 用户资料/设备 ====================
 
 type ProfileReq struct {
-	UserID int64 `json:"user_id,optional"` // 0=查本人
+	UserID int64 `form:"user_id,optional"` // 0=查本人
 }
 
 type ProfileResp struct {
@@ -96,10 +97,10 @@ type KickDeviceReq struct {
 // ==================== 好友 ====================
 
 type GetFriendsReq struct {
-	FriendGroupID int64  `json:"friend_group_id,optional"`
-	Keyword       string `json:"keyword,optional"`
-	Page          int32  `json:"page,optional"`
-	PageSize      int32  `json:"page_size,optional"`
+	FriendGroupID int64  `form:"friend_group_id,optional"`
+	Keyword       string `form:"keyword,optional"`
+	Page          int32  `form:"page,optional"`
+	PageSize      int32  `form:"page_size,optional"`
 }
 
 type Friend struct {
@@ -117,9 +118,9 @@ type GetFriendsResp struct {
 }
 
 type GetFriendAppliesReq struct {
-	Status   int32 `json:"status,optional"`
-	Page     int32 `json:"page,optional"`
-	PageSize int32 `json:"page_size,optional"`
+	Status   int32 `form:"status,optional"`
+	Page     int32 `form:"page,optional"`
+	PageSize int32 `form:"page_size,optional"`
 }
 
 type FriendApply struct {
@@ -198,7 +199,7 @@ type InviteMemberResp struct {
 }
 
 type GetGroupInfoReq struct {
-	GroupID int64 `json:"group_id"`
+	GroupID int64 `form:"group_id"`
 }
 
 type GroupInfo struct {
@@ -223,9 +224,9 @@ type GetGroupInfoResp struct {
 }
 
 type GetMembersReq struct {
-	GroupID  int64 `json:"group_id"`
-	LastID   int64 `json:"last_id,optional"`   // 游标,首页传 0
-	PageSize int32 `json:"page_size,optional"` // 默认 200,最大 200
+	GroupID  int64 `form:"group_id"`
+	LastID   int64 `form:"last_id,optional"`   // 游标,首页传 0
+	PageSize int32 `form:"page_size,optional"` // 默认 200,最大 200
 }
 
 type Member struct {
@@ -294,7 +295,7 @@ type ApplyJoinGroupResp struct {
 }
 
 type GetMemberVersionReq struct {
-	GroupID int64 `json:"group_id"`
+	GroupID int64 `form:"group_id"`
 }
 
 type GetMemberVersionResp struct {
@@ -348,7 +349,7 @@ type CompleteUploadResp struct {
 }
 
 type GetFileMetaReq struct {
-	FileID string `json:"file_id"`
+	FileID string `form:"file_id"`
 }
 
 type FileMeta struct {
@@ -364,8 +365,8 @@ type FileMeta struct {
 }
 
 type GeneratePresignedUrlReq struct {
-	FileID string `json:"file_id"`
-	Expiry int32  `json:"expiry,optional"` // 秒,默认 900
+	FileID string `form:"file_id"`
+	Expiry int32  `form:"expiry,optional"` // 秒,默认 900
 }
 
 type GeneratePresignedUrlResp struct {

@@ -36,6 +36,7 @@ func (l *GetGroupInfoLogic) GetGroupInfo(in *group.GetGroupInfoReq) (*group.GetG
 			Name:             g.Name,
 			Avatar:           g.Avatar.String,
 			Notice:           g.Notice.String,
+			OwnerId:          g.OwnerId,
 			MemberCount:      int32(g.MemberCount),
 			MaxMember:        int32(g.MaxMember),
 			JoinApproval:     int32(g.JoinApproval),

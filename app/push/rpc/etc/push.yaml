@@ -9,6 +9,13 @@ Etcd:
 Kafka:
   Brokers:
     - 127.0.0.1:9092  # 多机部署时改为 Kafka 集群地址
+  # go-zero 的 mq.Config 要求 Producer/Consumer 两块都存在才通过校验,
+  # 本服务只收不发,这里的 Producer 仅为满足配置校验
+  Producer:
+    Acks: -1
+    RetryMax: 3
+    Compression: none
+    MaxMessageBytes: 1048576
   Consumer:
     GroupID:
       - push-event-group

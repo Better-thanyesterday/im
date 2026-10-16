@@ -47,7 +47,8 @@ func (l *DeliverLogic) deliver(ctx context.Context, in *push.DeliverReq, body []
 		}
 		body = b
 	}
-	onlineKey := fmt.Sprintf("im:online:%d", in.UserId)
+	// gateway 在线表键是 im:online:gw:{uid},
+	onlineKey := fmt.Sprintf("im:online:gw:%d", in.UserId)
 	// 1. 查询用户全端在线状态（Hash: field=设备类型, value=gateway地址）
 	onlineDevices, err := l.svcCtx.Redis.HgetallCtx(l.ctx, onlineKey)
 	if err != nil {

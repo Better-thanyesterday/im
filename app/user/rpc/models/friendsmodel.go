@@ -113,7 +113,7 @@ func (m *customFriendsModel) FindFriendsByUserID(ctx context.Context, userID int
 		COALESCE(u.avatar, '') AS avatar,
 		COALESCE(f.remark, '') AS remark,
 		COALESCE(f.friend_group_id, 0) AS friend_group_id,
-		EXTRACT(epoch FROM f.created_at) * 1000 AS created_at
+		(EXTRACT(epoch FROM f.created_at) * 1000)::bigint AS created_at
 	FROM %s f
 	LEFT JOIN users u ON f.friend_id = u.id
 	WHERE f.user_id = $1
