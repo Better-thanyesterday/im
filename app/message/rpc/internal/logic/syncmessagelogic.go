@@ -247,7 +247,7 @@ func (l *SyncMessageLogic) toMessage(m *models.Messages) *message.MessageBody {
 			return nil
 		}
 	}
-	return &message.MessageBody{
+	body := &message.MessageBody{
 		Id:          m.Id,
 		SeqId:       m.Seqid,
 		SenderId:    m.Senderid,
@@ -256,5 +256,13 @@ func (l *SyncMessageLogic) toMessage(m *models.Messages) *message.MessageBody {
 		Content:     msgContent,
 		SendTime:    m.Sendtime.UnixMilli(),
 		ClientMsgId: m.Clientmsgid,
+		// 必须带 status:否则撤回过的消息同步回来时只剩正文,客户端会当正常消息渲染
+		// (撤回当时不在线的端必然踩到)
+		Status: message.MsgStatus(m.Status),
 	}
+	if m.Recalledby.Valid {
+		recalledBy := m.Recalledby.Int64
+		body.RecalledBy = &recalledBy
+	}
+	return body
 }

@@ -65,8 +65,10 @@ func (m *customFriendappliesModel) InsertApply(ctx context.Context, data *Friend
 func (m *customFriendappliesModel) AcceptFriendTx(ctx context.Context, applyID, applicantID, targetID int64, remark string) error {
 	return m.conn.TransactCtx(ctx, func(ctx context.Context, session sqlx.Session) error {
 		sconn := sqlx.NewSqlConnFromSession(session)
-		upd := fmt.Sprintf("update %s set status = $1, handler_remark = $2, handled_at = now() where id = $3 and status = 1", m.table)
-		res, err := sconn.ExecCtx(ctx, upd, 2, remark, applyID)
+		// handler_id 记录处理人(此处的处理人即接受方 targetID);
+		// 占位符顺序必须与 args 顺序一致:$1 status / $2 remark / $3 handler / $4 id
+		upd := fmt.Sprintf("update %s set status = $1, handler_remark = $2, handler_id = $3, handled_at = now() where id = $4 and status = 1", m.table)
+		res, err := sconn.ExecCtx(ctx, upd, 2, remark, targetID, applyID)
 		if err != nil {
 			return err
 		}
